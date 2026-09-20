@@ -82,17 +82,19 @@ class IdentityService:
 
     async def login(self, email: str, password: str) -> TokenResponse:
         user = await self.user_repo.get_by_email(email)
+
+        # Correo inexistente y contraseña incorrecta devuelven la misma respuesta.
+        # Distinguirlas permitiria averiguar que correos tienen cuenta en SINKA.
+        credenciales_invalidas = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No encontramos una cuenta con ese correo.",
-            )
+            raise credenciales_invalidas
         if not self.verify_password(password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Contraseña incorrecta. Inténtalo de nuevo.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise credenciales_invalidas
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -108,6 +110,55 @@ class IdentityService:
         if not user or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado.")
         return UserResponse.model_validate(user)
+
+    # ------------------------------------------------------------------
+    # Perfil y onboarding
+    # ------------------------------------------------------------------
+
+    async def update_profile(self, user_id: str, cambios: dict) -> UserResponse:
+        """Actualizacion parcial del perfil. Solo toca los campos enviados."""
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+
+        user = await self.user_repo.update_fields(user, **cambios)
+        return UserResponse.model_validate(user)
+
+    async def complete_onboarding(
+        self,
+        user_id:    str,
+        alias:      str,
+        avatar_url: str | None,
+        interests:  list[str],
+        language:   str,
+    ) -> UserResponse:
+        """
+        Cierra el onboarding de cuatro pasos y marca la cuenta como lista.
+        Solo se ejecuta una vez; si ya estaba completo devuelve el perfil actual.
+        """
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+
+        if user.onboarding_completed:
+            return UserResponse.model_validate(user)
+
+        user.alias = alias
+        user.avatar_url = avatar_url
+        user.interests = interests
+        user.language = language
+        user.onboarding_completed = True
+
+        user = await self.user_repo.update_fields(user)
+        return UserResponse.model_validate(user)
+
+    async def search_users(self, termino: str, actual_id: str) -> list[UserResponse]:
+        """Busqueda de usuarios por nombre. Minimo dos caracteres."""
+        termino = termino.strip()
+        if len(termino) < 2:
+            return []
+        encontrados = await self.user_repo.search(termino, excluir_id=actual_id)
+        return [UserResponse.model_validate(u) for u in encontrados]
 
     async def _issue_tokens(self, user: User) -> TokenResponse:
         access_token = self.create_access_token(user.id)

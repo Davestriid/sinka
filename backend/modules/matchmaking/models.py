@@ -24,6 +24,8 @@ class Match(Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    # Categoria de actividad con la que se emparejaron. Null en matches antiguos.
+    topic: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

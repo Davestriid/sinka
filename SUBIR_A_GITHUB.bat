@@ -1,50 +1,53 @@
 @echo off
+chcp 65001 > nul
 SET "ROOT=%~dp0"
+SET "LOG=%ROOT%subida_resultado.txt"
+
 cd /d "%ROOT%"
 
-echo.
-echo ==========================================
-echo   SINKA - Subir proyecto a GitHub
-echo   Repo: github.com/Davestriid/sinka
-echo ==========================================
-echo.
+echo ====== Subida a GitHub ====== > "%LOG%"
+echo Fecha: %DATE% %TIME% >> "%LOG%"
+echo. >> "%LOG%"
 
-REM Limpiar git roto si existe
-if exist ".git" (
-    echo [INFO] Limpiando repositorio git anterior...
-    rmdir /s /q .git
+echo ---- [1] Comprobacion de seguridad ---- >> "%LOG%"
+git check-ignore -v backend\.env PEGAR_EN_RENDER.txt >> "%LOG%" 2>&1
+if errorlevel 1 (
+    echo. >> "%LOG%"
+    echo ALTO: algun archivo con claves NO esta ignorado. No se sube nada. >> "%LOG%"
+    goto :fin
 )
+echo   backend\.env y PEGAR_EN_RENDER.txt estan ignorados. Correcto. >> "%LOG%"
+echo. >> "%LOG%"
 
-REM Inicializar git limpio
-echo [INFO] Inicializando repositorio...
-git init -b main
-git config user.email "jdavecalleh@gmail.com"
-git config user.name "David"
+echo ---- [2] Que va a subir ---- >> "%LOG%"
+git add -A >> "%LOG%" 2>&1
+git status --short >> "%LOG%" 2>&1
+echo. >> "%LOG%"
 
-REM Agregar todos los archivos respetando .gitignore
-echo [INFO] Agregando archivos...
-git add .
+echo ---- [3] Verificar que ningun secreto entro al indice ---- >> "%LOG%"
+git diff --cached --name-only | findstr /I /C:".env" /C:"PEGAR_EN_RENDER" > nul
+if not errorlevel 1 (
+    echo ALTO: hay un archivo de secretos en el indice. Se cancela. >> "%LOG%"
+    git reset >> "%LOG%" 2>&1
+    goto :fin
+)
+echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
+echo. >> "%LOG%"
 
-REM Mostrar resumen de lo que se va a subir
-echo.
-echo [INFO] Archivos que se van a subir:
-git status --short
-echo.
+echo ---- [4] Commit ---- >> "%LOG%"
+git commit -m "feat: modulos social, grupos, citas y confianza + migraciones 0005-0009 + votacion de extension" >> "%LOG%" 2>&1
+echo. >> "%LOG%"
 
-REM Commit inicial
-git commit -m "feat: SINKA v1.0.0 - Full stack (FastAPI + Next.js 14)"
+echo ---- [5] Push ---- >> "%LOG%"
+git push origin main >> "%LOG%" 2>&1
+echo. >> "%LOG%"
 
-REM Conectar con el repo existente y hacer push forzado
-echo [INFO] Conectando con GitHub...
-git remote add origin https://github.com/Davestriid/sinka.git
+echo ---- [6] Estado final ---- >> "%LOG%"
+git log --oneline -5 >> "%LOG%" 2>&1
 
-echo [INFO] Subiendo codigo (esto reemplazara el contenido anterior)...
-git push --force -u origin main
-
-echo.
-echo ==========================================
-echo   [OK] Proyecto subido exitosamente!
-echo   URL: https://github.com/Davestriid/sinka
-echo ==========================================
+:fin
+echo. >> "%LOG%"
+echo ====== FIN ====== >> "%LOG%"
+type "%LOG%"
 echo.
 pause

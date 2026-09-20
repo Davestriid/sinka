@@ -23,6 +23,8 @@ from datetime import date
 from typing import Any
 
 from core.database import AsyncSessionLocal
+from modules.gamification.models import SessionPenalty
+from modules.gamification.services import trust_service
 from modules.gamification.repositories.gamification_repository import GamificationRepository
 from modules.gamification.schemas.gamification import XPAwardResult
 
@@ -140,16 +142,21 @@ class GamificationService:
         Solo se otorga XP/FC si reason == "timer_completed".
         """
         reason = payload.get("reason", "")
+        user_ids = [payload["user_a_id"], payload["user_b_id"]]
+
         if reason != "timer_completed":
             logger.info(
                 "GamificationService: sesion %s finalizada por '%s' — sin XP",
                 payload.get("session_id"), reason,
             )
+            # Quien abandona pierde confianza. No se otorga XP, pero tampoco se
+            # ignora el hecho: dejar al companero solo tiene consecuencia.
+            if reason == "user_left":
+                await self._penalizar_abandono(payload)
             return
 
         rounds      = int(payload.get("rounds_completed", 1))
         plant_stage = payload.get("plant_stage", "")
-        user_ids    = [payload["user_a_id"], payload["user_b_id"]]
 
         async with AsyncSessionLocal() as db:
             repo = GamificationRepository(db)
@@ -161,6 +168,58 @@ class GamificationService:
                         "GamificationService: error otorgando recompensas a %s: %s",
                         user_id, exc,
                     )
+
+    async def _penalizar_abandono(self, payload: dict[str, Any]) -> None:
+        """
+        Baja el puntaje de confianza de quien se fue y lo sube al que se quedo.
+
+        quien_salio llega en el payload. Si no viene, no se penaliza a nadie:
+        es preferible dejar pasar un abandono que castigar al inocente.
+        """
+        quien_salio = payload.get("left_by")
+        if not quien_salio:
+            return
+
+        severidad = payload.get("penalty_severity", "normal")
+        minutos   = int(payload.get("minutes_elapsed", 0) or 0)
+        session_id = payload.get("session_id")
+
+        companero = (
+            payload["user_b_id"] if quien_salio == payload["user_a_id"]
+            else payload["user_a_id"]
+        )
+
+        async with AsyncSessionLocal() as db:
+            repo = GamificationRepository(db)
+            try:
+                stats = await repo.get_or_create(quien_salio)
+                resultado = trust_service.penalizar_abandono(
+                    stats.trust_score, severidad, minutos
+                )
+                stats.trust_score = resultado.score
+                stats.sessions_abandoned += 1
+
+                db.add(SessionPenalty(
+                    user_id=quien_salio,
+                    session_id=session_id,
+                    reason="abandono_de_sesion",
+                    severity=severidad,
+                    points=resultado.delta,
+                    minutes_elapsed=minutos,
+                ))
+
+                # Quien se quedo no tiene la culpa: recupera un poco de confianza
+                stats_companero = await repo.get_or_create(companero)
+                recuperacion = trust_service.recuperar_por_sesion(stats_companero.trust_score)
+                stats_companero.trust_score = recuperacion.score
+
+                await db.commit()
+                logger.info(
+                    "Confianza: %s abandono la sesion %s (%+d puntos, queda en %d)",
+                    quien_salio, session_id, resultado.delta, resultado.score,
+                )
+            except Exception:
+                logger.exception("No se pudo aplicar la penalizacion de confianza")
 
     # ── Lógica de negocio ─────────────────────────────────────────────────────
 

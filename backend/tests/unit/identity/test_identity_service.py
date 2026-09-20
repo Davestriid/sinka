@@ -41,6 +41,14 @@ def make_user(**kwargs) -> User:
         "username": "testuser",
         "hashed_password": "$2b$12$fakehash",
         "is_active": True,
+        # Campos de perfil y onboarding
+        "alias": None,
+        "avatar_url": None,
+        "bio": None,
+        "language": "es",
+        "theme": "light",
+        "interests": None,
+        "onboarding_completed": False,
     }
     defaults.update(kwargs)
     user = MagicMock(spec=User)

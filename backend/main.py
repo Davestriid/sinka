@@ -1,3 +1,4 @@
+
 import logging
 import traceback
 
@@ -13,15 +14,23 @@ from core.middleware import SecurityHeadersMiddleware
 from modules.gamification.api.router import router as gamification_router
 from modules.gamification.api.shop_router import router as shop_router
 from modules.gamification.services.gamification_service import gamification_service
+from modules.groups.api.router import router as groups_router
+from modules.identity.api.router import catalog_router
 from modules.identity.api.router import router as identity_router
 from modules.matchmaking.api.router import router as matchmaking_router
+from modules.scheduling.api.router import router as scheduling_router
 from modules.sessions.api.router import router as sessions_router
+from modules.social.api.router import garden_router
+from modules.social.api.router import router as social_router
 from modules.sessions.services.session_service import session_service
 
 # Importar modelos para que Alembic los detecte en el contexto de la app
 import modules.gamification.models  # noqa: F401
 import modules.matchmaking.models   # noqa: F401
 import modules.sessions.models      # noqa: F401
+import modules.social.models        # noqa: F401
+import modules.groups.models        # noqa: F401
+import modules.scheduling.models    # noqa: F401
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -44,10 +53,41 @@ app.add_middleware(
 
 # Routers
 app.include_router(identity_router,    prefix="/api")
+app.include_router(catalog_router,     prefix="/api")
 app.include_router(matchmaking_router, prefix="/api")
 app.include_router(sessions_router,    prefix="/api")
 app.include_router(gamification_router, prefix="/api")
 app.include_router(shop_router,         prefix="/api")
+app.include_router(social_router,       prefix="/api")
+app.include_router(garden_router,       prefix="/api")
+app.include_router(groups_router,       prefix="/api")
+app.include_router(scheduling_router,   prefix="/api")
+
+
+async def _regar_jardin(payload: dict) -> None:
+    """
+    Riega la planta del vinculo cuando termina una sesion.
+
+    El EventBus corre fuera del ciclo de peticiones de FastAPI, asi que aqui
+    se abre una sesion de base de datos propia y se cierra al terminar.
+    """
+    from core.database import AsyncSessionLocal
+    from modules.identity.repositories.user_repository import UserRepository
+    from modules.social.repositories.social_repository import (
+        FriendshipRepository,
+        GardenRepository,
+        QuotaRepository,
+    )
+    from modules.social.services.social_service import SocialService
+
+    async with AsyncSessionLocal() as db:
+        service = SocialService(
+            friend_repo=FriendshipRepository(db),
+            quota_repo=QuotaRepository(db),
+            garden_repo=GardenRepository(db),
+            user_repo=UserRepository(db),
+        )
+        await service.on_session_completed(payload)
 
 
 @app.on_event("startup")
@@ -60,6 +100,8 @@ async def startup_event() -> None:
     EventBus.subscribe("match.created", session_service.on_match_created)
     # Sessions -> Gamification: cuando termina una sesion, actualizar XP y racha
     EventBus.subscribe("session.completed", gamification_service.on_session_completed)
+    # Sessions -> Social: si los dos son amigos, la sesion riega su planta
+    EventBus.subscribe("session.completed", _regar_jardin)
 
     logger.info(
         "SINKA API iniciada (v%s). EventBus configurado. "
@@ -106,3 +148,4 @@ async def health_check():
         },
         "version": settings.app_version,
     }
+    

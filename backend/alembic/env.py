@@ -7,10 +7,16 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from core.config import settings
 from core.database import Base
 
-# Importar todos los modelos para que Alembic los detecte
-import modules.identity.models     # noqa: F401
-import modules.matchmaking.models  # noqa: F401
-import modules.sessions.models     # noqa: F401
+# Importar todos los modelos para que Alembic los detecte.
+# Si falta alguno, su tabla no aparece en Base.metadata y un autogenerate
+# la interpretaria como sobrante, proponiendo borrarla.
+import modules.identity.models      # noqa: F401
+import modules.matchmaking.models   # noqa: F401
+import modules.sessions.models      # noqa: F401
+import modules.gamification.models  # noqa: F401
+import modules.social.models        # noqa: F401
+import modules.groups.models        # noqa: F401
+import modules.scheduling.models    # noqa: F401
 
 config = context.config
 

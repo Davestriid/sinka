@@ -5,7 +5,20 @@
 
 > **Documento de referencia técnica y de gobernanza del proyecto.**
 > Clasificación: Artefacto formal de inicio de proyecto bajo marco Scrum + XP.
-> Versión: 1.2.0 | Fecha de emisión: 2026-06-04 | Última revisión: 2026-06-30 | Estado: **APROBADO**
+> Versión: 1.4.0 | Fecha de emisión: 2026-06-04 | Última revisión: 2026-08-31 | Estado: **APROBADO**
+>
+> **Changelog v1.4.0:** Incorporación de la Sección 9 — Brecha entre el Prototipo y el Sistema Real.
+> Compara el alcance del prototipo validado contra el código en producción y define el plan de
+> construcción de la capa social. Se documentan tres módulos nuevos (social, groups, scheduling),
+> seis tablas nuevas, los endpoints y pantallas faltantes, y cinco reglas de negocio nuevas.
+> Se replantea el emparejamiento hacia un modelo por afinidad de categoría con respaldo a cola
+> general. Roadmap extendido con los Sprints S7 a S11.
+>
+> **Changelog v1.3.0:** Incorporación de Sección 8 — Estado Actual del Prototipo Frontend.
+> Documenta el alcance funcional completo del prototipo React/HTML: autenticación, onboarding,
+> dashboard, matchmaking, sala de sesión, amigos, grupos, citas, jardín, progresión y moderación.
+> Se establece explícitamente que el sistema es un prototipo frontend sin backend real: toda la
+> lógica y el estado viven en memoria del cliente (sin persistencia, red ni servidor).
 >
 > **Changelog v1.2.0:** Incorporación de Sección 7 — Metodología Scrum completa (Pre-Juego, Juego,
 > Post-Juego) con Requisitos Funcionales/No Funcionales, Historias de Usuario, Sprint Planning,
@@ -28,6 +41,8 @@
 5. [Definition of Done (DoD)](#5-definición-de-hecho-definition-of-done--dod)
 6. [Riesgos Técnicos y Restricciones](#6-riesgos-técnicos-y-restricciones)
 7. [Metodología Scrum: Pre-Juego, Juego y Post-Juego](#7-metodología-scrum-pre-juego-juego-y-post-juego)
+8. [Estado Actual del Prototipo Frontend](#8-estado-actual-del-prototipo-frontend)
+9. [Brecha entre el Prototipo y el Sistema Real](#9-brecha-entre-el-prototipo-y-el-sistema-real)
 
 ---
 
@@ -153,6 +168,11 @@ SINKA/
 │
 └── main.py                      ← Entry point: monta todos los módulos en la app ASGI
 ```
+
+> **Ampliación prevista (v1.4.0).** La capa social del prototipo exige tres módulos adicionales que
+> siguen este mismo patrón: `social` (amistades y jardín de vínculos), `groups` (grupos y sala de
+> espera) y `scheduling` (citas programadas). Su estructura y modelo de datos se detallan en la
+> Sección 9.3 y 9.4.
 
 ---
 
@@ -646,7 +666,7 @@ El proyecto mantiene una arquitectura de **Monolito Modular** en el código. La 
 | :---------------------------- | :------------------- | :---------------------------------------------------------------------------------------------------- |
 | **Frontend (Next.js)**        | **Vercel**           | Subdominio gratuito, HTTPS nativo, CDN Edge global. Auto-deploy con cada `push`.                     |
 | **Backend (FastAPI/ASGI)**    | **Render**           | Plataforma Python/ASGI gestionada. WebSockets persistentes nativos.                                   |
-| **Base de Datos Relacional**  | **Neon**             | PostgreSQL serverless con pooling incluido. Sin gestión manual.                                        |
+| **Base de Datos Relacional**  | **Supabase**         | PostgreSQL gestionado con pooler propio. El pooler acepta IPv4, necesario desde redes domésticas.      |
 | **Redis**                     | **Upstash**          | Redis Serverless < 1ms latencia. 10,000 comandos/día en free tier.                                    |
 | **STUN Server (WebRTC)**      | **Google**           | `stun.l.google.com:19302`. Público, gratuito, sin límites.                                            |
 | **TURN Server (WebRTC)**      | **Metered.ca**       | Free tier 0.5GB/mes (~100 h vídeo). Elimina riesgo de NAT simétrico para demos.                       |
@@ -658,7 +678,7 @@ El proyecto mantiene una arquitectura de **Monolito Modular** en el código. La 
 | :--------------- | :----------------------- | :-------- |
 | Vercel           | 100GB bandwidth          | $0        |
 | Render           | 750 h/mes instancia      | $0        |
-| Neon             | 0.5GB almacenamiento     | $0        |
+| Supabase         | 500MB de base de datos   | $0        |
 | Upstash          | 10,000 comandos/día      | $0        |
 | STUN (Google)    | Sin límites              | $0        |
 | TURN (Metered.ca)| 0.5GB/mes (~100 h vídeo) | $0        |
@@ -684,7 +704,7 @@ NEXT_PUBLIC_TURN_CREDENTIAL=<credential_metered_ca>
 
 ### 4.4 Entorno de Desarrollo Local con Docker
 
-Docker se usa **exclusivamente** para levantar bases de datos locales durante el desarrollo. En producción, las bases de datos son gestionadas por Neon y Upstash.
+Docker se usa **exclusivamente** para levantar bases de datos locales durante el desarrollo. En producción, las bases de datos son gestionadas por Supabase y Upstash.
 
 ```yaml
 # docker-compose.dev.yml
@@ -711,7 +731,7 @@ services:
 
 1. **Detección de inactividad en el cliente (DOM Events):** Sin cómputo en el servidor.
 2. **Subdominios gratuitos como dominio de producción:** `sinka.vercel.app` es técnicamente suficiente para el MVP.
-3. **Facturación por evento (Serverless), no por tiempo:** Upstash y Neon no cobran por tiempo de servidor inactivo.
+3. **Facturación por evento (Serverless), no por tiempo:** Upstash y Supabase no cobran por tiempo de servidor inactivo.
 4. **WebRTC P2P:** El streaming de audio/vídeo nunca pasa por los servidores de SINKA. STUN gratuito + TURN Metered.ca free tier = $0.
 
 ---
@@ -834,7 +854,7 @@ Los **requisitos funcionales** describen las capacidades y comportamientos que S
 | ID     | Categoría      | Descripción                                                                                        | Métrica / Umbral     |
 | :----- | :------------- | :------------------------------------------------------------------------------------------------- | :------------------- |
 | RNF-01 | Rendimiento    | Latencia del canal WebSocket entre cliente y servidor inferior a 200ms en condiciones normales.    | < 200ms P95          |
-| RNF-02 | Costo          | Infraestructura 100% dentro de capas gratuitas permanentes (Vercel + Railway + Neon + Upstash).   | $0.00 USD/mes        |
+| RNF-02 | Costo          | Infraestructura 100% dentro de capas gratuitas permanentes (Vercel + Render + Supabase + Upstash). | $0.00 USD/mes        |
 | RNF-03 | Disponibilidad | Disponibilidad ≥ 99% mensual con degradación graciosa si WebRTC falla (fallback a chat de texto). | ≥ 99% uptime         |
 | RNF-04 | Calidad        | Cobertura de pruebas unitarias ≥ 80% en la capa de servicios del backend.                         | ≥ 80% cobertura      |
 | RNF-05 | Seguridad      | Contraseñas con bcrypt (cost factor ≥ 12). JWT firmado con HS256, expiración 15 minutos.          | bcrypt CF=12         |
@@ -1112,6 +1132,284 @@ La fase de liberación marca la entrega formal del MVP v1.0 al evaluador académ
 
 ---
 
+## 8. ESTADO ACTUAL DEL PROTOTIPO FRONTEND
+
+> ⚠️ **Nota crítica de alcance:** SINKA es actualmente un **prototipo frontend** implementado en React/HTML. No existe backend real, base de datos, ni capa de red activa. Toda la lógica de negocio, el estado de sesión, los datos de usuario, el matchmaking y la gamificación están simulados y viven **exclusivamente en memoria del cliente (in-memory state)**. Al recargar la página, todo el estado se pierde. Esta sección documenta el alcance funcional del prototipo tal como existe al 2026-07-20.
+
+---
+
+### 8.1 Autenticación y Onboarding
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Registro y login con verificación de email requerida | ✅ Prototipo (mock, sin backend real) |
+| Onboarding inicial: selección de alias | ✅ Implementado |
+| Onboarding inicial: avatar y kanji representativo | ✅ Implementado |
+| Onboarding inicial: idioma y preferencias | ✅ Implementado |
+
+### 8.2 Inicio / Dashboard
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Campo para describir la tarea/actividad de la sesión | ✅ Implementado |
+| Selector de tema/categoría digital para emparejamiento por afinidad | ✅ Implementado |
+| Categorías disponibles: desarrollo de software, apps móviles, desarrollo web, diseño gráfico, edición de vídeo, escritura, dibujo digital, música/producción, marketing digital, fotografía, análisis de datos, idiomas, otro | ✅ 13 categorías |
+| Botón para iniciar búsqueda de compañero | ✅ Implementado |
+
+### 8.3 Matchmaking y Sesión
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Pantalla de "buscando" (matching en curso) | ✅ Implementado |
+| Pantalla de "conectado" — revelar compañero encontrado | ✅ Implementado |
+| Opción de Cancelar junto al botón de Comenzar | ✅ Implementado |
+| Sala de foco: 25 minutos, cámara/presencia sin audio, temporizador | ✅ Implementado |
+| Sala de descanso: 5 minutos, chat de texto, micrófono, compartir pantalla | ✅ Implementado |
+| Pantalla de sesión completada con minutos y sesiones acumuladas | ✅ Implementado |
+| Pantalla de completada: info de vínculo si es amigo existente | ✅ Implementado |
+| Pantalla de completada: botón para agregar como amigo si es alguien nuevo | ✅ Implementado |
+
+### 8.4 Amigos y Vínculos
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Sistema de solicitudes de amistad con límite diario | ✅ Implementado |
+| Árbol de amistad / vínculo que crece con sesiones repetidas entre amigos | ✅ Implementado |
+| Reconectar con contactos/compañeros previos | ✅ Implementado |
+
+### 8.5 Grupos
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Explorar grupos públicos y vista "Mis grupos" | ✅ Implementado |
+| Crear grupo público o privado (por enlace) con tag de temática | ✅ Implementado |
+| Campo personalizable de tarea/actividad específica en grupos privados | ✅ Implementado |
+| Sala de espera grupal antes de iniciar sesión conjunta | ✅ Implementado |
+
+### 8.6 Citas
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Agendar sesiones con fecha, hora e invitados | ✅ Implementado |
+
+### 8.7 Jardín
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Vista de progreso con plantas asociadas a la relación con cada amigo | ✅ Implementado |
+
+### 8.8 Progresión y Economía Virtual
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Sistema de niveles y XP | ✅ Implementado |
+| Racha diaria (daily streak) | ✅ Implementado |
+| Moneda virtual FocusCoins | ✅ Implementado |
+| Tienda de cosméticos: marcos y fondos | ✅ Implementado |
+| Sistema de logros (50+ logros por categorías) | ✅ Implementado |
+| Ranking / Leaderboard | ✅ Implementado |
+
+### 8.9 Moderación y Confianza
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Reportar y bloquear usuarios (persistente en sesión, afecta matchmaking) | ✅ Implementado |
+| Sistema de fiabilidad/confianza con penalización por abandono de sesión | ✅ Implementado |
+
+### 8.10 Ajustes y Perfil
+
+| Funcionalidad | Estado |
+| :------------ | :----- |
+| Perfil editable | ✅ Implementado |
+| Ajustes de idioma y formato de hora | ✅ Implementado |
+| Configuración de cuenta | ✅ Implementado |
+
+---
+
+### 8.11 Limitaciones del Prototipo (Sin Backend Real)
+
+El prototipo frontend **no tiene** las siguientes capacidades, las cuales están planificadas para la implementación completa:
+
+- **Sin persistencia de datos:** todo el estado (usuarios, sesiones, monedas, amigos, logros) vive en memoria del cliente y se pierde al recargar la página.
+- **Sin red real:** el matchmaking, el chat, la cámara y la compartición de pantalla son simulados. No existe comunicación real entre dispositivos distintos.
+- **Sin lógica de servidor:** no hay validación backend, autenticación real con JWT, base de datos (PostgreSQL/Neon) ni caché (Redis/Upstash).
+- **Sin WebSockets reales:** la señalización WebRTC y el bus de eventos están mocked en el cliente.
+- **Sin autenticación real:** el registro y login no verifican credenciales contra ningún servicio externo; el "email verification" es una simulación visual.
+
+Este prototipo sirve para **validar la experiencia de usuario, el flujo de pantallas y las mecánicas core** antes de la implementación full-stack descrita en las secciones 2–6 de este documento.
+
+---
+
+## 9. BRECHA ENTRE EL PROTOTIPO Y EL SISTEMA REAL
+
+> **Propósito de esta sección.** La Sección 8 describe todo lo que el prototipo ya hace en pantalla. Esta sección compara ese alcance contra lo que existe hoy en el código de producción y define, en lenguaje directo, qué falta construir para que la plataforma real funcione igual que el prototipo. Sirve como puente entre el diseño validado y el plan de desarrollo de la siguiente fase.
+
+---
+
+### 9.1 Cómo Leer la Comparación
+
+El sistema real desplegado en Railway y Vercel cubre el núcleo de la experiencia: cuentas, emparejamiento, sesión Pomodoro sincronizada, cámara, recompensas, ranking y tienda. El prototipo va más allá y suma toda la capa social: amigos, grupos, citas y el jardín como espacio visible. La tabla siguiente marca en qué punto está cada funcionalidad.
+
+| Funcionalidad | Prototipo | Sistema real | Acción |
+| :------------ | :-------- | :----------- | :----- |
+| Registro y login con correo | ✅ | ✅ | — |
+| Ingreso con cuenta de Google | ✅ | ⬜ Sin endpoint | Construir |
+| Onboarding guiado de cuatro pasos | ✅ | ⬜ | Construir |
+| Avatar y alias de usuario | ✅ | ⬜ | Construir |
+| Descripción de la tarea antes de buscar | ✅ | ✅ | — |
+| Selector de categoría de actividad | ✅ 13 categorías | ⬜ | Construir |
+| Emparejamiento | Por afinidad de categoría | Cola única por orden de llegada | **Rediseñar** |
+| Temporizador Pomodoro sincronizado | ✅ | ✅ | — |
+| Cámara, micrófono y pantalla compartida | ✅ | ✅ | — |
+| Chat bloqueado en foco, abierto en descanso | ✅ | ✅ | — |
+| Jardín como pantalla navegable | ✅ | ⚠️ Servicio sin interfaz | Completar |
+| Experiencia, nivel, racha y monedas | ✅ | ✅ | — |
+| Ranking global | ✅ | ✅ | — |
+| Tienda de cosméticos | ✅ | ✅ | — |
+| Amigos y solicitudes de amistad | ✅ | ⬜ | Construir |
+| Grupos y sala de espera grupal | ✅ | ⬜ | Construir |
+| Citas programadas con límite diario | ✅ | ⬜ | Construir |
+| Votación para extender la sesión | ✅ | ⬜ | Construir |
+| Penalización por abandono de sesión | ✅ Tres niveles | ⬜ | Construir |
+| Reporte y bloqueo de compañeros | ✅ | ✅ | — |
+| Interfaz en español e inglés | ✅ | ⬜ | Construir |
+| Tema claro y oscuro | ✅ | ⬜ | Construir |
+| Contador de personas concentradas ahora | ✅ | ⬜ | Construir |
+
+**Lectura del resultado.** El motor de la plataforma está construido y funcionando. Lo que falta es la capa que convierte a SINKA en una comunidad: sin amigos no hay jardín que crezca, sin grupos no hay salas por área de interés, y sin citas no hay forma de acordar una sesión con alguien conocido.
+
+---
+
+### 9.2 Cambio de Fondo: Emparejamiento por Afinidad
+
+El sistema actual mantiene una sola fila de espera. Toma a las dos primeras personas disponibles y las conecta sin preguntar en qué trabajan. Funciona, pero desaprovecha el dato más valioso que el usuario ya entrega: su tarea.
+
+El prototipo propone otra cosa. El usuario elige una categoría entre trece opciones y entra a la fila de esa categoría. Quien programa se empareja con quien programa, quien escribe con quien escribe. La compañía deja de ser anónima y pasa a tener un contexto compartido.
+
+Este cambio se sostiene en los datos de la encuesta aplicada durante la investigación. Las salas públicas o privadas por área de interés fueron la función social más votada con el 42,5 % de las preferencias, muy por encima de las demás opciones.
+
+**Cómo se implementa sin romper la experiencia.** Dividir la fila en trece tiene un riesgo evidente: en categorías poco concurridas el usuario podría esperar demasiado. La solución es un mecanismo de dos tiempos. Durante los primeros treinta segundos el sistema busca únicamente dentro de la categoría elegida. Si nadie aparece, el usuario pasa automáticamente a la fila general y se empareja con quien esté disponible, con un aviso claro de que su compañero trabaja en otra área. Así se conserva el beneficio de la afinidad sin castigar a quien entra en horarios de baja actividad.
+
+**Nota sobre el alcance del proyecto de titulación.** El tema aprobado habla de emparejamiento aleatorio. La incorporación de categorías no lo contradice: el emparejamiento sigue siendo aleatorio, solo que ahora ocurre dentro de un grupo de personas con intereses afines. En la documentación académica conviene describirlo como *emparejamiento aleatorio dentro de una categoría de interés*.
+
+---
+
+### 9.3 Módulos Nuevos del Backend
+
+La arquitectura actual tiene cuatro módulos de dominio. La capa social exige tres más, siguiendo el mismo patrón de tres capas y comunicación por bus de eventos descrito en la Sección 2.
+
+```
+modules/
+├── identity/          ← Existente. Se amplía con OAuth, avatar y onboarding
+├── matchmaking/       ← Existente. Se rediseña con colas por categoría
+├── sessions/          ← Existente. Se amplía con votación de extensión
+├── gamification/      ← Existente. Sin cambios estructurales
+│
+├── social/            ← NUEVO: amistades, solicitudes y jardín de vínculos
+│   ├── api/           ← REST de amigos, solicitudes y jardín
+│   ├── services/      ← Reglas de amistad, límites diarios, crecimiento de plantas
+│   └── repositories/  ← Tablas: friendships, garden_plants
+│
+├── groups/            ← NUEVO: grupos públicos y privados con sala de espera
+│   ├── api/           ← REST de grupos + WebSocket de sala de espera
+│   ├── services/      ← Altas, bajas, roles, inicio de sesión grupal
+│   └── repositories/  ← Tablas: groups, group_members
+│
+└── scheduling/        ← NUEVO: citas programadas entre amigos o grupos
+    ├── api/           ← REST de citas e invitaciones
+    ├── services/      ← Validación de cupo diario, recordatorios
+    └── repositories/  ← Tabla: appointments
+```
+
+---
+
+### 9.4 Modelo de Datos Ampliado
+
+**Tablas nuevas**
+
+| Tabla | Qué guarda | Campos principales |
+| :---- | :--------- | :----------------- |
+| `friendships` | La relación entre dos usuarios | usuario A, usuario B, estado (pendiente, aceptada, bloqueada), fecha de solicitud, fecha de aceptación |
+| `garden_plants` | La planta que representa cada amistad | id de la amistad, nivel, horas compartidas, sesiones juntos, última sesión |
+| `groups` | Los grupos de trabajo | nombre, categoría, privacidad, código de invitación, creador |
+| `group_members` | Quién pertenece a cada grupo | grupo, usuario, rol, fecha de ingreso |
+| `appointments` | Las sesiones agendadas | creador, invitado o grupo, fecha y hora, estado, categoría |
+| `session_penalties` | El historial de abandonos | usuario, sesión, motivo, penalización aplicada, fecha |
+
+**Campos que se agregan a tablas existentes**
+
+| Tabla | Campos nuevos | Para qué |
+| :---- | :------------ | :------- |
+| `users` | `alias`, `avatar_url`, `bio`, `idioma`, `tema`, `intereses`, `onboarding_completado` | Perfil e interfaz personalizada |
+| `matches` | `topic` | Saber por qué afinidad se conectaron dos personas |
+| `focus_sessions` | `topic`, `abandonada`, `sesiones_juntos` | Habilitar la votación de extensión y medir abandonos |
+| `user_stats` | `puntaje_confianza` | Reflejar el efecto de las penalizaciones |
+
+---
+
+### 9.5 Endpoints Nuevos
+
+| Módulo | Endpoints |
+| :----- | :-------- |
+| Identidad | `GET /auth/google` · `GET /auth/google/callback` · `PATCH /users/me` · `POST /users/me/avatar` · `POST /users/me/onboarding` |
+| Social | `GET /friends` · `POST /friends/request/{user_id}` · `POST /friends/accept/{id}` · `POST /friends/reject/{id}` · `DELETE /friends/{id}` · `GET /garden` · `GET /garden/{friendship_id}` |
+| Grupos | `GET /groups/explore` · `GET /groups/mine` · `POST /groups` · `POST /groups/join/{code}` · `DELETE /groups/{id}/leave` · `DELETE /groups/{id}/members/{user_id}` · `WS /groups/{id}/lobby` |
+| Citas | `GET /appointments` · `POST /appointments` · `POST /appointments/{id}/accept` · `DELETE /appointments/{id}` |
+| Presencia | `GET /presence/active` |
+
+---
+
+### 9.6 Pantallas Nuevas del Frontend
+
+El sistema real tiene seis pantallas. El prototipo llega a doce. Las que faltan:
+
+| Pantalla | Contenido |
+| :------- | :-------- |
+| Onboarding | Cuatro pasos: alias y avatar, intereses, cómo funciona, comenzar. Se muestra solo al registrarse |
+| Vínculos | Lista única con amigos y reuniones del día, y una columna fija a la derecha con las solicitudes pendientes |
+| Jardín | Vista con desplazamiento horizontal de todas las plantas, cada una asociada a un amigo |
+| Detalle de jardín | Historial de sesiones compartidas y progreso de la planta |
+| Grupos | Explorar grupos públicos, ver los propios, crear uno nuevo |
+| Sala de espera grupal | Quiénes están conectados y botón para iniciar la sesión conjunta |
+| Citas | Agenda con selector de reloj analógico y contador de cupos disponibles |
+| Perfil y ajustes | Datos personales, idioma, tema y configuración de cuenta |
+
+**Cambios en pantallas existentes**
+
+El dashboard necesita el selector de categoría junto al campo de tarea, y el botón de búsqueda debe permanecer deshabilitado mientras falte cualquiera de los dos. La pantalla de sesión necesita la votación para extender el tiempo cuando ambas personas ya han trabajado juntas dos veces. Todas las pantallas fuera del dashboard requieren un botón de regreso en la barra superior.
+
+---
+
+### 9.7 Reglas de Negocio Nuevas
+
+**Límite diario de solicitudes.** Cada usuario dispone de tres solicitudes de amistad por día. El contador se muestra en la pantalla de vínculos como "2/3 disponibles hoy" y se reinicia a la medianoche del huso horario del usuario. La medida evita el envío masivo de solicitudes y protege la calidad de la comunidad.
+
+**Crecimiento del jardín solo entre amigos.** La planta crece únicamente cuando dos personas que ya son amigas completan una sesión juntas. Un primer encuentro no genera planta. La regla premia la relación sostenida en lugar del volumen de encuentros.
+
+**Votación para extender la sesión.** A partir de la segunda sesión completada con la misma persona, la pantalla final ofrece continuar con un bloque adicional. Ambas partes deben aceptar. Si una declina, la sesión termina con normalidad y sin penalización.
+
+**Penalización por abandono.** Salir antes de terminar afecta el puntaje de confianza del usuario. El sistema contempla tres niveles configurables: suave, normal y estricto. La penalización nunca bloquea el acceso a la plataforma, solo influye en la prioridad dentro del emparejamiento.
+
+**Pantalla compartida obligatoria con desconocidos.** En los grupos abiertos a personas nuevas, compartir pantalla es requisito para participar. La medida sostiene la confianza en salas donde nadie se conoce previamente.
+
+---
+
+### 9.8 Plan de Incorporación por Prioridad
+
+No todo entra en la misma etapa. La secuencia siguiente ordena el trabajo según el valor que aporta y la dependencia entre piezas.
+
+| Prioridad | Bloque | Contenido | Por qué va aquí |
+| :-------- | :----- | :-------- | :-------------- |
+| **1** | Afinidad y perfil | Categorías, colas por tema, onboarding, avatar y alias | Mejora de inmediato la calidad del emparejamiento y da identidad al usuario |
+| **2** | Capa social | Amigos, solicitudes, jardín navegable | Da sentido al jardín que ya está programado en el backend |
+| **3** | Comunidad | Grupos, sala de espera, pantalla compartida obligatoria | Responde a la función más votada en la encuesta con el 42,5 % |
+| **4** | Coordinación | Citas programadas, votación de extensión | Convierte encuentros casuales en hábito acordado |
+| **5** | Refinamiento | Penalizaciones, idioma, tema, contador de presencia | Pulido que puede esperar sin afectar el núcleo |
+
+Los bloques 1 y 2 constituyen el alcance recomendado para la siguiente fase de desarrollo. Los bloques 3 a 5 quedan documentados como trabajo futuro dentro del proyecto de titulación.
+
+---
+
 ## APÉNDICE A — STACK TECNOLÓGICO COMPLETO
 
 ```
@@ -1134,7 +1432,7 @@ La fase de liberación marca la entrega formal del MVP v1.0 al evaluador académ
 │                 │  Bus de eventos interno (InternalEventBus)     │
 │                 │  Relay WebRTC transparente vía WS de sesión   │
 ├─────────────────┼───────────────────────────────────────────────┤
-│  BASES DE DATOS │  PostgreSQL 16 (Neon serverless)              │
+│  BASES DE DATOS │  PostgreSQL (Supabase gestionado)             │
 │                 │  Redis 7 (Upstash Serverless)                  │
 ├─────────────────┼───────────────────────────────────────────────┤
 │  WEBRTC / P2P   │  STUN: stun.l.google.com:19302               │
@@ -1150,7 +1448,7 @@ La fase de liberación marca la entrega formal del MVP v1.0 al evaluador académ
 │  DESPLIEGUE     │  Vercel (frontend, auto-deploy Git)            │
 │  & DEVOPS       │  Render (backend ASGI, auto-deploy Git)        │
 │                 │  Upstash (Redis Serverless)                    │
-│                 │  Neon (PostgreSQL serverless)                  │
+│                 │  Supabase (PostgreSQL gestionado)              │
 │                 │  Docker Compose (BD local en desarrollo)       │
 │                 │  .env + .gitignore (gestión de credenciales)   │
 └─────────────────┴───────────────────────────────────────────────┘
@@ -1169,9 +1467,17 @@ La fase de liberación marca la entrega formal del MVP v1.0 al evaluador académ
 | **S5** | 9–10    | Leaderboards en tiempo real + Tienda de Cosméticos + pulido WebRTC UX             | Gamification + Sessions   | ✅ Completo  |
 | **S6** | 11–12   | Pulido UX/UI, corrección de bugs, hardening de seguridad y demo final de tesis    | Todos                     | ✅ Completo  |
 
-> **MVP v1.0 entregado.** Los 6 Sprints fueron completados (85 Story Points). La aplicación está
-> desplegada en producción: frontend en Vercel, backend en Railway, base de datos en Neon y caché
-> en Upstash. Todos los criterios DoD fueron verificados (py_compile + tsc --noEmit + pytest --cov ≥ 80%).
+| **S7** | 13–14   | Categorías de actividad, colas por afinidad, onboarding y perfil con avatar        | Identity + Matchmaking    | ⬜ Planificado |
+| **S8** | 15–16   | Sistema de amigos, solicitudes con límite diario y jardín navegable               | Social                    | ⬜ Planificado |
+| **S9** | 17–18   | Grupos públicos y privados, sala de espera y pantalla compartida obligatoria      | Groups                    | ⬜ Planificado |
+| **S10**| 19–20   | Citas programadas con cupo diario y votación para extender la sesión              | Scheduling + Sessions     | ⬜ Planificado |
+| **S11**| 21–22   | Penalizaciones por abandono, idioma es/en, tema claro-oscuro y contador de presencia | Todos                   | ⬜ Planificado |
+
+> **MVP v1.0 entregado (fase de prototipo frontend).** Los 6 Sprints fueron completados (85 Story Points).
+> El prototipo frontend está desplegado en Vercel y cubre la totalidad de las funcionalidades descritas
+> en la Sección 8. El estado del sistema es **in-memory únicamente**: sin persistencia, sin backend real
+> ni conexiones de red entre dispositivos. La integración full-stack (Railway + Neon + Upstash + WebRTC real)
+> está planificada para la siguiente fase de desarrollo. Ver Sección 8 para el alcance detallado del prototipo.
 
 ---
 
@@ -1187,4 +1493,4 @@ arquitectura o criterios de calidad debe ser aprobada formalmente y versionada e
 | Lead Developer   | David Calleh    | 2026-06-04 | _____________|
 
 ---
-*SINKA Project Charter v1.2.0 — Revisado 2026-06-30 — Uso académico/tesis*
+*SINKA Project Charter v1.4.0 — Revisado 2026-08-31 — Uso académico/tesis*

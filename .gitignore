@@ -9,6 +9,13 @@
 .env.development
 *.env
 
+# Archivo con las variables listas para pegar en Render: lleva claves reales
+PEGAR_EN_RENDER.txt
+
+# Salidas de los scripts de diagnostico y mantenimiento
+*_resultado.txt
+disk_analysis.csv
+
 # Python
 __pycache__/
 *.py[cod]

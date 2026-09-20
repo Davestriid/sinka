@@ -16,6 +16,11 @@ from typing import TYPE_CHECKING, Any
 
 from core.cache import redis_client
 from core.event_bus import EventBus
+from modules.sessions.services.extension_service import (
+    MINUTOS_EXTENSION,
+    extension_service,
+    se_puede_ofrecer,
+)
 from modules.sessions.services.garden_service import GardenService, garden_service
 from modules.sessions.services.pomodoro_service import PomodoroTimer
 
@@ -25,6 +30,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SESSION_STATE_TTL = 60 * 35  # 35 minutos
+
+# Cuanto se espera a que ambos voten la propuesta de continuar. Pasado ese
+# tiempo la sesion cierra con normalidad: quedarse esperando indefinidamente
+# dejaria la pantalla colgada si alguien ya se levanto del escritorio.
+EXTENSION_VOTE_TIMEOUT = 60
 
 
 @dataclass
@@ -49,6 +59,11 @@ class SessionService:
         self._timers:        dict[str, PomodoroTimer]      = {}
         # Estado Jardin: session_id -> dict
         self._gardens:       dict[str, dict]               = {}
+        # Cuantas veces se ha emparejado esta pareja, incluida la sesion actual
+        self._encuentros:    dict[str, int]                = {}
+        # Sincronizacion de la votacion para continuar
+        self._voto_listo:    dict[str, asyncio.Event]      = {}
+        self._voto_resultado: dict[str, str]               = {}
 
     # ── EventBus handler ────────────────────────────────────────────────────
 
@@ -72,6 +87,8 @@ class SessionService:
             "connected_users": [],
             "task_info_a":    payload.get("task_info_a", {}),
             "task_info_b":    payload.get("task_info_b", {}),
+            "topic":          payload.get("topic"),
+            "by_affinity":    payload.get("by_affinity", False),
         }
         await redis_client.setex(
             f"session:{session_id}:state",
@@ -187,6 +204,98 @@ class SessionService:
     def session_exists(self, session_id: str) -> bool:
         return session_id in self._sessions
 
+    # ── Extension acordada ──────────────────────────────────────────────────
+
+    def set_encounter_count(self, session_id: str, veces: int) -> None:
+        """
+        Guarda cuantas veces se ha emparejado esta pareja, contando la sesion
+        actual. El router lo consulta en la base de datos al conectar, porque
+        el game-loop no tiene sesion de base de datos propia.
+        """
+        self._encuentros[session_id] = veces
+
+    async def register_extension_vote(
+        self,
+        session_id: str,
+        user_id:    str,
+        acepta:     bool,
+    ) -> None:
+        """Recibe el voto de una persona y avisa a ambas como va la cosa."""
+        conn = self._sessions.get(session_id)
+        if conn is None:
+            return
+
+        participantes = [conn.user_a_id, conn.user_b_id]
+        estado = extension_service.votar(session_id, user_id, acepta, participantes)
+
+        await self._broadcast(session_id, {
+            "type":    "EXTENSION_VOTE_UPDATE",
+            "payload": estado,
+        })
+
+        if estado["result"] != "esperando":
+            self._voto_resultado[session_id] = estado["result"]
+            evento = self._voto_listo.get(session_id)
+            if evento is not None:
+                evento.set()
+
+    async def _ofrecer_extension(self, session_id: str, timer: PomodoroTimer) -> bool:
+        """
+        Propone continuar y espera la respuesta de ambos.
+
+        Devuelve True si la sesion sigue. La propuesta solo aparece a partir del
+        segundo encuentro con la misma persona: extender es un gesto de confianza
+        y no tiene sentido plantearselo a alguien que se acaba de conocer.
+        """
+        encuentros = self._encuentros.get(session_id, 0)
+        if not se_puede_ofrecer(encuentros, timer.extensions):
+            return False
+
+        estado = extension_service.iniciar(session_id, timer.extensions)
+        evento = asyncio.Event()
+        self._voto_listo[session_id] = evento
+        self._voto_resultado.pop(session_id, None)
+
+        await self._broadcast(session_id, {
+            "type": "EXTENSION_OFFER",
+            "payload": {
+                "minutes":         MINUTOS_EXTENSION,
+                "seconds_to_vote": EXTENSION_VOTE_TIMEOUT,
+                "extensions_used": estado.extensiones_usadas,
+            },
+        })
+        logger.info("Extension: propuesta enviada en la sesion %s", session_id)
+
+        try:
+            await asyncio.wait_for(evento.wait(), timeout=EXTENSION_VOTE_TIMEOUT)
+            aceptada = self._voto_resultado.get(session_id) == "aceptada"
+        except asyncio.TimeoutError:
+            aceptada = False
+            await self._broadcast(session_id, {
+                "type":    "EXTENSION_RESULT",
+                "payload": {"result": "expirada"},
+            })
+            logger.info("Extension: nadie respondio a tiempo en la sesion %s", session_id)
+        finally:
+            self._voto_listo.pop(session_id, None)
+            self._voto_resultado.pop(session_id, None)
+
+        if not aceptada:
+            extension_service.limpiar(session_id)
+            return False
+
+        estado_timer = timer.extend()
+        await self._broadcast(session_id, {
+            "type": "EXTENSION_RESULT",
+            "payload": {
+                "result":  "aceptada",
+                "minutes": MINUTOS_EXTENSION,
+                "timer":   estado_timer,
+            },
+        })
+        logger.info("Extension: la sesion %s continua un bloque mas", session_id)
+        return True
+
     # ── Game-loop ───────────────────────────────────────────────────────────
 
     async def _run_loop(self, session_id: str) -> None:
@@ -246,6 +355,12 @@ class SessionService:
 
                 # --- Verificar si se completaron todos los rounds ---
                 if timer_state.get("all_completed"):
+                    # Antes de cerrar se ofrece continuar. Si ambos aceptan, el
+                    # temporizador suma otra ronda y el bucle sigue sin cortar
+                    # el jardin ni el estado acumulado.
+                    if await self._ofrecer_extension(session_id, timer):
+                        continue
+
                     await self._broadcast(session_id, {
                         "type":    "SESSION_ENDED",
                         "payload": {"reason": "timer_completed", "plant": plant},
@@ -263,6 +378,10 @@ class SessionService:
             self._loops.pop(session_id,   None)
             self._timers.pop(session_id,  None)
             self._gardens.pop(session_id, None)
+            self._encuentros.pop(session_id, None)
+            self._voto_listo.pop(session_id, None)
+            self._voto_resultado.pop(session_id, None)
+            extension_service.limpiar(session_id)
 
     def _cancel_loop(self, session_id: str) -> None:
         task = self._loops.pop(session_id, None)

@@ -59,3 +59,64 @@ async def get_leaderboard(
             streak_current = stat.streak_current,
         ))
     return result
+
+
+@router.get("/trust")
+async def my_trust(
+    current_user: UserResponse = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Puntaje de confianza del usuario con su historial de penalizaciones.
+
+    Se expone para que quien tenga el puntaje bajo entienda por que, en vez
+    de encontrarse con esperas mas largas sin explicacion.
+    """
+    from sqlalchemy import select
+
+    from modules.gamification.models import SessionPenalty
+    from modules.gamification.repositories.gamification_repository import (
+        GamificationRepository,
+    )
+    from modules.gamification.services import trust_service
+
+    stats = await GamificationRepository(db).get_or_create(current_user.id)
+
+    result = await db.execute(
+        select(SessionPenalty)
+        .where(SessionPenalty.user_id == current_user.id)
+        .order_by(SessionPenalty.created_at.desc())
+        .limit(10)
+    )
+    historial = [
+        {
+            "reason":     p.reason,
+            "points":     p.points,
+            "severity":   p.severity,
+            "created_at": p.created_at,
+        }
+        for p in result.scalars().all()
+    ]
+
+    return {
+        **trust_service.estado(stats.trust_score),
+        "sessions_abandoned": stats.sessions_abandoned,
+        "recent_penalties":   historial,
+    }
+
+
+@router.get("/presence")
+async def presence():
+    """
+    Cuanta gente esta concentrada ahora mismo.
+
+    No requiere autenticacion: la pantalla de inicio lo muestra antes de que
+    el visitante tenga cuenta, y ver actividad es justamente lo que invita a
+    registrarse.
+    """
+    from modules.sessions.services.presence_service import presence_service
+
+    return {
+        "focusing_now": await presence_service.contar(),
+        "by_topic":     await presence_service.contar_por_categoria(),
+    }

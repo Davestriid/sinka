@@ -6,16 +6,19 @@ import { useAuthStore } from "@/store/auth.store";
 import { wsUrl, gamificationApi, type UserStats } from "@/lib/api";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
-const WORK_AREAS = [
-  { value: "coding",    label: "💻 Código / Programación" },
-  { value: "design",    label: "🎨 Diseño" },
-  { value: "video",     label: "🎬 Edición de Video" },
-  { value: "writing",   label: "✍️  Escritura" },
-  { value: "data",      label: "📊 Análisis de Datos" },
-  { value: "music",     label: "🎵 Música / Audio" },
-  { value: "study",     label: "📚 Estudio / Lectura" },
-  { value: "research",  label: "🔬 Investigación" },
-  { value: "marketing", label: "📢 Marketing" },
+const TOPICS = [
+  { value: "software",  label: "💻 Desarrollo de software" },
+  { value: "mobile",    label: "📱 Apps móviles" },
+  { value: "web",       label: "🌐 Desarrollo web" },
+  { value: "design",    label: "🎨 Diseño gráfico" },
+  { value: "video",     label: "🎬 Edición de video" },
+  { value: "writing",   label: "✍️ Escritura" },
+  { value: "drawing",   label: "🖌️ Dibujo digital" },
+  { value: "music",     label: "🎵 Música y producción" },
+  { value: "marketing", label: "📢 Marketing digital" },
+  { value: "photo",     label: "📷 Fotografía" },
+  { value: "data",      label: "📊 Análisis de datos" },
+  { value: "languages", label: "🗣️ Idiomas" },
   { value: "other",     label: "✨ Otro" },
 ];
 
@@ -35,7 +38,7 @@ export default function DashboardPage() {
   const { user, accessToken: token, logout } = useAuthStore();
 
   // Formulario de configuración
-  const [workArea,         setWorkArea]         = useState("coding");
+  const [topic,            setTopic]            = useState("");
   const [taskTitle,        setTaskTitle]        = useState("");
   const [targetPomodoros,  setTargetPomodoros]  = useState(2);
 
@@ -60,7 +63,8 @@ export default function DashboardPage() {
   // ── Iniciar búsqueda ────────────────────────────────────────────────────────
   const startSearch = () => {
     const title = taskTitle.trim();
-    if (!title) return;   // validado también en el UI
+    // Ambos son obligatorios: sin categoría no hay con quién emparejar por afinidad
+    if (!title || !topic) return;
 
     if (!token) { router.push("/login"); return; }
 
@@ -72,7 +76,7 @@ export default function DashboardPage() {
       ws.send(JSON.stringify({
         type:    "TASK_INFO",
         payload: {
-          work_area:        workArea,
+          topic:            topic,
           task_title:       title,
           target_pomodoros: targetPomodoros,
         },
@@ -177,22 +181,26 @@ export default function DashboardPage() {
               Cuéntanos tu tarea antes de buscar pareja.
             </p>
 
-            {/* Área de trabajo */}
-            <label style={styles.label}>Área de trabajo</label>
+            {/* Categoría de actividad — define con quién te empareja el sistema */}
+            <label style={styles.label}>¿En qué área trabajas?</label>
             <div style={styles.areaGrid}>
-              {WORK_AREAS.map(a => (
+              {TOPICS.map(a => (
                 <button
                   key={a.value}
                   style={{
                     ...styles.areaBtn,
-                    ...(workArea === a.value ? styles.areaBtnActive : {}),
+                    ...(topic === a.value ? styles.areaBtnActive : {}),
                   }}
-                  onClick={() => setWorkArea(a.value)}
+                  onClick={() => setTopic(a.value)}
                 >
                   {a.label}
                 </button>
               ))}
             </div>
+            <p style={styles.hint}>
+              Te buscaremos a alguien de tu misma área. Si en 30 segundos no hay
+              nadie disponible, te conectamos con quien esté trabajando.
+            </p>
 
             {/* Título de tarea */}
             <label style={styles.label}>¿Qué tarea vas a hacer?</label>
@@ -228,12 +236,12 @@ export default function DashboardPage() {
             <button
               style={{
                 ...styles.btnPrimary,
-                opacity: taskTitle.trim() ? 1 : 0.45,
-                cursor:  taskTitle.trim() ? "pointer" : "not-allowed",
+                opacity: taskTitle.trim() && topic ? 1 : 0.45,
+                cursor:  taskTitle.trim() && topic ? "pointer" : "not-allowed",
                 marginTop: 24,
                 width: "100%",
               }}
-              disabled={!taskTitle.trim()}
+              disabled={!taskTitle.trim() || !topic}
               onClick={startSearch}
             >
               Buscar pareja →
@@ -249,7 +257,7 @@ export default function DashboardPage() {
               Buscando pareja...
             </h2>
             <p style={{ color: "#a0998b", margin: "0 0 8px" }}>
-              {WORK_AREAS.find(a => a.value === workArea)?.label}
+              {TOPICS.find(a => a.value === topic)?.label}
             </p>
             <p style={{ color: "#c4b99a", fontSize: 14, margin: "0 0 24px" }}>
               "{taskTitle}"
@@ -380,6 +388,12 @@ const styles: Record<string, React.CSSProperties> = {
     background:   "#3b2f1e",
     borderColor:  "#7c5c3a",
     color:        "#f5f0e8",
+  },
+  hint: {
+    fontSize:  12,
+    color:     "#8b8378",
+    margin:    "8px 0 4px",
+    lineHeight: 1.5,
   },
   input: {
     width:        "100%",

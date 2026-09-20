@@ -1,8 +1,16 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
+from core.catalog import TOPICS
 from core.rate_limiter import rate_limit
 from modules.identity.api.dependencies import get_current_user, get_identity_service
-from modules.identity.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from modules.identity.schemas.auth import (
+    LoginRequest,
+    OnboardingRequest,
+    ProfileUpdateRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserResponse,
+)
 from modules.identity.services.identity_service import IdentityService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -36,3 +44,56 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
     return current_user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: ProfileUpdateRequest,
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """Actualiza alias, avatar, biografia, idioma o tema. Todo es opcional."""
+    return await service.update_profile(
+        current_user.id,
+        body.model_dump(exclude_none=True),
+    )
+
+
+@router.post("/me/onboarding", response_model=UserResponse)
+async def complete_onboarding(
+    body: OnboardingRequest,
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """Cierra el onboarding de cuatro pasos. Se ejecuta una sola vez por cuenta."""
+    return await service.complete_onboarding(
+        user_id=current_user.id,
+        alias=body.alias,
+        avatar_url=body.avatar_url,
+        interests=body.interests,
+        language=body.language,
+    )
+
+
+@router.get("/users/search", response_model=list[UserResponse])
+async def search_users(
+    q: str = Query(..., min_length=2, max_length=50, description="Nombre o alias a buscar"),
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> list[UserResponse]:
+    """Busca usuarios para enviarles una solicitud de amistad."""
+    return await service.search_users(q, actual_id=current_user.id)
+
+
+# ---------------------------------------------------------------------------
+# Catalogo publico de categorias. No requiere autenticacion porque el frontend
+# lo necesita en la pantalla de onboarding antes de tener el perfil listo.
+# ---------------------------------------------------------------------------
+
+catalog_router = APIRouter(prefix="/catalog", tags=["catalog"])
+
+
+@catalog_router.get("/topics")
+async def list_topics() -> dict:
+    """Devuelve las 13 categorias de actividad disponibles."""
+    return {"topics": TOPICS}

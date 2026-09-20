@@ -12,6 +12,9 @@ import logging
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
+from core.database import AsyncSessionLocal
+
+from core.catalog import normalize_topic
 from core.ws_auth import get_current_user_ws
 from modules.identity.schemas.auth import UserResponse
 from modules.matchmaking.services.matchmaking_service import matchmaking_service
@@ -22,31 +25,49 @@ router = APIRouter(prefix="/matchmaking", tags=["matchmaking"])
 
 TASK_INFO_TIMEOUT = 30  # segundos para recibir TASK_INFO antes de rechazar
 
-# Areas de trabajo validas
-VALID_WORK_AREAS = {
-    "coding", "design", "video", "writing",
-    "data", "music", "study", "research", "marketing", "other",
-}
-
 
 def _validate_task_info(payload: dict) -> dict:
-    """Valida y normaliza la informacion de tarea del usuario."""
-    work_area = payload.get("work_area", "other")
-    if work_area not in VALID_WORK_AREAS:
-        work_area = "other"
+    """
+    Valida y normaliza la informacion de tarea.
 
-    task_title = str(payload.get("task_title", "Sin titulo")).strip()[:80]
+    La categoria viene del catalogo compartido de core.catalog. Se acepta el
+    nombre antiguo 'work_area' para no romper clientes que aun no se actualizan.
+    """
+    topic = normalize_topic(payload.get("topic") or payload.get("work_area"))
+
+    task_title = str(payload.get("task_title", "")).strip()[:80]
     if not task_title:
         task_title = "Sin titulo"
 
-    target_pomodoros = int(payload.get("target_pomodoros", 1))
-    target_pomodoros = max(1, min(8, target_pomodoros))  # 1-8 pomodoros
+    try:
+        target_pomodoros = int(payload.get("target_pomodoros", 1))
+    except (TypeError, ValueError):
+        target_pomodoros = 1
+    target_pomodoros = max(1, min(8, target_pomodoros))
 
     return {
-        "work_area":         work_area,
-        "task_title":        task_title,
-        "target_pomodoros":  target_pomodoros,
+        "topic":            topic,
+        "work_area":        topic,   # alias de compatibilidad
+        "task_title":       task_title,
+        "target_pomodoros": target_pomodoros,
     }
+
+
+async def _bloqueados_de(user_id: str) -> frozenset[str]:
+    """
+    Ids con los que este usuario no debe cruzarse.
+
+    Se consulta una sola vez al entrar a la cola. Un fallo aqui no debe impedir
+    la sesion, asi que ante un error se devuelve un conjunto vacio y se registra.
+    """
+    try:
+        from modules.social.repositories.social_repository import FriendshipRepository
+
+        async with AsyncSessionLocal() as db:
+            return frozenset(await FriendshipRepository(db).blocked_ids_for(user_id))
+    except Exception:
+        logger.exception("No se pudo leer la lista de bloqueos de %s", user_id)
+        return frozenset()
 
 
 @router.websocket("/queue")
@@ -93,20 +114,24 @@ async def join_matchmaking_queue(
 
     task_info = _validate_task_info(raw.get("payload", {}))
     logger.info(
-        "WS Matchmaking: %s — area=%s tarea='%s' pomodoros=%d",
+        "WS Matchmaking: %s — categoria=%s tarea='%s' pomodoros=%d",
         current_user.id,
-        task_info["work_area"],
+        task_info["topic"],
         task_info["task_title"],
         task_info["target_pomodoros"],
     )
 
-    # Paso 2: entrar a la cola de emparejamiento
+    # Paso 2: consultar a quien ha bloqueado para no volver a emparejarlo
+    bloqueados = await _bloqueados_de(current_user.id)
+
+    # Paso 3: entrar a la cola de emparejamiento
     try:
         result = await matchmaking_service.join_queue(
             user_id=current_user.id,
-            username=current_user.username,
+            username=current_user.alias or current_user.username,
             task_info=task_info,
             websocket=websocket,
+            blocked=bloqueados,
         )
 
         if result is None:
@@ -133,5 +158,8 @@ async def join_matchmaking_queue(
 
 @router.get("/status", tags=["matchmaking"])
 async def queue_status():
-    """Numero de usuarios actualmente en cola de emparejamiento."""
-    return {"users_waiting": matchmaking_service.queue_size()}
+    """Cuanta gente espera companero, en total y por categoria."""
+    return {
+        "users_waiting": matchmaking_service.queue_size(),
+        "by_topic":      matchmaking_service.queue_by_topic(),
+    }

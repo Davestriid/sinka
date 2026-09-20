@@ -21,13 +21,34 @@ class PomodoroTimer:
     Se crea una instancia por sesion activa.
     """
 
-    def __init__(self) -> None:
-        self.phase:     str  = "focus"  # "focus" | "break"
-        self.elapsed:   int  = 0        # segundos transcurridos en la fase actual
-        self.round:     int  = 1        # numero de ronda de enfoque
-        self.completed: bool = False    # True cuando se terminan todos los rounds
+    def __init__(self, max_rounds: int = MAX_ROUNDS) -> None:
+        self.phase:      str  = "focus"  # "focus" | "break"
+        self.elapsed:    int  = 0        # segundos transcurridos en la fase actual
+        self.round:      int  = 1        # numero de ronda de enfoque
+        self.completed:  bool = False    # True cuando se terminan todos los rounds
+        # El tope deja de ser fijo: la pareja puede acordar mas rondas al final
+        self.max_rounds: int  = max_rounds
+        self.extensions: int  = 0        # cuantas veces se acordo continuar
 
     # -- Publico ---------------------------------------------------------------
+
+    def extend(self, rounds: int = 1) -> dict:
+        """
+        Suma rondas de enfoque cuando ambos aceptan continuar.
+
+        Si el temporizador ya habia terminado, vuelve a abrirse en una fase de
+        enfoque limpia. Asi la sesion sigue donde estaba en lugar de arrancar
+        una nueva, y el jardin conserva el avance acumulado.
+        """
+        self.max_rounds += rounds
+        self.extensions += rounds
+
+        if self.completed:
+            self.completed = False
+            self.phase     = "focus"
+            self.elapsed   = 0
+
+        return self.snapshot()
 
     def tick(self) -> dict:
         """
@@ -50,7 +71,7 @@ class PomodoroTimer:
             else:
                 self.round += 1
                 self.phase = "focus"
-                if self.round > MAX_ROUNDS:
+                if self.round > self.max_rounds:
                     self.completed = True
 
         return self._snapshot(phase_completed=phase_completed)
@@ -69,7 +90,8 @@ class PomodoroTimer:
             "elapsed":       self.elapsed,
             "remaining":     remaining,
             "round":         self.round,
-            "max_rounds":    MAX_ROUNDS,
+            "max_rounds":    self.max_rounds,
+            "extensions":    self.extensions,
             "phase_completed": phase_completed,
             "all_completed":   self.completed,
         }

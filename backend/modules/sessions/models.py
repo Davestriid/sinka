@@ -28,6 +28,8 @@ class FocusSession(Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    # Categoria de actividad compartida durante la sesion.
+    topic: Mapped[str | None] = mapped_column(String(30), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     started_at: Mapped[datetime] = mapped_column(

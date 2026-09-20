@@ -46,9 +46,13 @@ async def session_websocket(
       PARTNER_CONNECTED    La pareja se conecto
       PARTNER_DISCONNECTED La pareja se desconecto
       PARTNER_MESSAGE      Mensaje relay de la pareja
+      EXTENSION_OFFER      Propuesta de continuar otro bloque
+      EXTENSION_VOTE_UPDATE  Como va la votacion
+      EXTENSION_RESULT     aceptada | rechazada | expirada
 
     Mensajes cliente -> servidor:
       {"type": "FOCUS_STATUS_UPDATE", "payload": {"is_active": bool}}
+      {"type": "EXTENSION_VOTE", "payload": {"accept": bool}}
       Cualquier otro JSON: relay a la pareja
     """
     await websocket.accept()
@@ -92,6 +96,14 @@ async def session_websocket(
         await websocket.close(code=4003)
         return
 
+    # Cuantas veces se ha emparejado esta pareja. El game-loop lo necesita para
+    # decidir si ofrece continuar al final, y alli ya no hay sesion de base de
+    # datos disponible, asi que se resuelve aqui.
+    encuentros = await match_repo.count_between(
+        focus_session.user_a_id, focus_session.user_b_id
+    )
+    session_service.set_encounter_count(session_id, encuentros)
+
     connected = await session_service.connect(session_id, current_user.id, websocket)
     if not connected:
         await websocket.send_json({"type": "ERROR", "detail": "Error al conectar."})
@@ -108,6 +120,14 @@ async def session_websocket(
                 is_active = bool(payload.get("is_active", True))
                 session_service.update_focus(session_id, current_user.id, is_active)
                 continue  # no reenviar a la pareja
+
+            # Voto para continuar otro bloque al terminar la sesion
+            if isinstance(data, dict) and data.get("type") == "EXTENSION_VOTE":
+                acepta = bool(data.get("payload", {}).get("accept", False))
+                await session_service.register_extension_vote(
+                    session_id, current_user.id, acepta
+                )
+                continue  # el servicio ya avisa a ambos
 
             # Relay generico (chat u otros mensajes)
             await session_service.relay_message(session_id, current_user.id, data)

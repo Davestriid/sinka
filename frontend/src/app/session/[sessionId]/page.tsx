@@ -41,6 +41,14 @@ interface ChatMsg {
   ts:   number;
 }
 
+/** Propuesta de seguir trabajando otro bloque. Solo aparece a partir del
+ *  segundo encuentro con la misma persona. */
+interface ExtensionOffer {
+  minutes:         number;
+  seconds_to_vote: number;
+  extensions_used: number;
+}
+
 const AREA_LABELS: Record<string, string> = {
   coding:    "💻 Código",
   design:    "🎨 Diseño",
@@ -111,6 +119,13 @@ export default function SessionPage() {
   const [messages,  setMessages]  = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Propuesta de continuar otro bloque al terminar las rondas
+  const [extensionOffer, setExtensionOffer] = useState<ExtensionOffer | null>(null);
+  const [myVote,         setMyVote]         = useState<boolean | null>(null);
+  const [partnerPending, setPartnerPending] = useState(false);
+  const [extensionNote,  setExtensionNote]  = useState<string | null>(null);
+  const [voteSeconds,    setVoteSeconds]    = useState(0);
 
   // ── Función para enviar señales WebRTC a través del WS ───────────────────
   const sendSignal = useCallback((msg: WebRtcSignal) => {
@@ -211,6 +226,33 @@ export default function SessionPage() {
           }
           break;
 
+        case "EXTENSION_OFFER":
+          setExtensionOffer(msg.payload);
+          setVoteSeconds(msg.payload?.seconds_to_vote ?? 60);
+          setMyVote(null);
+          setPartnerPending(false);
+          setExtensionNote(null);
+          break;
+
+        case "EXTENSION_VOTE_UPDATE":
+          // waiting_on trae a quienes todavía no responden
+          setPartnerPending((msg.payload?.waiting_on ?? []).length > 0);
+          break;
+
+        case "EXTENSION_RESULT": {
+          const resultado = msg.payload?.result;
+          setExtensionOffer(null);
+          setPartnerPending(false);
+          if (resultado === "aceptada") {
+            if (msg.payload?.timer) setTimer(msg.payload.timer);
+            setExtensionNote(
+              `Siguen ${msg.payload?.minutes ?? 25} minutos más. Buen trabajo.`
+            );
+            setTimeout(() => setExtensionNote(null), 6000);
+          }
+          break;
+        }
+
         case "PARTNER_CONNECTED":
           setPartnerConnected(true);
           setPartnerId(msg.payload?.partner_id ?? null);
@@ -260,6 +302,15 @@ export default function SessionPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Cuenta atrás de la propuesta de continuar
+  useEffect(() => {
+    if (!extensionOffer) return;
+    const id = setInterval(() => {
+      setVoteSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [extensionOffer]);
+
   // ── Acciones ───────────────────────────────────────────────────────────────
 
   const sendChat = useCallback(() => {
@@ -269,6 +320,16 @@ export default function SessionPage() {
     setMessages(prev => [...prev, { from: user?.username ?? "yo", text, ts: Date.now() }]);
     setChatInput("");
   }, [chatInput, user]);
+
+  const votarExtension = useCallback((acepta: boolean) => {
+    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({
+      type:    "EXTENSION_VOTE",
+      payload: { accept: acepta },
+    }));
+    setMyVote(acepta);
+    setPartnerPending(acepta);   // si acepto, queda esperando al compañero
+  }, []);
 
   const endSession = useCallback(() => {
     wsRef.current?.send(JSON.stringify({ type: "USER_LEFT" }));
@@ -375,6 +436,51 @@ export default function SessionPage() {
 
   return (
     <div style={styles.page}>
+
+      {/* ── Propuesta de continuar otro bloque ── */}
+      {extensionOffer && (
+        <div style={styles.overlay}>
+          <div style={styles.voteCard}>
+            <div style={{ fontSize: 44 }}>⏳</div>
+            <h3 style={{ margin: "10px 0 6px", color: "#f5f0e8" }}>
+              ¿Siguen otro bloque?
+            </h3>
+            <p style={{ color: "#a0998b", fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+              Terminaron las rondas. Pueden continuar {extensionOffer.minutes} minutos
+              más si los dos están de acuerdo.
+            </p>
+
+            {myVote === null ? (
+              <>
+                <div style={styles.voteButtons}>
+                  <button style={styles.btnPrimary} onClick={() => votarExtension(true)}>
+                    Seguir trabajando
+                  </button>
+                  <button style={styles.btnGhost} onClick={() => votarExtension(false)}>
+                    Terminar aquí
+                  </button>
+                </div>
+                <span style={{ fontSize: 12, color: "#7c7367" }}>
+                  Quedan {voteSeconds} s para responder
+                </span>
+              </>
+            ) : (
+              <span style={{ fontSize: 13, color: "#a0998b", marginTop: 14 }}>
+                {myVote
+                  ? partnerPending
+                    ? "Esperando la respuesta de tu compañero..."
+                    : "Aceptaste continuar."
+                  : "Elegiste terminar. La sesión cierra en un momento."}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Aviso de que la sesión continúa ── */}
+      {extensionNote && (
+        <div style={styles.extensionNote}>🌱 {extensionNote}</div>
+      )}
 
       {/* ── Header ── */}
       <header style={styles.header}>
@@ -675,6 +781,58 @@ const styles: Record<string, React.CSSProperties> = {
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
+  },
+  overlay: {
+    position:       "fixed" as const,
+    inset:          0,
+    background:     "rgba(12, 10, 8, 0.82)",
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    zIndex:         50,
+  },
+  voteCard: {
+    background:    "#211d19",
+    border:        "1px solid #3a3028",
+    borderRadius:  16,
+    padding:       "32px 36px",
+    textAlign:     "center" as const,
+    maxWidth:      380,
+    width:         "100%",
+    display:       "flex",
+    flexDirection: "column" as const,
+    alignItems:    "center",
+    gap:           6,
+  },
+  voteButtons: {
+    display:       "flex",
+    flexDirection: "column" as const,
+    gap:           10,
+    width:         "100%",
+    margin:        "18px 0 8px",
+  },
+  btnGhost: {
+    background:   "transparent",
+    color:        "#a0998b",
+    border:       "1px solid #3a3028",
+    borderRadius: 8,
+    padding:      "10px 16px",
+    fontSize:     14,
+    cursor:       "pointer",
+    width:        "100%",
+  },
+  extensionNote: {
+    position:     "fixed" as const,
+    top:          16,
+    left:         "50%",
+    transform:    "translateX(-50%)",
+    background:   "#1f3a24",
+    color:        "#bbf7d0",
+    border:       "1px solid #2f5c38",
+    borderRadius: 999,
+    padding:      "8px 18px",
+    fontSize:     13,
+    zIndex:       60,
   },
   endCard: {
     background:   "#211d19",
