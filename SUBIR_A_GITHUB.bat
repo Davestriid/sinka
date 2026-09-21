@@ -12,11 +12,10 @@ echo. >> "%LOG%"
 echo ---- [1] Comprobacion de seguridad ---- >> "%LOG%"
 git check-ignore -v backend\.env PEGAR_EN_RENDER.txt >> "%LOG%" 2>&1
 if errorlevel 1 (
-    echo. >> "%LOG%"
     echo ALTO: algun archivo con claves NO esta ignorado. No se sube nada. >> "%LOG%"
     goto :fin
 )
-echo   backend\.env y PEGAR_EN_RENDER.txt estan ignorados. Correcto. >> "%LOG%"
+echo   Los archivos con claves estan ignorados. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [2] Que va a subir ---- >> "%LOG%"
@@ -35,7 +34,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit ---- >> "%LOG%"
-git commit -m "feat: modulos social, grupos, citas y confianza + migraciones 0005-0009 + votacion de extension" >> "%LOG%" 2>&1
+git commit -m "docs: agregar README del proyecto" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"
@@ -43,7 +42,7 @@ git push origin main >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [6] Estado final ---- >> "%LOG%"
-git log --oneline -5 >> "%LOG%" 2>&1
+git log --oneline -3 >> "%LOG%" 2>&1
 
 :fin
 echo. >> "%LOG%"
