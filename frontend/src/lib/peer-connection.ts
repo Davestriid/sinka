@@ -3,27 +3,28 @@
  *
  * Usa la API nativa del navegador, sin dependencias externas.
  *
- * Hay dos momentos distintos y conviene no mezclarlos:
+ * La conexion se arma con tres canales fijos, creados siempre en el mismo
+ * orden por las dos partes:
  *
- *   1. La camara propia se enciende apenas entras a la sesion, aunque todavia
- *      estes solo. Asi siempre te ves a vos mismo y sabes que la camara anda.
- *   2. La conexion con la otra persona se arma recien cuando ella entra.
+ *   mid 0  audio del microfono
+ *   mid 1  video de la camara
+ *   mid 2  video de la pantalla compartida
  *
- * Señalizacion, a traves del WebSocket de la sesion:
- *   quien inicia   envia WEBRTC_OFFER
- *   quien responde envia WEBRTC_ANSWER
- *   los dos        envian WEBRTC_ICE
+ * Fijar los canales de entrada resuelve dos problemas que teniamos. Uno, que
+ * la camara podia tardar en abrirse y las pistas llegaban despues de haber
+ * negociado, asi que nunca viajaban. Dos, que compartir pantalla reemplazaba
+ * la pista de la camara y te dejaba sin imagen propia. Ahora la pantalla tiene
+ * su propio canal y la camara sigue encendida al mismo tiempo.
  *
  * Las señales que llegan antes de que exista la conexion se guardan en cola en
- * vez de descartarse. Antes se perdian, y como nadie reintentaba, el video se
- * quedaba para siempre en "conectando".
+ * vez de descartarse.
  */
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { RTC_CONFIG } from "./webrtc-config";
 
-// ── Tipos de señal ────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export interface WebRtcSignal {
   type:       "WEBRTC_OFFER" | "WEBRTC_ANSWER" | "WEBRTC_ICE";
@@ -31,25 +32,24 @@ export interface WebRtcSignal {
   candidate?: RTCIceCandidateInit;
 }
 
-/** Por que no hay camara disponible. */
 export type EstadoCamara =
-  | "pidiendo"      // esperando que la persona acepte el permiso
-  | "lista"         // hay imagen
-  | "denegada"      // la persona dijo que no, o el navegador lo bloqueo
-  | "sin-camara"    // no se encontro ningun dispositivo
-  | "ocupada"       // otra aplicacion la tiene tomada
-  | "error";        // cualquier otra cosa
+  | "pidiendo"
+  | "lista"
+  | "denegada"
+  | "sin-camara"
+  | "ocupada"
+  | "error";
 
 interface UsePeerConnectionOptions {
-  /** true cuando la pareja ya esta conectada al WS de sesion */
   enabled:     boolean;
-  /** true si este usuario es quien crea el offer */
   isInitiator: boolean;
-  /** envia la señal a traves del WS de sesion */
   sendSignal:  (msg: WebRtcSignal) => void;
 }
 
-/** Traduce el error de getUserMedia a algo que se le pueda mostrar a la gente. */
+const MID_AUDIO    = 0;
+const MID_CAMARA   = 1;
+const MID_PANTALLA = 2;
+
 function clasificarError(err: unknown): EstadoCamara {
   const nombre = (err as DOMException | undefined)?.name ?? "";
   if (nombre === "NotAllowedError" || nombre === "SecurityError") return "denegada";
@@ -63,20 +63,23 @@ export function usePeerConnection({
   isInitiator,
   sendSignal,
 }: UsePeerConnectionOptions) {
-  const localVideoRef  = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoRef        = useRef<HTMLVideoElement | null>(null);
+  const localScreenRef       = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef       = useRef<HTMLVideoElement | null>(null);
+  const remoteScreenRef      = useRef<HTMLVideoElement | null>(null);
 
-  const pcRef           = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef  = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
-
-  // Señales que llegaron antes de tiempo
-  const colaSeñalesRef  = useRef<WebRtcSignal[]>([]);
-  const pendingIceRef   = useRef<RTCIceCandidateInit[]>([]);
+  const pcRef            = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef   = useRef<MediaStream | null>(null);
+  const screenStreamRef  = useRef<MediaStream | null>(null);
+  const colaSeñalesRef   = useRef<WebRtcSignal[]>([]);
+  const pendingIceRef    = useRef<RTCIceCandidateInit[]>([]);
+  const negociandoRef    = useRef(false);
 
   const [localStream,     setLocalStream]     = useState<MediaStream | null>(null);
   const [screenStream,    setScreenStream]    = useState<MediaStream | null>(null);
   const [remoteStream,    setRemoteStream]    = useState<MediaStream | null>(null);
+  const [remoteScreen,    setRemoteScreen]    = useState<MediaStream | null>(null);
+  const [partnerSharing,  setPartnerSharing]  = useState(false);
   const [estadoCamara,    setEstadoCamara]    = useState<EstadoCamara>("pidiendo");
   const [micEnabled,      setMicEnabled]      = useState(true);
   const [camEnabled,      setCamEnabled]      = useState(true);
@@ -85,6 +88,40 @@ export function usePeerConnection({
   const [iceState,        setIceState]        = useState<RTCIceConnectionState | "">("");
 
   const cameraAllowed = estadoCamara === "lista";
+
+  // ── Utilidades sobre los canales fijos ────────────────────────────────────
+
+  /** Devuelve el transceiver que corresponde a un canal, o null. */
+  const canal = useCallback((mid: number): RTCRtpTransceiver | null => {
+    const pc = pcRef.current;
+    if (!pc) return null;
+    const lista = pc.getTransceivers();
+    // Mientras no se haya negociado, mid es null y vale el orden de creacion
+    const porMid = lista.find(t => t.mid === String(mid));
+    return porMid ?? lista[mid] ?? null;
+  }, []);
+
+  /** Pone las pistas actuales en sus canales. Se puede llamar cuantas veces sea. */
+  const sincronizarPistas = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc) return;
+
+    const cam    = localStreamRef.current;
+    const screen = screenStreamRef.current;
+
+    const pares: [number, MediaStreamTrack | null][] = [
+      [MID_AUDIO,    cam?.getAudioTracks()[0]    ?? null],
+      [MID_CAMARA,   cam?.getVideoTracks()[0]    ?? null],
+      [MID_PANTALLA, screen?.getVideoTracks()[0] ?? null],
+    ];
+
+    for (const [mid, track] of pares) {
+      const t = canal(mid);
+      if (!t) continue;
+      if (t.sender.track === track) continue;
+      await t.sender.replaceTrack(track).catch(() => {});
+    }
+  }, [canal]);
 
   // ── 1. Camara propia, apenas entra a la sesion ────────────────────────────
 
@@ -99,26 +136,18 @@ export function usePeerConnection({
       setLocalStream(stream);
       setEstadoCamara("lista");
       setCamEnabled(true);
-
-      // Si ya habia una conexion armada, engancharle las pistas nuevas
-      const pc = pcRef.current;
-      if (pc) {
-        for (const track of stream.getTracks()) {
-          const sender = pc.getSenders().find(s => s.track?.kind === track.kind);
-          if (sender) await sender.replaceTrack(track).catch(() => {});
-          else pc.addTrack(track, stream);
-        }
-      }
+      setMicEnabled(true);
+      await sincronizarPistas();
       return stream;
     } catch (err) {
       setEstadoCamara(clasificarError(err));
       return null;
     }
-  }, []);
+  }, [sincronizarPistas]);
 
   useEffect(() => {
     let vivo = true;
-    encenderCamara().then(stream => {
+    void encenderCamara().then(stream => {
       if (!vivo && stream) stream.getTracks().forEach(t => t.stop());
     });
     return () => {
@@ -126,24 +155,33 @@ export function usePeerConnection({
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
     };
-  }, [encenderCamara]);
+    // encenderCamara es estable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Enganchar el stream al elemento <video> cada vez que alguno de los dos
-  // cambie. Hacerlo solo al obtener la camara fallaba cuando el elemento
-  // todavia no estaba montado.
-  const streamPropio = screenStream ?? localStream;
-
+  // Enganchar cada stream a su elemento <video> cuando cualquiera de los dos
+  // cambie. Hacerlo una sola vez fallaba si el elemento aun no estaba montado.
   useEffect(() => {
     const el = localVideoRef.current;
-    if (el && el.srcObject !== streamPropio) el.srcObject = streamPropio;
-  }, [streamPropio]);
+    if (el && el.srcObject !== localStream) el.srcObject = localStream;
+  }, [localStream]);
+
+  useEffect(() => {
+    const el = localScreenRef.current;
+    if (el && el.srcObject !== screenStream) el.srcObject = screenStream;
+  }, [screenStream]);
 
   useEffect(() => {
     const el = remoteVideoRef.current;
     if (el && el.srcObject !== remoteStream) el.srcObject = remoteStream;
   }, [remoteStream]);
 
-  // ── 2. Conexion con la pareja ─────────────────────────────────────────────
+  useEffect(() => {
+    const el = remoteScreenRef.current;
+    if (el && el.srcObject !== remoteScreen) el.srcObject = remoteScreen;
+  }, [remoteScreen]);
+
+  // ── 2. Señalizacion ───────────────────────────────────────────────────────
 
   const procesarSeñal = useCallback(async (msg: WebRtcSignal) => {
     const pc = pcRef.current;
@@ -151,19 +189,36 @@ export function usePeerConnection({
 
     try {
       if (msg.type === "WEBRTC_OFFER" && msg.sdp) {
+        // Si llega un offer mientras nosotros tambien ofreciamos, cede quien
+        // no es el iniciador. Evita que las dos partes se pisen.
+        const choque = pc.signalingState !== "stable";
+        if (choque) {
+          if (isInitiator) return;
+          await pc.setLocalDescription({ type: "rollback" } as RTCSessionDescriptionInit)
+                  .catch(() => {});
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+
+        // Quien responde debe poder enviar tambien, no solo recibir
+        for (const t of pc.getTransceivers()) {
+          if (t.direction === "recvonly") t.direction = "sendrecv";
+        }
+        await sincronizarPistas();
+
         for (const c of pendingIceRef.current) {
           await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
         }
         pendingIceRef.current = [];
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         sendSignal({ type: "WEBRTC_ANSWER", sdp: pc.localDescription ?? answer });
 
       } else if (msg.type === "WEBRTC_ANSWER" && msg.sdp) {
-        // Un answer que llega cuando ya estamos estables es un duplicado
         if (pc.signalingState !== "have-local-offer") return;
         await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+        await sincronizarPistas();
         for (const c of pendingIceRef.current) {
           await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
         }
@@ -179,12 +234,13 @@ export function usePeerConnection({
     } catch (err) {
       console.warn("[WebRTC] fallo procesando", msg.type, err);
     }
-  }, [sendSignal]);
+  }, [sendSignal, sincronizarPistas, isInitiator]);
 
-  /** Lo llama el componente cuando entra una señal por el WebSocket. */
   const handleSignal = useCallback((msg: WebRtcSignal) => {
     void procesarSeñal(msg);
   }, [procesarSeñal]);
+
+  // ── 3. Conexion con la pareja ─────────────────────────────────────────────
 
   useEffect(() => {
     if (!enabled) return;
@@ -193,14 +249,40 @@ export function usePeerConnection({
     const pc = new RTCPeerConnection(RTC_CONFIG);
     pcRef.current = pc;
 
-    // Pistas locales, si la camara ya esta lista. Si todavia no, se enganchan
-    // despues desde encenderCamara.
-    const local = localStreamRef.current;
-    if (local) local.getTracks().forEach(t => pc.addTrack(t, local));
+    // Los tres canales, siempre en el mismo orden. Quien responde los recibe
+    // del offer, asi que solo los crea el iniciador.
+    if (isInitiator) {
+      pc.addTransceiver("audio", { direction: "sendrecv" });
+      pc.addTransceiver("video", { direction: "sendrecv" });
+      pc.addTransceiver("video", { direction: "sendrecv" });
+    }
+
+    const camaraRemota  = new MediaStream();
+    const pantallaRemota = new MediaStream();
 
     pc.ontrack = (event) => {
       if (cancelado) return;
-      setRemoteStream(event.streams[0] ?? null);
+      const track = event.track;
+      const mid   = event.transceiver.mid;
+
+      const esPantalla = mid === String(MID_PANTALLA);
+      const destino    = esPantalla ? pantallaRemota : camaraRemota;
+
+      destino.getTracks()
+        .filter(t => t.kind === track.kind)
+        .forEach(t => destino.removeTrack(t));
+      destino.addTrack(track);
+
+      if (esPantalla) {
+        setRemoteScreen(pantallaRemota);
+        // La pista existe siempre; solo hay imagen cuando esta "unmuted"
+        setPartnerSharing(!track.muted);
+        track.onunmute = () => !cancelado && setPartnerSharing(true);
+        track.onmute   = () => !cancelado && setPartnerSharing(false);
+        track.onended  = () => !cancelado && setPartnerSharing(false);
+      } else {
+        setRemoteStream(camaraRemota);
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -210,69 +292,78 @@ export function usePeerConnection({
     };
 
     pc.onconnectionstatechange = () => {
-      if (cancelado) return;
-      setConnected(pc.connectionState === "connected");
+      if (!cancelado) setConnected(pc.connectionState === "connected");
     };
 
     pc.oniceconnectionstatechange = () => {
-      if (cancelado) return;
-      setIceState(pc.iceConnectionState);
+      if (!cancelado) setIceState(pc.iceConnectionState);
     };
 
-    // Vaciar lo que haya llegado antes de que existiera la conexion
+    const ofrecer = async () => {
+      if (cancelado || pc.signalingState === "closed") return;
+      if (negociandoRef.current) return;
+      negociandoRef.current = true;
+      try {
+        await sincronizarPistas();
+        const offer = await pc.createOffer();
+        if (pc.signalingState !== "stable") return;
+        await pc.setLocalDescription(offer);
+        sendSignal({ type: "WEBRTC_OFFER", sdp: pc.localDescription ?? offer });
+      } catch (err) {
+        console.warn("[WebRTC] no se pudo crear el offer:", err);
+      } finally {
+        negociandoRef.current = false;
+      }
+    };
+
+    // Vaciar lo que llego antes de que existiera la conexion
     const atrasadas = colaSeñalesRef.current;
     colaSeñalesRef.current = [];
-    (async () => {
+    void (async () => {
       for (const m of atrasadas) await procesarSeñal(m);
+      if (isInitiator && pc.signalingState === "stable" && !pc.remoteDescription) {
+        await ofrecer();
+      }
     })();
 
     let reintento: ReturnType<typeof setInterval> | null = null;
 
     if (isInitiator) {
-      const ofrecer = async () => {
-        if (cancelado || pc.signalingState === "closed") return;
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendSignal({ type: "WEBRTC_OFFER", sdp: pc.localDescription ?? offer });
-        } catch (err) {
-          console.warn("[WebRTC] no se pudo crear el offer:", err);
-        }
-      };
       void ofrecer();
 
-      // Si la otra persona todavia estaba cargando su camara cuando mandamos el
-      // primer offer, no lo pudo contestar. Se reintenta unas pocas veces.
+      // Si la otra parte todavia estaba cargando cuando mandamos el primer
+      // offer, no lo pudo contestar. Se reintenta unas pocas veces.
       let intentos = 0;
       reintento = setInterval(() => {
         intentos += 1;
-        const listo = pc.connectionState === "connected" ||
-                      pc.signalingState  === "stable";
-        if (listo || intentos > 4) {
+        if (cancelado || pc.connectionState === "connected" || intentos > 5) {
           if (reintento) clearInterval(reintento);
           return;
         }
-        void ofrecer();
+        if (pc.signalingState === "stable" && !pc.remoteDescription) void ofrecer();
       }, 4000);
     }
 
     return () => {
       cancelado = true;
       if (reintento) clearInterval(reintento);
-      pc.onicecandidate = null;
       pc.ontrack = null;
+      pc.onicecandidate = null;
       pc.close();
       pcRef.current = null;
       pendingIceRef.current = [];
+      negociandoRef.current = false;
       setRemoteStream(null);
+      setRemoteScreen(null);
+      setPartnerSharing(false);
       setConnected(false);
       setIceState("");
     };
-  // sendSignal y procesarSeñal se estabilizan en el componente padre
+  // sendSignal se estabiliza en el componente padre
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, isInitiator]);
 
-  // ── 3. Controles ──────────────────────────────────────────────────────────
+  // ── 4. Controles ──────────────────────────────────────────────────────────
 
   const toggleMic = useCallback(() => {
     const stream = localStreamRef.current;
@@ -291,50 +382,42 @@ export function usePeerConnection({
   }, []);
 
   const stopScreenShare = useCallback(async () => {
-    const pc    = pcRef.current;
-    const local = localStreamRef.current;
-
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current = null;
     setScreenStream(null);
-
-    const cameraTrack = local?.getVideoTracks()[0];
-    if (pc && cameraTrack) {
-      const sender = pc.getSenders().find(s => s.track?.kind === "video");
-      if (sender) await sender.replaceTrack(cameraTrack).catch(() => {});
-    }
     setIsScreenSharing(false);
-  }, []);
+    // La camara nunca se toco, solo se libera el canal de la pantalla
+    await sincronizarPistas();
+  }, [sincronizarPistas]);
 
   const startScreenShare = useCallback(async () => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+      const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: false,
       });
-      screenStreamRef.current = screenStream;
-      setScreenStream(screenStream);
-      const videoTrack = screenStream.getVideoTracks()[0];
-
-      const pc = pcRef.current;
-      if (pc) {
-        const sender = pc.getSenders().find(s => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(videoTrack).catch(() => {});
-        else pc.addTrack(videoTrack, screenStream);
-      }
-
+      screenStreamRef.current = stream;
+      setScreenStream(stream);
       setIsScreenSharing(true);
-      videoTrack.onended = () => { void stopScreenShare(); };
+      await sincronizarPistas();
+
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.onended = () => { void stopScreenShare(); };
     } catch {
       // La persona cancelo el dialogo. No es un error.
     }
-  }, [stopScreenShare]);
+  }, [sincronizarPistas, stopScreenShare]);
 
   return {
     localVideoRef,
+    localScreenRef,
     remoteVideoRef,
-    localStream:  streamPropio,
+    remoteScreenRef,
+    localStream,
+    screenStream,
     remoteStream,
+    remoteScreen,
+    partnerSharing,
     estadoCamara,
     cameraAllowed,
     micEnabled,
