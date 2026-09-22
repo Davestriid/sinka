@@ -1,34 +1,41 @@
 /**
- * Configuración de ICE servers para WebRTC.
+ * Configuracion de servidores ICE para WebRTC.
  *
- * STUN  — Google público, sin límite de peticiones.
- * TURN  — openrelay.metered.ca (openrelayproject.org), tier gratuito.
- *         Funciona como relay cuando NAT simétrico bloquea P2P directo
- *         (redes universitarias, VPN, CGNAT).
+ * STUN sirve para que cada navegador descubra su direccion publica y pueda
+ * negociar una conexion directa. Cuando la red bloquea esa via directa, cosa
+ * habitual en redes institucionales y en el internet movil del pais, hace
+ * falta un servidor TURN que reenvie el video.
+ *
+ * Las credenciales del TURN se leen de variables de entorno para no dejarlas
+ * escritas en el repositorio. Si no estan configuradas el sistema sigue
+ * funcionando, pero solo entre personas cuya red permita la conexion directa.
  */
-export const ICE_SERVERS: RTCIceServer[] = [
-  // STUN: descubre IP pública y hace hole-punching
+
+const TURN_URL = process.env.NEXT_PUBLIC_TURN_URL;
+const TURN_USER = process.env.NEXT_PUBLIC_TURN_USERNAME;
+const TURN_PASS = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
+
+const STUN_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
-  // TURN UDP — relay cuando P2P falla
-  {
-    urls:       "turn:openrelay.metered.ca:80",
-    username:   "openrelayproject",
-    credential: "openrelayproject",
-  },
-  // TURN TCP — fallback para firewalls que bloquean UDP
-  {
-    urls:       "turn:openrelay.metered.ca:443",
-    username:   "openrelayproject",
-    credential: "openrelayproject",
-  },
-  // TURNS (TLS) — último recurso
-  {
-    urls:       "turns:openrelay.metered.ca:443",
-    username:   "openrelayproject",
-    credential: "openrelayproject",
-  },
+  { urls: "stun:stun.cloudflare.com:3478" },
 ];
+
+function construirTurn(): RTCIceServer[] {
+  if (!TURN_URL || !TURN_USER || !TURN_PASS) return [];
+
+  // Se aceptan varias direcciones separadas por coma para cubrir UDP, TCP y TLS
+  const direcciones = TURN_URL.split(",")
+    .map((u) => u.trim())
+    .filter(Boolean);
+
+  return [{ urls: direcciones, username: TURN_USER, credential: TURN_PASS }];
+}
+
+export const ICE_SERVERS: RTCIceServer[] = [...STUN_SERVERS, ...construirTurn()];
+
+/** Permite avisar en la interfaz cuando no hay retransmision configurada. */
+export const TURN_CONFIGURADO = construirTurn().length > 0;
 
 export const RTC_CONFIG: RTCConfiguration = {
   iceServers: ICE_SERVERS,

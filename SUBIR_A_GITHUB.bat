@@ -34,7 +34,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit ---- >> "%LOG%"
-git commit -m "fix: avisar al segundo usuario que su pareja ya esta en la sesion, para que arranque la camara" >> "%LOG%" 2>&1
+git commit -m "fix: la reconexion a la cola reemplaza la espera anterior en vez de rechazar al usuario" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

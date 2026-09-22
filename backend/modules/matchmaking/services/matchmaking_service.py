@@ -94,12 +94,21 @@ class MatchmakingService:
         Registra al usuario y espera hasta emparejarlo o agotar el tiempo.
         Devuelve MatchResult si hubo pareja, None si expiro.
         """
-        if user_id in self._waiting:
-            await websocket.send_json({
-                "type":   "ERROR",
-                "detail": "Ya estas en cola de emparejamiento.",
-            })
-            return None
+        # Si ya figuraba en cola, manda la conexion nueva. La anterior suele ser
+        # una pestana cerrada o una conexion caida que no alcanzo a limpiarse:
+        # rechazar al usuario lo dejaba atrapado sin poder volver a buscar.
+        anterior = self._waiting.get(user_id)
+        if anterior is not None:
+            logger.info(
+                "Matchmaking: %s vuelve a entrar, se descarta su espera anterior", user_id
+            )
+            anterior.result = None
+            anterior.event.set()          # libera la espera vieja
+            try:
+                await anterior.websocket.close(code=4001)
+            except Exception:
+                pass                      # ya estaba cerrada
+            await self.leave_queue(user_id)
 
         topic = normalize_topic(task_info.get("topic") or task_info.get("work_area"))
         task_info = {**task_info, "topic": topic}
