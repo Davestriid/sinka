@@ -140,6 +140,7 @@ export default function SessionPage() {
     localScreenRef,
     remoteVideoRef,
     remoteScreenRef,
+    remoteStream,
     partnerSharing,
     micEnabled,
     camEnabled,
@@ -158,6 +159,12 @@ export default function SessionPage() {
     isInitiator,
     sendSignal,
   });
+
+  // Hay imagen de la pareja cuando su pista de video ya esta fluyendo. Basarse
+  // solo en el estado de la conexion mostraba el recuadro en negro.
+  const hayVideoPareja = Boolean(
+    remoteStream?.getVideoTracks().some(t => t.readyState === "live" && !t.muted)
+  );
 
   // Mute remote audio durante fase de enfoque
   useEffect(() => {
@@ -706,7 +713,7 @@ export default function SessionPage() {
                 position:   "relative" as const,
                 background: "#0d0b09",
               }}>
-                {!peerConnected && (
+                {!hayVideoPareja && (
                   <div style={{
                     position:       "absolute" as const,
                     inset:          0,
@@ -752,7 +759,7 @@ export default function SessionPage() {
                     height:     150,
                     objectFit:  "cover",
                     display:    "block",
-                    opacity:    peerConnected ? 1 : 0,
+                    opacity:    hayVideoPareja ? 1 : 0,
                   }}
                 />
                 <div style={styles.videoLabel}>

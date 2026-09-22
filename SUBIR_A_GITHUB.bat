@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: canales fijos de audio, camara y pantalla para que el video llegue y compartir no apague la camara" >> "%LOG%" 2>&1
+git commit -m "fix: publicar un stream nuevo en cada pista remota para que se vea la camara de la pareja" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

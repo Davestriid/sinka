@@ -257,8 +257,22 @@ export function usePeerConnection({
       pc.addTransceiver("video", { direction: "sendrecv" });
     }
 
-    const camaraRemota  = new MediaStream();
-    const pantallaRemota = new MediaStream();
+    // Las pistas remotas se acumulan aqui. Cada vez que cambian se crea un
+    // MediaStream nuevo: si se reutilizara el mismo objeto, React lo veria
+    // igual, no volveria a renderizar y el elemento <video> se quedaria con el
+    // stream viejo. Ese era el motivo de que no se viera a la otra persona.
+    const pistasCamara   = new Map<string, MediaStreamTrack>();
+    const pistasPantalla = new Map<string, MediaStreamTrack>();
+
+    const publicarCamara = () => {
+      if (cancelado) return;
+      setRemoteStream(new MediaStream(Array.from(pistasCamara.values())));
+    };
+    const publicarPantalla = () => {
+      if (cancelado) return;
+      const pistas = Array.from(pistasPantalla.values());
+      setRemoteScreen(pistas.length ? new MediaStream(pistas) : null);
+    };
 
     pc.ontrack = (event) => {
       if (cancelado) return;
@@ -266,23 +280,31 @@ export function usePeerConnection({
       const mid   = event.transceiver.mid;
 
       const esPantalla = mid === String(MID_PANTALLA);
-      const destino    = esPantalla ? pantallaRemota : camaraRemota;
+      const destino    = esPantalla ? pistasPantalla : pistasCamara;
+      destino.set(track.kind, track);
 
-      destino.getTracks()
-        .filter(t => t.kind === track.kind)
-        .forEach(t => destino.removeTrack(t));
-      destino.addTrack(track);
+      // Una pista recien negociada llega en silencio y se "despierta" cuando
+      // empieza a fluir el video. Hay que volver a publicar en ese momento.
+      const refrescar = esPantalla ? publicarPantalla : publicarCamara;
 
-      if (esPantalla) {
-        setRemoteScreen(pantallaRemota);
-        // La pista existe siempre; solo hay imagen cuando esta "unmuted"
-        setPartnerSharing(!track.muted);
-        track.onunmute = () => !cancelado && setPartnerSharing(true);
-        track.onmute   = () => !cancelado && setPartnerSharing(false);
-        track.onended  = () => !cancelado && setPartnerSharing(false);
-      } else {
-        setRemoteStream(camaraRemota);
-      }
+      track.onunmute = () => {
+        if (cancelado) return;
+        refrescar();
+        if (esPantalla) setPartnerSharing(true);
+      };
+      track.onmute = () => {
+        if (cancelado) return;
+        if (esPantalla) setPartnerSharing(false);
+      };
+      track.onended = () => {
+        if (cancelado) return;
+        destino.delete(track.kind);
+        refrescar();
+        if (esPantalla) setPartnerSharing(false);
+      };
+
+      refrescar();
+      if (esPantalla) setPartnerSharing(!track.muted);
     };
 
     pc.onicecandidate = (event) => {
