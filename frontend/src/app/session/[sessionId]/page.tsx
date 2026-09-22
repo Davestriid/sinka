@@ -195,6 +195,10 @@ export default function SessionPage() {
       switch (msg.type) {
         case "SESSION_STATE":
         case "SESSION_STARTED":
+          // SESSION_STARTED solo se emite cuando las dos personas ya estan
+          // conectadas, asi que sirve de confirmacion por si el aviso de
+          // PARTNER_CONNECTED se perdio. Sin esto la camara no arranca.
+          if (msg.type === "SESSION_STARTED") setPartnerConnected(true);
           if (msg.payload?.timer) setTimer(msg.payload.timer);
           if (msg.payload?.plant) setPlant(msg.payload.plant);
           if (msg.payload?.task_info_a && msg.payload?.user_a_id) {

@@ -132,11 +132,22 @@ class SessionService:
 
         logger.info("SessionService: %s conecto a sesion %s", user_id, session_id)
 
-        # Notificar a la pareja
+        # Avisar a la pareja que esta persona acaba de entrar
         await self._notify_partner(session_id, user_id, {
             "type":    "PARTNER_CONNECTED",
             "payload": {"partner_id": user_id},
         })
+
+        # Y avisar a quien acaba de entrar si la pareja ya estaba dentro.
+        # Sin esto, el segundo en conectarse nunca se entera de que el primero
+        # esta presente: se queda en "esperando pareja" y no arranca la camara.
+        pareja_id = conn.user_b_id if user_id == conn.user_a_id else conn.user_a_id
+        pareja_ws = conn.ws_b if user_id == conn.user_a_id else conn.ws_a
+        if pareja_ws is not None:
+            await websocket.send_json({
+                "type":    "PARTNER_CONNECTED",
+                "payload": {"partner_id": pareja_id},
+            })
 
         # Enviar estado Redis
         raw = await redis_client.get(f"session:{session_id}:state")
