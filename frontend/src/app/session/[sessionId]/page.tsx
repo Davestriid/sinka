@@ -139,13 +139,17 @@ export default function SessionPage() {
     localVideoRef,
     remoteVideoRef,
     micEnabled,
+    camEnabled,
     isScreenSharing,
-    cameraAllowed,
+    estadoCamara,
+    iceState,
     connected: peerConnected,
     handleSignal,
     toggleMic,
+    toggleCam,
     startScreenShare,
     stopScreenShare,
+    reintentarCamara,
   } = usePeerConnection({
     enabled:     partnerConnected,
     isInitiator,
@@ -591,17 +595,95 @@ export default function SessionPage() {
         {/* ── Columna central: Vídeo ── */}
         <div style={styles.centerCol}>
 
+          {/* Tu camara. Se ve siempre, estes solo o acompanado. */}
+          <section style={{ ...styles.card, padding: 0, overflow: "hidden", position: "relative" as const }}>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width:      "100%",
+                height:     partnerConnected ? 150 : 260,
+                objectFit:  isScreenSharing ? "contain" : "cover",
+                display:    estadoCamara === "lista" ? "block" : "none",
+                background: "#0d0b09",
+                transform:  isScreenSharing ? "none" : "scaleX(-1)",
+                transition: "height 0.4s ease",
+              }}
+            />
+
+            {estadoCamara !== "lista" && (
+              <div style={{
+                height:         partnerConnected ? 150 : 260,
+                display:        "flex",
+                flexDirection:  "column" as const,
+                alignItems:     "center",
+                justifyContent: "center",
+                gap:            10,
+                padding:        16,
+                textAlign:      "center" as const,
+                background:     "#0d0b09",
+              }}>
+                <div style={{ fontSize: 30 }}>
+                  {estadoCamara === "pidiendo" ? "📷" : "🚫"}
+                </div>
+                <p style={{ fontSize: 12, color: "#a0998b", margin: 0, maxWidth: 260 }}>
+                  {estadoCamara === "pidiendo" && "Permite el acceso a la camara en el aviso del navegador."}
+                  {estadoCamara === "denegada" && "Bloqueaste la camara para este sitio. Toca el candado junto a la direccion, permite camara y microfono, y vuelve a intentar."}
+                  {estadoCamara === "sin-camara" && "No se encontro ninguna camara conectada."}
+                  {estadoCamara === "ocupada" && "Otra aplicacion esta usando la camara. Cierrala y vuelve a intentar."}
+                  {estadoCamara === "error" && "No se pudo abrir la camara."}
+                </p>
+                {estadoCamara !== "pidiendo" && (
+                  <button style={styles.mediaBtn} onClick={() => { void reintentarCamara(); }}>
+                    Reintentar
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div style={styles.videoLabel}>
+              {isScreenSharing ? "Tu pantalla" : "Tu camara"}
+              {!camEnabled && " 🚫"}
+            </div>
+          </section>
+
+          {/* Controles. Disponibles siempre, no solo en el descanso. */}
+          <div style={styles.mediaControls}>
+            <button
+              style={{ ...styles.mediaBtn, background: micEnabled ? "#2a2420" : "#7f1d1d" }}
+              onClick={toggleMic}
+              title={micEnabled ? "Silenciar microfono" : "Activar microfono"}
+            >
+              {micEnabled ? "🎤" : "🔇"} Mic
+            </button>
+            <button
+              style={{ ...styles.mediaBtn, background: camEnabled ? "#2a2420" : "#7f1d1d" }}
+              onClick={toggleCam}
+              title={camEnabled ? "Apagar camara" : "Encender camara"}
+            >
+              {camEnabled ? "📹" : "🚫"} Camara
+            </button>
+            <button
+              style={{ ...styles.mediaBtn, background: isScreenSharing ? "#1e3a5f" : "#2a2420" }}
+              onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+              title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
+            >
+              {isScreenSharing ? "🖥️ Dejar de compartir" : "🖥️ Compartir pantalla"}
+            </button>
+          </div>
+
           {partnerConnected && (
             <>
-              {/* Vídeo remoto — siempre visible cuando partner conectado */}
+              {/* Video de la otra persona */}
               <section style={{
                 ...styles.card,
-                padding: 0,
+                padding:  0,
                 overflow: "hidden",
                 position: "relative" as const,
                 background: "#0d0b09",
               }}>
-                {/* Placeholder mientras P2P no está listo */}
                 {!peerConnected && (
                   <div style={{
                     position:       "absolute" as const,
@@ -627,12 +709,16 @@ export default function SessionPage() {
                       {(partnerId ?? "P").slice(0, 2).toUpperCase()}
                     </div>
                     <span style={{ fontSize: 12, color: "#6b6358" }}>
-                      {peerConnected ? "" : "Conectando video…"}
+                      Conectando video…
                     </span>
+                    {iceState === "failed" && (
+                      <span style={{ fontSize: 11, color: "#fca5a5", maxWidth: 240, textAlign: "center" as const }}>
+                        No se pudo establecer la conexion de video. Revisa tu red.
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {/* Vídeo remoto */}
                 <video
                   ref={remoteVideoRef}
                   autoPlay
@@ -640,60 +726,17 @@ export default function SessionPage() {
                   muted={!isBreak}
                   style={{
                     width:      "100%",
-                    height:     isBreak ? 280 : 160,
-                    objectFit: "cover",
+                    height:     isBreak ? 280 : 200,
+                    objectFit:  "cover",
                     display:    "block",
                     transition: "height 0.4s ease",
                     opacity:    peerConnected ? 1 : 0,
                   }}
                 />
-                {/* Label */}
                 <div style={styles.videoLabel}>
                   {partnerId ?? "Pareja"} {!isBreak && "🔇"}
                 </div>
-
-                {/* Vídeo local — thumbnail en esquina */}
-                <div style={styles.localThumb}>
-                  {cameraAllowed ? (
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
-                    />
-                  ) : (
-                    <div style={styles.avatarPlaceholder}>
-                      {(user?.username ?? "yo").slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                </div>
               </section>
-
-              {/* Controles de vídeo — solo en descanso */}
-              {isBreak && (
-                <div style={styles.mediaControls}>
-                  <button
-                    style={{ ...styles.mediaBtn, background: micEnabled ? "#2a2420" : "#7f1d1d" }}
-                    onClick={toggleMic}
-                    title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
-                  >
-                    {micEnabled ? "🎤" : "🔇"} Mic
-                  </button>
-                  <button
-                    style={{ ...styles.mediaBtn, background: isScreenSharing ? "#1e3a5f" : "#2a2420" }}
-                    onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-                    title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
-                  >
-                    {isScreenSharing ? "🖥️ Compartiendo" : "🖥️ Compartir"}
-                  </button>
-                  {!cameraAllowed && (
-                    <span style={{ fontSize: 11, color: "#a0998b", alignSelf: "center" }}>
-                      Cámara no disponible
-                    </span>
-                  )}
-                </div>
-              )}
 
               {!isBreak && (
                 <p style={{ fontSize: 11, color: "#6b6358", textAlign: "center", margin: "4px 0 0" }}>
@@ -704,9 +747,9 @@ export default function SessionPage() {
           )}
 
           {!partnerConnected && (
-            <section style={{ ...styles.card, textAlign: "center", color: "#a0998b", padding: 32 }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
-              <p>Esperando que tu pareja se conecte...</p>
+            <section style={{ ...styles.card, textAlign: "center", color: "#a0998b", padding: 24 }}>
+              <div style={{ fontSize: 34, marginBottom: 10 }}>⏳</div>
+              <p style={{ margin: 0 }}>Esperando que tu pareja se conecte...</p>
             </section>
           )}
 
