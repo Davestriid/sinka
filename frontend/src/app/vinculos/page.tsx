@@ -138,12 +138,20 @@ export default function VinculosPage() {
                       </span>
                     )}
                   </div>
-                  <button
-                    style={s.btnGhost}
-                    onClick={() => router.push(`/jardin/${f.friendship_id}`)}
-                  >
-                    Ver planta
-                  </button>
+                  <div style={s.rowActions}>
+                    <button
+                      style={{ ...s.btnGhost, marginLeft: 0 }}
+                      onClick={() => router.push(`/citas?con=${f.user.id}`)}
+                    >
+                      Agendar cita
+                    </button>
+                    <button
+                      style={{ ...s.btnGhost, marginLeft: 0 }}
+                      onClick={() => router.push(`/jardin/${f.friendship_id}`)}
+                    >
+                      Ver planta
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -235,6 +243,7 @@ const s: Record<string, React.CSSProperties> = {
     padding: "10px 0", borderBottom: "1px solid #2f2a24",
   },
   rowInfo: { display: "flex", flexDirection: "column", flex: 1 },
+  rowActions: { display: "flex", gap: 8, marginLeft: "auto" },
   name:    { fontWeight: 600, fontSize: 14 },
   muted:   { color: "#8b8378", fontSize: 12 },
   empty:   { color: "#8b8378", fontSize: 13, lineHeight: 1.6, margin: 0 },

@@ -67,6 +67,16 @@ export default function CitasPage() {
     catalogApi.topics().then((r) => setTopics(r.topics)).catch(() => setTopics([]));
   }, [cargar]);
 
+  // Si llegaron desde "Agendar cita" en Vínculos (?con=userId), abrimos el
+  // formulario con esa persona ya elegida.
+  useEffect(() => {
+    const conId = new URLSearchParams(window.location.search).get("con");
+    if (conId) {
+      setNueva((n) => ({ ...n, invitee_id: conId }));
+      setCreando(true);
+    }
+  }, []);
+
   /** Devuelve true solo si la accion salio bien. */
   const accion = async (fn: () => Promise<unknown>): Promise<boolean> => {
     try { await fn(); await cargar(); setError(""); return true; }

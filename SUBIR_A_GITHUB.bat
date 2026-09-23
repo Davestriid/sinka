@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: siempre se pregunta si continuar en cada descanso (sin elegir pomodoros de entrada), link/codigo de invitacion a grupo copiable, y boton Unirse en citas confirmadas" >> "%LOG%" 2>&1
+git commit -m "feat: boton Agendar cita desde Vinculos y sube la cuota de solicitudes de amistad de 3 a 5 por dia" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

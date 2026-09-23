@@ -125,7 +125,7 @@ class FriendshipRepository:
 class QuotaRepository:
     """Cuota diaria de solicitudes de amistad."""
 
-    LIMITE_DIARIO = 3
+    LIMITE_DIARIO = 5
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
