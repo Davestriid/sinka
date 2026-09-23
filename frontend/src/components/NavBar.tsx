@@ -71,6 +71,10 @@ export function NavBar({ monedas }: NavBarProps) {
 
   const fc = monedas ?? stats?.focus_coins ?? null;
 
+  // El alias es el nombre que la persona eligio mostrar. Si no puso ninguno,
+  // vale el nombre de usuario del registro.
+  const nombre = user?.alias || user?.username || "Perfil";
+
   const activo = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
@@ -114,8 +118,13 @@ export function NavBar({ monedas }: NavBarProps) {
           onClick={() => router.push("/perfil")}
           title="Tu perfil"
         >
-          <span aria-hidden>👤</span>
-          <span style={s.etiqueta}>{user?.username ?? "Perfil"}</span>
+          {user?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar_url} alt="" style={s.foto} />
+          ) : (
+            <span style={s.inicial}>{nombre.slice(0, 2).toUpperCase()}</span>
+          )}
+          <span style={s.etiqueta}>{nombre}</span>
         </button>
 
         <button
@@ -180,7 +189,26 @@ const s: Record<string, CSSProperties> = {
     color:       "#f5f0e8",
     borderColor: "#4a3f35",
   },
-  etiqueta: { fontSize: 13 },
+  etiqueta: { fontSize: 13, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  foto: {
+    width:        24,
+    height:       24,
+    borderRadius: "50%",
+    objectFit:    "cover",
+    display:      "block",
+  },
+  inicial: {
+    width:        24,
+    height:       24,
+    borderRadius: "50%",
+    background:   "#3a3028",
+    color:        "#f5f0e8",
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    fontSize:     10,
+    fontWeight:   700,
+  },
   salir: {
     background:   "transparent",
     color:        "#a0998b",

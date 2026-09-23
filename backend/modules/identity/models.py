@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -21,7 +21,9 @@ class User(Base):
     # --- Perfil visible para otros usuarios -------------------------------
     # alias: nombre que se muestra en la sesion. Si esta vacio se usa username.
     alias:      Mapped[str | None] = mapped_column(String(50),  nullable=True)
-    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Texto largo porque aqui puede ir una imagen cargada por la persona,
+    # no solo una direccion web. Ver migracion 0010.
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     bio:        Mapped[str | None] = mapped_column(String(280), nullable=True)
 
     # --- Preferencias de interfaz ----------------------------------------

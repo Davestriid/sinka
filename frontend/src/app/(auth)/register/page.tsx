@@ -35,7 +35,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setTokens } = useAuthStore();
+  const { setTokens, setUser } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -49,7 +49,15 @@ export default function RegisterPage() {
     try {
       const tokens = await authApi.register(data.email, data.username, data.password);
       setTokens(tokens.access_token, tokens.refresh_token);
-      router.push("/dashboard");
+
+      // Igual que en el login: sin el perfil la aplicacion no sabe quien eres
+      const perfil = await authApi.me(tokens.access_token);
+      setUser(perfil);
+
+      // Quien recien se registra pasa por el onboarding a elegir sus temas.
+      // Antes se saltaba este paso y todos quedaban en la categoria por
+      // defecto, lo que dejaba sin sentido el emparejamiento por afinidad.
+      router.push("/onboarding");
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Error al registrarse.");
     }

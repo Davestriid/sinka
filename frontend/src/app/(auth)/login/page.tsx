@@ -30,7 +30,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setTokens } = useAuthStore();
+  const { setTokens, setUser } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
   const [accountNotFound, setAccountNotFound] = useState(false);
 
@@ -46,7 +46,15 @@ export default function LoginPage() {
     try {
       const tokens = await authApi.login(data.email, data.password);
       setTokens(tokens.access_token, tokens.refresh_token);
-      router.push("/dashboard");
+
+      // Traer el perfil ahora mismo. Sin esto la aplicacion no sabia quien
+      // eras: la barra mostraba "Perfil" en vez de tu nombre, y dentro de la
+      // sesion ningun lado se reconocia como el que abre la videollamada,
+      // asi que el video nunca arrancaba.
+      const perfil = await authApi.me(tokens.access_token);
+      setUser(perfil);
+
+      router.push(perfil.onboarding_completed ? "/dashboard" : "/onboarding");
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         setAccountNotFound(true);

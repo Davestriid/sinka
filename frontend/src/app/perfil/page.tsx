@@ -5,13 +5,58 @@
  *
  * Datos personales, idioma, tema y el puntaje de confianza con su explicacion.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { profileApi, trustApi, type TrustState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
+
+const LADO_FOTO   = 256;              // pixeles del lado del cuadrado final
+const MAX_ARCHIVO = 5 * 1024 * 1024;  // 5 MB de entrada
+
+/**
+ * Recorta la imagen en cuadrado, la reduce y la devuelve lista para guardar.
+ *
+ * El trabajo se hace en el navegador a proposito. Una foto de celular pesa
+ * varios megabytes y aqui queda en unas decenas de kilobytes, asi que no hay
+ * que subir el archivo original ni montar un servicio de almacenamiento
+ * aparte. La imagen viaja incrustada en el perfil, como el resto de sus datos.
+ */
+async function prepararFoto(archivo: File): Promise<string> {
+  if (!archivo.type.startsWith("image/")) {
+    throw new Error("Ese archivo no es una imagen.");
+  }
+  if (archivo.size > MAX_ARCHIVO) {
+    throw new Error("La imagen pesa más de 5 MB. Elige una más liviana.");
+  }
+
+  const url = URL.createObjectURL(archivo);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, mal) => {
+      const i = new Image();
+      i.onload  = () => ok(i);
+      i.onerror = () => mal(new Error("No se pudo leer la imagen."));
+      i.src = url;
+    });
+
+    // Recorte centrado al cuadrado
+    const lado = Math.min(img.naturalWidth, img.naturalHeight);
+    const x = (img.naturalWidth  - lado) / 2;
+    const y = (img.naturalHeight - lado) / 2;
+
+    const lienzo = document.createElement("canvas");
+    lienzo.width = lienzo.height = LADO_FOTO;
+    const ctx = lienzo.getContext("2d");
+    if (!ctx) throw new Error("Tu navegador no pudo procesar la imagen.");
+
+    ctx.drawImage(img, x, y, lado, lado, 0, 0, LADO_FOTO, LADO_FOTO);
+    return lienzo.toDataURL("image/jpeg", 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -27,6 +72,23 @@ export default function PerfilPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error,   setError]   = useState("");
+
+  const [procesandoFoto, setProcesandoFoto] = useState(false);
+  const archivoRef = useRef<HTMLInputElement>(null);
+
+  /** Una foto se distingue de un símbolo porque es una imagen incrustada. */
+  const esImagen = avatar.startsWith("data:image") || avatar.startsWith("http");
+
+  const subirFoto = async (archivo: File) => {
+    setProcesandoFoto(true);
+    try {
+      setAvatar(await prepararFoto(archivo));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo procesar la imagen.");
+    } finally {
+      setProcesandoFoto(false);
+    }
+  };
 
   useEffect(() => {
     if (!hidratado) return;   // aun no se leyo la sesion guardada
@@ -76,7 +138,50 @@ export default function PerfilPage() {
       <section style={s.card}>
         <h2 style={s.cardTitle}>Cómo te ven los demás</h2>
 
-        <p style={s.label}>Tu símbolo</p>
+        <p style={s.label}>Tu foto</p>
+        <div style={s.fotoFila}>
+          <div style={s.fotoPrevia}>
+            {esImagen ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="Tu foto de perfil" style={s.fotoImg} />
+            ) : (
+              <span style={{ fontSize: 34 }}>{avatar || "🌱"}</span>
+            )}
+          </div>
+
+          <div style={s.fotoAcciones}>
+            <input
+              ref={archivoRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void subirFoto(f);
+                e.target.value = "";   // permite volver a elegir el mismo archivo
+              }}
+            />
+            <button
+              style={s.btnFoto}
+              disabled={procesandoFoto}
+              onClick={() => archivoRef.current?.click()}
+            >
+              {procesandoFoto ? "Procesando…" : esImagen ? "Cambiar foto" : "Subir una foto"}
+            </button>
+
+            {esImagen && (
+              <button style={s.btnQuitar} onClick={() => setAvatar(AVATARES[0])}>
+                Quitar
+              </button>
+            )}
+
+            <span style={s.fotoNota}>
+              JPG o PNG, hasta 5 MB. Se recorta en cuadrado y se reduce antes de guardarla.
+            </span>
+          </div>
+        </div>
+
+        <p style={s.label}>O elige un símbolo</p>
         <div style={s.avatarGrid}>
           {AVATARES.map((a) => (
             <button
@@ -209,6 +314,41 @@ const s: Record<string, React.CSSProperties> = {
     border: "1px solid #3a332b", background: "#1a1714",
     color: "#f5f0e8", fontSize: 14, fontFamily: "inherit",
   },
+  fotoFila:   { display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 6 },
+  fotoPrevia: {
+    width:        84,
+    height:       84,
+    borderRadius: "50%",
+    background:   "#2a2420",
+    border:       "1px solid #3a3028",
+    overflow:     "hidden",
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:   0,
+  },
+  fotoImg:      { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  fotoAcciones: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", flex: 1, minWidth: 180 },
+  btnFoto: {
+    background:   "#3b2f1e",
+    color:        "#f5f0e8",
+    border:       "1px solid #7c5c3a",
+    borderRadius: 8,
+    padding:      "8px 16px",
+    cursor:       "pointer",
+    fontSize:     13,
+    fontWeight:   600,
+  },
+  btnQuitar: {
+    background:   "transparent",
+    color:        "#a0998b",
+    border:       "1px solid #3a3028",
+    borderRadius: 8,
+    padding:      "8px 14px",
+    cursor:       "pointer",
+    fontSize:     13,
+  },
+  fotoNota: { fontSize: 11, color: "#6b6358", flexBasis: "100%", lineHeight: 1.4 },
   avatarGrid: { display: "flex", flexWrap: "wrap", gap: 8 },
   avatarBtn: {
     width: 42, height: 42, fontSize: 20, borderRadius: 10,
