@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: escenario de video estilo reunion, reproduccion explicita del video remoto y diagnostico visible" >> "%LOG%" 2>&1
+git commit -m "feat: campana de notificaciones para solicitudes de amistad y renovacion automatica de la sesion" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

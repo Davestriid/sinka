@@ -152,6 +152,38 @@ class IdentityService:
         user = await self.user_repo.update_fields(user)
         return UserResponse.model_validate(user)
 
+    async def refresh(self, refresh_token: str) -> TokenResponse:
+        """
+        Cambia un token de refresco por uno de acceso nuevo.
+
+        Sin esto la sesion moria a la media hora y la persona tenia que volver
+        a escribir su contraseña aunque no hubiera cerrado sesion.
+
+        El token viejo se revoca y se entrega uno nuevo. Asi, si alguien roba
+        un token de refresco, solo le sirve hasta que la persona legitima lo
+        use otra vez.
+        """
+        invalido = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Tu sesion expiro. Vuelve a iniciar sesion.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+        payload = self.decode_token(refresh_token)
+        if payload.get("type") != "refresh":
+            raise invalido
+
+        sesion = await self.session_repo.get_by_refresh_token(refresh_token)
+        if sesion is None:
+            raise invalido
+
+        user = await self.user_repo.get_by_id(payload.get("sub", ""))
+        if user is None or not user.is_active:
+            raise invalido
+
+        await self.session_repo.revoke(sesion)
+        return await self._issue_tokens(user)
+
     async def search_users(self, termino: str, actual_id: str) -> list[UserResponse]:
         """Busqueda de usuarios por nombre. Minimo dos caracteres."""
         termino = termino.strip()

@@ -14,6 +14,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 
 import { gamificationApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { Notificaciones } from "./Notificaciones";
 
 interface Destino {
   href:   string;
@@ -98,6 +99,8 @@ export function NavBar({ monedas }: NavBarProps) {
       </nav>
 
       <div style={s.derecha}>
+        <Notificaciones />
+
         <button
           style={{ ...s.enlace, ...(activo("/shop") ? s.enlaceActivo : {}) }}
           onClick={() => router.push("/shop")}

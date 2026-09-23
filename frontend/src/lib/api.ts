@@ -10,13 +10,80 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+/**
+ * Renovacion del token de acceso.
+ *
+ * El token de acceso dura treinta minutos. Cuando caduca, en vez de mandar a
+ * la persona de vuelta al login se canjea el token de refresco, que dura una
+ * semana, y se repite la peticion. La sesion solo termina cuando la persona
+ * cierra sesion a proposito o cuando el refresco tambien caduca.
+ *
+ * Las renovaciones simultaneas comparten la misma promesa, asi varias
+ * peticiones que fallan a la vez no disparan varios canjes.
+ */
+let renovacionEnCurso: Promise<string | null> | null = null;
+
+async function renovarAcceso(): Promise<string | null> {
+  if (renovacionEnCurso) return renovacionEnCurso;
+
+  renovacionEnCurso = (async () => {
+    try {
+      const { useAuthStore } = await import("@/store/auth.store");
+      const estado = useAuthStore.getState();
+      if (!estado.refreshToken) return null;
+
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ refresh_token: estado.refreshToken }),
+      });
+      if (!res.ok) { estado.logout(); return null; }
+
+      const datos = (await res.json()) as TokenResponse;
+      estado.setTokens(datos.access_token, datos.refresh_token);
+      return datos.access_token;
+    } catch {
+      return null;
+    } finally {
+      // Se libera en el siguiente ciclo para que quienes esperaban lean el valor
+      setTimeout(() => { renovacionEnCurso = null; }, 0);
+    }
+  })();
+
+  return renovacionEnCurso;
+}
+
+/** Cambia el token que viaja en la cabecera Authorization. */
+function conNuevoToken(headers: HeadersInit | undefined, token: string): HeadersInit {
+  return { ...(headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` };
+}
+
+async function request<T>(
+  path: string,
+  options?: RequestInit,
+  reintentado = false,
+): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
 
   if (!res.ok) {
+    // Token caducado: se renueva una vez y se repite la peticion original
+    const llevaToken = Boolean(
+      (options?.headers as Record<string, string> | undefined)?.Authorization
+    );
+    if (res.status === 401 && llevaToken && !reintentado && path !== "/auth/refresh") {
+      const nuevo = await renovarAcceso();
+      if (nuevo) {
+        return request<T>(
+          path,
+          { ...options, headers: conNuevoToken(options?.headers, nuevo) },
+          true,
+        );
+      }
+    }
+
     const body = await res.json().catch(() => ({ detail: "Error desconocido" }));
     throw new ApiError(body.detail ?? "Error del servidor", res.status);
   }
@@ -46,6 +113,14 @@ export interface UserResponse {
   interests:            string[] | null;
   onboarding_completed: boolean;
 }
+
+export const sesionApi = {
+  refresh: (refreshToken: string) =>
+    request<TokenResponse>("/auth/refresh", {
+      method: "POST",
+      body:   JSON.stringify({ refresh_token: refreshToken }),
+    }),
+};
 
 export const authApi = {
   register: (email: string, username: string, password: string) =>

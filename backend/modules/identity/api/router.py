@@ -7,6 +7,7 @@ from modules.identity.schemas.auth import (
     LoginRequest,
     OnboardingRequest,
     ProfileUpdateRequest,
+    RefreshRequest,
     RegisterRequest,
     TokenResponse,
     UserResponse,
@@ -39,6 +40,20 @@ async def login(
     _rl: None = _auth_limit,
 ) -> TokenResponse:
     return await service.login(email=body.email, password=body.password)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(
+    body: RefreshRequest,
+    service: IdentityService = Depends(get_identity_service),
+) -> TokenResponse:
+    """
+    Renueva el token de acceso a partir del de refresco.
+
+    No lleva limitador de intentos porque el navegador lo llama solo, cada vez
+    que el token de acceso caduca, y un limite lo dejaria fuera de la sesion.
+    """
+    return await service.refresh(body.refresh_token)
 
 
 @router.get("/me", response_model=UserResponse)
