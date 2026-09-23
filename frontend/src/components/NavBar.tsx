@@ -12,7 +12,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 
-import { gamificationApi, type UserStats } from "@/lib/api";
+import { authApi, gamificationApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { Notificaciones } from "./Notificaciones";
 
@@ -46,7 +46,7 @@ interface NavBarProps {
 export function NavBar({ monedas }: NavBarProps) {
   const router   = useRouter();
   const pathname = usePathname();
-  const { accessToken: token, user, logout } = useAuthStore();
+  const { accessToken: token, user, logout, setUser } = useAuthStore();
 
   const [stats, setStats] = useState<UserStats | null>(null);
 
@@ -66,6 +66,17 @@ export function NavBar({ monedas }: NavBarProps) {
     if (oculta || !token || monedas != null) return;
     gamificationApi.getStats(token).then(setStats).catch(() => {});
   }, [oculta, token, monedas]);
+
+  // Si hay sesion pero no sabemos quien es, se pregunta.
+  //
+  // Esto repara solo las sesiones abiertas antes de que el login empezara a
+  // traer el perfil: sin esto la barra mostraba "Perfil" en vez del nombre y
+  // el boton de guardar del perfil quedaba desactivado para siempre, porque
+  // no habia con que comparar los cambios.
+  useEffect(() => {
+    if (!montado || !token || user) return;
+    authApi.me(token).then(setUser).catch(() => {});
+  }, [montado, token, user, setUser]);
 
   if (oculta) return null;
 

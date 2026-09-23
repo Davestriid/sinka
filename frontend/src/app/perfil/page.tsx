@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { profileApi, trustApi, type TrustState } from "@/lib/api";
+import { authApi, profileApi, trustApi, type TrustState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
@@ -93,6 +93,14 @@ export default function PerfilPage() {
   useEffect(() => {
     if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
+
+    // Sesiones viejas pueden no tener el perfil guardado. Se pide y al
+    // llegar este mismo efecto vuelve a correr y rellena el formulario.
+    if (!user) {
+      authApi.me(token).then(setUser).catch(() => {});
+      return;
+    }
+
     if (user) {
       setAlias(user.alias ?? user.username);
       setBio(user.bio ?? "");
@@ -115,8 +123,13 @@ export default function PerfilPage() {
     return "";
   })();
 
+  /**
+   * Si todavia no sabemos quien es, se deja guardar igual. Antes se exigia
+   * conocer el perfil para comparar, y mientras no cargaba el boton quedaba
+   * desactivado sin explicacion.
+   */
   const hayCambios =
-    !!user && (
+    !user || (
       alias.trim() !== (user.alias ?? user.username) ||
       bio.trim()   !== (user.bio ?? "") ||
       avatar       !== (user.avatar_url ?? AVATARES[0]) ||
