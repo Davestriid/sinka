@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: detectar la carga de la sesion con el metodo propio de zustand, que si funciona" >> "%LOG%" 2>&1
+git commit -m "fix: limitar el apodo a 24 caracteres para que no rompa la barra ni las tarjetas" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

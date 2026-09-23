@@ -78,8 +78,8 @@ class ProfileUpdateRequest(BaseModel):
         v = v.strip()
         if not v:
             return None
-        if len(v) < 2 or len(v) > 50:
-            raise ValueError("El alias debe tener entre 2 y 50 caracteres.")
+        if len(v) < 2 or len(v) > 24:
+            raise ValueError("El alias debe tener entre 2 y 24 caracteres.")
         return v
 
     @field_validator("bio")
@@ -132,8 +132,8 @@ class OnboardingRequest(BaseModel):
     @classmethod
     def alias_required(cls, v: str) -> str:
         v = v.strip()
-        if len(v) < 2 or len(v) > 50:
-            raise ValueError("El alias debe tener entre 2 y 50 caracteres.")
+        if len(v) < 2 or len(v) > 24:
+            raise ValueError("El alias debe tener entre 2 y 24 caracteres.")
         return v
 
     @field_validator("interests")

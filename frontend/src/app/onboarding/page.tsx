@@ -86,10 +86,11 @@ export default function OnboardingPage() {
             <input
               style={s.input}
               value={alias}
-              maxLength={50}
+              maxLength={24}
               placeholder="Tu nombre o apodo"
               onChange={(e) => setAlias(e.target.value)}
             />
+            <span style={s.counter}>{alias.trim().length}/24</span>
 
             <p style={s.label}>Elige tu símbolo</p>
             <div style={s.avatarGrid}>

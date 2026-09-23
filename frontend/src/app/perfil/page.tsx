@@ -118,7 +118,7 @@ export default function PerfilPage() {
   const problema = (() => {
     const a = alias.trim();
     if (a.length < 2)  return "El nombre visible necesita al menos 2 caracteres.";
-    if (a.length > 50) return "El nombre visible no puede pasar de 50 caracteres.";
+    if (a.length > 24) return "El nombre visible no puede pasar de 24 caracteres.";
     if (bio.length > 280) return "La descripción no puede pasar de 280 caracteres.";
     return "";
   })();
@@ -232,9 +232,10 @@ export default function PerfilPage() {
         <input
           style={s.input}
           value={alias}
-          maxLength={50}
+          maxLength={24}
           onChange={(e) => setAlias(e.target.value)}
         />
+        <span style={s.muted}>{alias.trim().length}/24</span>
 
         <p style={s.label}>Sobre ti</p>
         <textarea
