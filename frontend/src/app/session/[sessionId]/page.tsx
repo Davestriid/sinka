@@ -404,11 +404,12 @@ export default function SessionPage() {
 
   const sendChat = useCallback(() => {
     const text = chatInput.trim();
-    if (!text || wsRef.current?.readyState !== WebSocket.OPEN) return;
+    // El chat solo se abre en el descanso, igual que el audio.
+    if (!text || timer?.phase !== "break" || wsRef.current?.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: "CHAT", text }));
     setMessages(prev => [...prev, { from: user?.username ?? "yo", text, ts: Date.now() }]);
     setChatInput("");
-  }, [chatInput, user]);
+  }, [chatInput, user, timer?.phase]);
 
   const votarExtension = useCallback((acepta: boolean) => {
     if (wsRef.current?.readyState !== WebSocket.OPEN) return;
@@ -888,15 +889,15 @@ export default function SessionPage() {
               <input
                 style={styles.chatInput}
                 value={chatInput}
-                placeholder="Escribe algo..."
+                placeholder={isBreak ? "Escribe algo..." : "El chat se abre en el descanso"}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") sendChat(); }}
-                disabled={!wsReady}
+                disabled={!wsReady || !isBreak}
               />
               <button
                 style={{ ...styles.btnPrimary, padding: "10px 18px" }}
                 onClick={sendChat}
-                disabled={!wsReady}
+                disabled={!wsReady || !isBreak}
               >
                 →
               </button>

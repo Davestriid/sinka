@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: muestra el tiempo compartido de cada planta en minutos en vez de horas" >> "%LOG%" 2>&1
+git commit -m "fix: el chat de la sesion solo se habilita en el descanso, igual que el audio" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"
