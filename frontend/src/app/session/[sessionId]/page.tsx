@@ -203,10 +203,12 @@ export default function SessionPage() {
   }, []);
 
   // Mute remote audio durante fase de enfoque
+  // TEMPORAL: restriccion desactivada para probar que el audio funciona.
+  // Volver a "timer?.phase === 'focus'" despues de la prueba.
   useEffect(() => {
     const el = remoteVideoRef.current;
     if (!el) return;
-    el.muted = timer?.phase === "focus";
+    el.muted = false;
   }, [timer?.phase, remoteVideoRef]);
 
   // Arrancar la reproduccion a mano. El atributo autoPlay solo actua en la
@@ -765,7 +767,7 @@ export default function SessionPage() {
                     ref={remoteVideoRef}
                     autoPlay
                     playsInline
-                    muted={!isBreak}
+                    muted={false /* TEMPORAL: probar audio fuera del descanso; volver a !isBreak */}
                     style={{
                       ...styles.videoLleno,
                       display: hayVideoPareja ? "block" : "none",
