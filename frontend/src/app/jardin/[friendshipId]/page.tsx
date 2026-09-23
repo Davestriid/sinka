@@ -108,7 +108,7 @@ export default function PlantaPage() {
 
         <div style={s.stats}>
           <Stat valor={String(plant.sessions_together)} etiqueta="sesiones juntos" />
-          <Stat valor={`${plant.hours_together} h`}     etiqueta="tiempo compartido" />
+          <Stat valor={`${plant.minutes_together} min`} etiqueta="tiempo compartido" />
           <Stat valor={amigo}                            etiqueta="tu compañero" />
         </div>
 

@@ -85,7 +85,7 @@ export default function JardinPage() {
               </div>
 
               <span style={s.muted}>
-                {p.sessions_together} sesiones · {p.hours_together} h
+                {p.sessions_together} sesiones · {p.minutes_together} min
               </span>
             </button>
           ))}
