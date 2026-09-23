@@ -602,6 +602,11 @@ export const appointmentsApi = {
     request<void>(`/appointments/${id}`, {
       method: "DELETE", headers: auth(token),
     }),
+
+  join: (token: string, id: string) =>
+    request<{ session_id: string }>(`/appointments/${id}/join`, {
+      method: "POST", headers: auth(token),
+    }),
 };
 
 // ── Confianza y presencia ────────────────────────────────────────────────────

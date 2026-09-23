@@ -22,14 +22,6 @@ const TOPICS = [
   { value: "other",     label: "✨ Otro" },
 ];
 
-// ── Opciones de Pomodoros ─────────────────────────────────────────────────────
-const POMODORO_OPTIONS = [
-  { value: 1, label: "1 Pomodoro",  sub: "~25 min" },
-  { value: 2, label: "2 Pomodoros", sub: "~50 min" },
-  { value: 3, label: "3 Pomodoros", sub: "~1 h 15 min" },
-  { value: 4, label: "4 Pomodoros", sub: "~1 h 40 min" },
-];
-
 // ── Estado de la pantalla ─────────────────────────────────────────────────────
 type Screen = "config" | "searching" | "matched" | "timeout" | "error";
 
@@ -40,7 +32,6 @@ export default function DashboardPage() {
   // Formulario de configuración
   const [topic,            setTopic]            = useState("");
   const [taskTitle,        setTaskTitle]        = useState("");
-  const [targetPomodoros,  setTargetPomodoros]  = useState(2);
 
   // Estado de búsqueda
   const [screen,  setScreen]  = useState<Screen>("config");
@@ -74,12 +65,15 @@ export default function DashboardPage() {
 
     ws.onopen = () => {
       // Primer mensaje: info de tarea
+      // Ya no se elige cuantos Pomodoros hacer de entrada: siempre se
+      // empieza con uno, y en cada descanso se pregunta a los dos si
+      // quieren seguir con otro. Se sigue mandando el campo porque el
+      // backend todavia lo acepta, pero ya no cambia nada.
       ws.send(JSON.stringify({
         type:    "TASK_INFO",
         payload: {
-          topic:            topic,
-          task_title:       title,
-          target_pomodoros: targetPomodoros,
+          topic:      topic,
+          task_title: title,
         },
       }));
       setScreen("searching");
@@ -202,24 +196,11 @@ export default function DashboardPage() {
             />
             <span style={styles.charCount}>{taskTitle.length}/80</span>
 
-            {/* Pomodoros objetivo */}
-            <label style={styles.label}>¿Cuántos Pomodoros quieres hacer?</label>
-            <div style={styles.pomRow}>
-              {POMODORO_OPTIONS.map(p => (
-                <button
-                  key={p.value}
-                  style={{
-                    ...styles.pomBtn,
-                    ...(targetPomodoros === p.value ? styles.pomBtnActive : {}),
-                  }}
-                  onClick={() => setTargetPomodoros(p.value)}
-                >
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>{"🍅".repeat(p.value)}</span>
-                  <span style={{ fontSize: 12, marginTop: 2 }}>{p.label}</span>
-                  <span style={{ fontSize: 11, color: "#a0998b" }}>{p.sub}</span>
-                </button>
-              ))}
-            </div>
+            <p style={styles.pomNota}>
+              🍅 Empiezan con un Pomodoro de 25 minutos. Al llegar al descanso
+              les preguntamos a los dos si quieren seguir con otro — solo
+              continúa si ambos dicen que sí.
+            </p>
 
             <button
               style={{
@@ -401,29 +382,15 @@ const styles: Record<string, React.CSSProperties> = {
     color:     "#6b6358",
     marginTop: 4,
   },
-  pomRow: {
-    display:   "flex",
-    gap:       8,
-    flexWrap:  "wrap",
-  },
-  pomBtn: {
-    display:       "flex",
-    flexDirection: "column",
-    alignItems:    "center",
-    background:    "#2a2420",
-    border:        "1px solid #3a3028",
-    borderRadius:  8,
-    padding:       "10px 14px",
-    cursor:        "pointer",
-    color:         "#c4b99a",
-    flex:          "1 1 100px",
-    minWidth:      80,
-    transition:    "all 0.15s",
-  },
-  pomBtnActive: {
-    background:  "#3b2f1e",
-    borderColor: "#7c5c3a",
-    color:       "#f5f0e8",
+  pomNota: {
+    color:      "#a0998b",
+    fontSize:   12,
+    lineHeight: 1.6,
+    background: "#221e1a",
+    border:     "1px solid #3a3028",
+    borderRadius: 8,
+    padding:    "10px 12px",
+    marginTop:  12,
   },
   btnPrimary: {
     background:   "#7c5c3a",

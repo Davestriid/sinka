@@ -4,13 +4,16 @@ PomodoroTimer: temporizador Pomodoro cooperativo del lado del servidor.
 Un timer por sesion, sin IO.  El SessionService lo crea y llama tick()
 cada segundo desde su game-loop.
 
-Ciclo: 25 min enfoque → 5 min descanso (hasta MAX_ROUNDS rondas de enfoque).
+Ciclo: 25 min enfoque → 5 min descanso. Antes se elegia de entrada cuantas
+rondas hacer; ahora siempre se empieza con una sola, y en cada descanso el
+game-loop ofrece seguir con otra (ver extension_service). Solo si las dos
+personas aceptan se suma una ronda mas via extend().
 """
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 FOCUS_SECONDS: int = 25 * 60   # 1500 s
 BREAK_SECONDS: int  =  5 * 60  # 300 s
-MAX_ROUNDS:    int  = 4        # 4 ciclos = ~2 h de sesion maxima
+MAX_ROUNDS:    int  = 1        # Siempre se arranca con un solo Pomodoro
 
 
 # ── Clase ─────────────────────────────────────────────────────────────────────

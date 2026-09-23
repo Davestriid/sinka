@@ -24,6 +24,7 @@ export default function GruposPage() {
   const [error,    setError]    = useState("");
 
   const [codigo, setCodigo] = useState("");
+  const [copiado, setCopiado] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
   const [nuevo, setNuevo] = useState({
     name: "", topic: "", visibility: "public" as "public" | "private", default_task: "",
@@ -49,9 +50,27 @@ export default function GruposPage() {
     catalogApi.topics().then((r) => setTopics(r.topics)).catch(() => setTopics([]));
   }, [cargar]);
 
+  // Si llegaron desde un link de invitación (?codigo=XXXX), prellenamos el
+  // campo de "entrar por código" para que solo tengan que tocar "Entrar".
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const desdeLink = params.get("codigo");
+    if (desdeLink) setCodigo(desdeLink.toUpperCase());
+  }, []);
+
   const accion = async (fn: () => Promise<unknown>) => {
     try { await fn(); await cargar(); setError(""); }
     catch (e) { setError(e instanceof Error ? e.message : "Algo salió mal."); }
+  };
+
+  const copiar = async (texto: string, etiqueta: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(etiqueta);
+      setTimeout(() => setCopiado(null), 2000);
+    } catch {
+      setError("No pudimos copiar al portapapeles.");
+    }
   };
 
   const crear = async () => {
@@ -208,7 +227,26 @@ export default function GruposPage() {
               </p>
 
               {g.invite_code && (
-                <p style={s.code}>Código: <strong>{g.invite_code}</strong></p>
+                <>
+                  <p style={s.code}>Código: <strong>{g.invite_code}</strong></p>
+                  <div style={s.inviteRow}>
+                    <button
+                      style={s.btnGhost}
+                      onClick={() => copiar(g.invite_code!, `codigo-${g.id}`)}
+                    >
+                      {copiado === `codigo-${g.id}` ? "¡Copiado!" : "Copiar código"}
+                    </button>
+                    <button
+                      style={s.btnGhost}
+                      onClick={() => copiar(
+                        `${window.location.origin}/grupos?codigo=${g.invite_code}`,
+                        `link-${g.id}`,
+                      )}
+                    >
+                      {copiado === `link-${g.id}` ? "¡Copiado!" : "Copiar link de invitación"}
+                    </button>
+                  </div>
+                </>
               )}
 
               <div style={s.groupActions}>
@@ -283,6 +321,12 @@ const s: Record<string, React.CSSProperties> = {
     background: "#2f2a24", color: "#8b8378",
   },
   code:  { fontSize: 12, color: "#7fa05a", margin: "6px 0" },
+  inviteRow: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 },
+  btnGhost: {
+    padding: "5px 10px", borderRadius: 6, fontSize: 11,
+    border: "1px solid #3a332b", background: "none",
+    color: "#c4b99a", cursor: "pointer",
+  },
   groupActions: { marginTop: 12 },
   muted: { color: "#8b8378", fontSize: 12, lineHeight: 1.6, margin: "4px 0" },
   empty: { color: "#8b8378", fontSize: 13, lineHeight: 1.7 },

@@ -25,11 +25,14 @@ def service() -> ExtensionService:
 # Cuando se ofrece
 # ---------------------------------------------------------------------------
 
-def test_no_se_ofrece_en_el_primer_encuentro():
-    assert se_puede_ofrecer(encuentros_previos=1, extensiones_usadas=0) is False
+def test_se_ofrece_incluso_en_el_primer_encuentro():
+    # Antes esto requeria un segundo encuentro con la misma persona. Ahora
+    # se ofrece siempre: el tope real es el acuerdo mutuo, no la cantidad de
+    # veces que ya coincidieron.
+    assert se_puede_ofrecer(encuentros_previos=1, extensiones_usadas=0) is True
 
 
-def test_se_ofrece_desde_el_segundo_encuentro():
+def test_se_ofrece_desde_el_minimo_configurado():
     assert se_puede_ofrecer(MIN_ENCUENTROS_PARA_OFRECER, extensiones_usadas=0) is True
 
 

@@ -1,13 +1,15 @@
 """
 Votacion para extender la sesion.
 
-A partir del segundo encuentro con la misma persona, la pantalla final ofrece
-seguir con otro bloque de trabajo. Los dos tienen que aceptar. Si uno declina,
-la sesion termina con normalidad y sin penalizacion para nadie.
+Cada sesion arranca con un solo Pomodoro. Al llegar el descanso, la pantalla
+ofrece seguir con otro bloque de trabajo. Los dos tienen que aceptar para que
+continue; si uno declina, la sesion termina con normalidad y sin penalizacion
+para nadie.
 
-La regla del segundo encuentro viene de la idea de que extender es un gesto de
-confianza: tiene sentido proponerlo a quien ya conoces, no a alguien con quien
-acabas de coincidir por primera vez.
+Antes esto solo se ofrecia a partir del segundo encuentro con la misma
+persona, pensado como un gesto de confianza. Ahora se ofrece siempre: el
+tope real ya no es una regla arbitraria, es que las dos personas sigan
+queriendo continuar.
 """
 import logging
 from dataclasses import dataclass, field
@@ -15,14 +17,17 @@ from typing import Final
 
 logger = logging.getLogger(__name__)
 
-# A partir de cuantos encuentros se ofrece extender
-MIN_ENCUENTROS_PARA_OFRECER: Final[int] = 2
+# A partir de cuantos encuentros se ofrece extender. En 0 se ofrece siempre,
+# incluso en el primer encuentro entre dos personas.
+MIN_ENCUENTROS_PARA_OFRECER: Final[int] = 0
 
 # Cuanto dura el bloque extra
 MINUTOS_EXTENSION: Final[int] = 25
 
-# Cuantas veces se puede extender una misma sesion, para que no sea infinita
-MAX_EXTENSIONES: Final[int] = 2
+# Cuantas veces se puede extender una misma sesion. Ya no hay un tope bajo
+# artificial: mientras las dos personas sigan aceptando, la sesion puede
+# seguir. Este numero solo evita un bucle realmente infinito.
+MAX_EXTENSIONES: Final[int] = 100
 
 
 @dataclass

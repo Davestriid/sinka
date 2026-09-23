@@ -115,6 +115,12 @@ class AppointmentRepository:
         await self.db.refresh(cita)
         return cita
 
+    async def set_session_id(self, cita: Appointment, session_id: str) -> Appointment:
+        cita.session_id = session_id
+        await self.db.commit()
+        await self.db.refresh(cita)
+        return cita
+
     async def expire_past(self, ahora: datetime) -> int:
         """
         Marca como vencidas las citas pendientes cuya hora ya paso.

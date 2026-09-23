@@ -5,11 +5,13 @@ Quien puede agendar con quien, cuantas veces al dia, y que pasa si dos citas
 se pisan en el horario.
 """
 import logging
+import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException
 
 from core.catalog import is_valid_topic, normalize_topic
+from core.event_bus import EventBus
 from modules.groups.repositories.group_repository import GroupRepository
 from modules.identity.repositories.user_repository import UserRepository
 from modules.scheduling.models import (
@@ -34,6 +36,9 @@ ANTICIPACION_MINIMA = timedelta(minutes=10)
 HORIZONTE_MAXIMO = timedelta(days=30)
 
 DURACIONES_VALIDAS = (25, 50, 90)
+
+# Desde cuanto antes de la hora agendada se puede tocar "Unirse"
+VENTANA_UNIRSE_ANTES = timedelta(minutes=10)
 
 
 class SchedulingService:
@@ -156,6 +161,58 @@ class SchedulingService:
         await self.appts.set_status(cita, CANCELLED)
         if cita.creator_id == user_id and cita.created_at.date() == self._hoy():
             await self.quota.devolver(user_id, self._hoy())
+
+    # ------------------------------------------------------------------
+    # Unirse
+    # ------------------------------------------------------------------
+
+    async def join(self, appointment_id: str, user_id: str) -> dict:
+        """
+        Arranca (o reengancha) la sesion real detras de una cita confirmada.
+
+        Reutiliza el mismo session_id si alguien ya toco "Unirse" antes, para
+        que las dos personas terminen en la misma sesion. Publica el mismo
+        evento que usa el matchmaking, asi el SessionService bootstrapea el
+        estado en Redis exactamente igual que si se hubieran emparejado ahi.
+        """
+        cita = await self.appts.get_by_id(appointment_id)
+        if cita is None:
+            raise HTTPException(404, "Esa cita no existe.")
+        if not cita.participa(user_id) and cita.creator_id != user_id:
+            raise HTTPException(403, "No formas parte de esa cita.")
+        if cita.is_group:
+            raise HTTPException(
+                400, "Unirse desde aqui todavia no esta disponible para citas de grupo."
+            )
+        if cita.status != CONFIRMED:
+            raise HTTPException(409, "Esa cita todavia no esta confirmada.")
+
+        ahora = datetime.now(timezone.utc)
+        if ahora < cita.scheduled_for - VENTANA_UNIRSE_ANTES:
+            raise HTTPException(
+                400, "Todavia es muy pronto. Podras unirte 10 minutos antes de la hora."
+            )
+
+        if cita.session_id:
+            return {"session_id": cita.session_id}
+
+        session_id = str(uuid.uuid4())
+        await self.appts.set_session_id(cita, session_id)
+
+        task_info = {"topic": cita.topic, "task_title": cita.title}
+        await EventBus.publish("match.created", {
+            "session_id":  session_id,
+            "user_a_id":   cita.creator_id,
+            "user_b_id":   cita.invitee_id,
+            "task_info_a": task_info,
+            "task_info_b": task_info,
+            "topic":       cita.topic,
+            "by_affinity": False,
+        })
+        logger.info(
+            "Scheduling: %s inicio la sesion %s de la cita %s", user_id, session_id, cita.id
+        )
+        return {"session_id": session_id}
 
     # ------------------------------------------------------------------
     # Consultas

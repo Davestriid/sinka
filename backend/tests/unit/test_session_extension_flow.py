@@ -13,7 +13,7 @@ import asyncio
 import pytest
 
 from modules.sessions.services import session_service as modulo
-from modules.sessions.services.extension_service import extension_service
+from modules.sessions.services.extension_service import MAX_EXTENSIONES, extension_service
 from modules.sessions.services.pomodoro_service import PomodoroTimer
 from modules.sessions.services.session_service import SessionService, _SessionConnection
 
@@ -57,15 +57,19 @@ def escena():
 # Cuando aparece la propuesta
 # ---------------------------------------------------------------------------
 
-async def test_no_se_propone_en_el_primer_encuentro(escena):
+async def test_se_propone_incluso_en_el_primer_encuentro(escena):
+    """Ya no hace falta un segundo encuentro: siempre se ofrece continuar."""
     servicio, ws_ana, ws_beto = escena
     servicio.set_encounter_count(SESION, 1)
 
-    sigue = await servicio._ofrecer_extension(SESION, PomodoroTimer())
+    tarea = asyncio.create_task(servicio._ofrecer_extension(SESION, PomodoroTimer()))
+    await asyncio.sleep(0)   # deja que la propuesta salga
 
-    assert sigue is False
-    assert "EXTENSION_OFFER" not in ws_ana.tipos()
-    assert "EXTENSION_OFFER" not in ws_beto.tipos()
+    assert "EXTENSION_OFFER" in ws_ana.tipos()
+    assert "EXTENSION_OFFER" in ws_beto.tipos()
+
+    await servicio.register_extension_vote(SESION, ANA, False)
+    await tarea
 
 
 async def test_la_propuesta_llega_a_los_dos(escena):
@@ -157,7 +161,7 @@ async def test_no_se_propone_mas_alla_del_tope(escena):
     servicio, ws_ana, _ = escena
     servicio.set_encounter_count(SESION, 5)
     timer = PomodoroTimer()
-    timer.extensions = 2   # ya se uso el maximo
+    timer.extensions = MAX_EXTENSIONES   # ya se uso el maximo
 
     sigue = await servicio._ofrecer_extension(SESION, timer)
 

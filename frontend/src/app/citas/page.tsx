@@ -98,6 +98,16 @@ export default function CitasPage() {
     setNueva({ invitee_id: "", topic: "", fecha: "", hora: "", duration_minutes: 25, title: "" });
   };
 
+  const unirse = async (id: string) => {
+    if (!token) return;
+    try {
+      const { session_id } = await appointmentsApi.join(token, id);
+      router.push(`/session/${session_id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No pudimos iniciar la sesión.");
+    }
+  };
+
   const completo = nueva.invitee_id && nueva.topic && nueva.fecha && nueva.hora;
   const sinCupo  = agenda !== null && agenda.remaining === 0;
 
@@ -281,12 +291,19 @@ export default function CitasPage() {
               }}>
                 {c.status === "confirmed" ? "confirmada" : "pendiente"}
               </span>
-              <button
-                style={s.btnSmallGhost}
-                onClick={() => accion(() => appointmentsApi.cancel(token!, c.id))}
-              >
-                Cancelar
-              </button>
+              <div style={s.apptActions}>
+                {c.status === "confirmed" && !c.is_group && (
+                  <button style={s.btnSmall} onClick={() => unirse(c.id)}>
+                    Unirse
+                  </button>
+                )}
+                <button
+                  style={s.btnSmallGhost}
+                  onClick={() => accion(() => appointmentsApi.cancel(token!, c.id))}
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           ))
         )}

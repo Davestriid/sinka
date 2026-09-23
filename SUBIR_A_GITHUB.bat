@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: pantalla compartida por senal explicita, chat con scroll propio y la planta ya no corta la sesion" >> "%LOG%" 2>&1
+git commit -m "feat: siempre se pregunta si continuar en cada descanso (sin elegir pomodoros de entrada), link/codigo de invitacion a grupo copiable, y boton Unirse en citas confirmadas" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

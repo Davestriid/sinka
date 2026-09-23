@@ -102,3 +102,16 @@ async def cancel(
     service: SchedulingService = Depends(get_scheduling_service),
 ) -> None:
     await service.cancel(appointment_id, current_user.id)
+
+
+@router.post("/{appointment_id}/join")
+async def join(
+    appointment_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> dict:
+    """
+    Arranca la sesion real detras de una cita confirmada y devuelve su
+    session_id para que el frontend navegue directo a /session/{id}.
+    """
+    return await service.join(appointment_id, current_user.id)
