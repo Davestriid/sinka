@@ -38,13 +38,25 @@ class FocusSessionRepository:
         return result.scalar_one_or_none()
 
     async def get_active_by_user(self, user_id: str) -> FocusSession | None:
+        """
+        La sesion activa mas reciente de esta persona.
+
+        Antes se exigia que hubiera una sola y el servidor respondia con un
+        error si encontraba mas. Eso pasa de verdad: una sesion que se
+        abandona sin cerrarse bien queda marcada como activa, asi que basta
+        con un par de sesiones interrumpidas para que esta consulta reviente.
+        Ahora se devuelve la ultima y las viejas simplemente se ignoran.
+        """
         result = await self.db.execute(
-            select(FocusSession).where(
+            select(FocusSession)
+            .where(
                 FocusSession.is_active == True,  # noqa: E712
                 (FocusSession.user_a_id == user_id) | (FocusSession.user_b_id == user_id),
             )
+            .order_by(FocusSession.started_at.desc())
+            .limit(1)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def end_session(self, session_id: str) -> None:
         session = await self.get_by_id(session_id)

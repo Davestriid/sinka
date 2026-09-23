@@ -16,8 +16,14 @@ from modules.identity.services.identity_service import IdentityService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# 5 intentos por minuto por IP en endpoints de autenticación
-_auth_limit = Depends(rate_limit(max_calls=5, period_sec=60))
+# Limite por IP en los endpoints de autenticacion.
+#
+# Eran 5 por minuto, y eso es un problema en una red compartida: en un aula o
+# una oficina todo el mundo sale por la misma IP publica, asi que entre varias
+# personas agotaban el cupo y la sexta quedaba bloqueada sin haber hecho nada
+# malo. Veinte por minuto sigue frenando un ataque por fuerza bruta, que
+# necesitaria miles de intentos, y deja trabajar a un grupo normal.
+_auth_limit = Depends(rate_limit(max_calls=20, period_sec=60))
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
@@ -92,7 +98,11 @@ async def complete_onboarding(
 
 @router.get("/users/search", response_model=list[UserResponse])
 async def search_users(
-    q: str = Query(..., min_length=2, max_length=50, description="Nombre o alias a buscar"),
+    # Sin minimo aqui a proposito. Quien escribe en el buscador manda la
+    # primera letra antes de terminar de escribir, y rechazarla con un error
+    # de validacion hacia aparecer un aviso rojo mientras tecleaba. El
+    # servicio ya devuelve una lista vacia si el termino es muy corto.
+    q: str = Query("", max_length=50, description="Nombre o alias a buscar"),
     current_user: UserResponse = Depends(get_current_user),
     service: IdentityService = Depends(get_identity_service),
 ) -> list[UserResponse]:

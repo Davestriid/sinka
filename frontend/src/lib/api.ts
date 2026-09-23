@@ -11,6 +11,63 @@ export class ApiError extends Error {
 }
 
 /**
+ * Convierte la respuesta de error del servidor en una frase legible.
+ *
+ * Cuando falla la validacion, FastAPI no devuelve un texto sino una lista de
+ * objetos, uno por campo invalido. Al mostrarla tal cual salia el famoso
+ * "[object Object]", que no le dice nada a nadie. Aqui se arma una frase con
+ * el nombre del campo y el motivo.
+ */
+function mensajeDeError(body: unknown, status: number): string {
+  const detalle = (body as { detail?: unknown } | null)?.detail;
+
+  if (typeof detalle === "string" && detalle.trim()) return detalle;
+
+  if (Array.isArray(detalle)) {
+    const NOMBRES: Record<string, string> = {
+      alias:            "el nombre visible",
+      bio:              "la descripción",
+      avatar_url:       "la foto",
+      email:            "el correo",
+      username:         "el nombre de usuario",
+      password:         "la contraseña",
+      language:         "el idioma",
+      theme:            "el tema",
+      topic:            "la categoría",
+      task_title:       "el título de la tarea",
+      scheduled_for:    "la fecha",
+      duration_minutes: "la duración",
+      invitee_id:       "la persona invitada",
+      name:             "el nombre",
+      interests:        "los intereses",
+    };
+
+    const frases = detalle
+      .map((e) => {
+        const item  = e as { msg?: string; loc?: unknown[] };
+        // "Value error, X" -> "X"
+        const motivo = (item.msg ?? "").replace(/^\w+ error,\s*/i, "").trim();
+        const campo  = Array.isArray(item.loc)
+          ? String(item.loc[item.loc.length - 1])
+          : "";
+        const legible = NOMBRES[campo];
+        if (!motivo) return legible ? `Revisa ${legible}.` : "";
+        return legible ? `${motivo} (${legible})` : motivo;
+      })
+      .filter(Boolean);
+
+    if (frases.length) return frases.join(" ");
+  }
+
+  if (status === 401) return "Tu sesión expiró. Vuelve a iniciar sesión.";
+  if (status === 403) return "No tienes permiso para hacer eso.";
+  if (status === 404) return "No encontramos lo que buscabas.";
+  if (status === 429) return "Demasiados intentos. Espera un momento.";
+  if (status >= 500)  return "El servidor tuvo un problema. Intenta de nuevo.";
+  return "Algo salió mal.";
+}
+
+/**
  * Renovacion del token de acceso.
  *
  * El token de acceso dura treinta minutos. Cuando caduca, en vez de mandar a
@@ -85,7 +142,7 @@ async function request<T>(
     }
 
     const body = await res.json().catch(() => ({ detail: "Error desconocido" }));
-    throw new ApiError(body.detail ?? "Error del servidor", res.status);
+    throw new ApiError(mensajeDeError(body, res.status), res.status);
   }
 
   return res.json() as Promise<T>;

@@ -173,6 +173,11 @@ export default function SessionPage() {
         .join(" ") || "ninguna"
     : "sin flujo";
 
+  // El canal WebSocket guarda aqui la funcion que atiende las señales, en vez
+  // de capturarla. Asi la funcion puede cambiar sin obligar a reabrir el canal.
+  const señalRef = useRef(handleSignal);
+  useEffect(() => { señalRef.current = handleSignal; }, [handleSignal]);
+
   const nombrePareja = partnerId ?? "Tu pareja";
   const hayPantalla  = partnerSharing || isScreenSharing;
 
@@ -321,7 +326,7 @@ export default function SessionPage() {
             inner.type === "WEBRTC_ANSWER" ||
             inner.type === "WEBRTC_ICE"
           ) {
-            handleSignal(inner as WebRtcSignal);
+            señalRef.current(inner as WebRtcSignal);
             break;
           }
 
@@ -344,7 +349,12 @@ export default function SessionPage() {
     ws.onclose = () => setWsReady(false);
 
     return () => ws.close();
-  }, [token, sessionId, handleSignal]);
+    // Solo el token y la sesion deben reabrir el canal. handleSignal cambia de
+    // identidad cada vez que se sabe quien abre la videollamada, y tenerlo aqui
+    // hacia que el WebSocket se cerrara y volviera a abrir justo en ese momento,
+    // tirando abajo la negociacion del video recien empezada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, sessionId]);
 
   // Auto-scroll chat
   useEffect(() => {

@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: el login ya carga tu perfil, tu nombre y foto en la barra, y foto de perfil cargable" >> "%LOG%" 2>&1
+git commit -m "fix: el WebSocket de sesion ya no se reabre y tumba el video, error 500 en sesion activa, mensajes de error legibles y boton de guardar anclado" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

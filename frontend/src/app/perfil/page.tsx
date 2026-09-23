@@ -103,6 +103,27 @@ export default function PerfilPage() {
     trustApi.me(token).then(setTrust).catch(() => setTrust(null));
   }, [token, user, router, hidratado]);
 
+  /**
+   * Validacion antes de mandar. El servidor tiene las mismas reglas, pero es
+   * mejor avisar aqui que dejar que el guardado falle y mostrar un error.
+   */
+  const problema = (() => {
+    const a = alias.trim();
+    if (a.length < 2)  return "El nombre visible necesita al menos 2 caracteres.";
+    if (a.length > 50) return "El nombre visible no puede pasar de 50 caracteres.";
+    if (bio.length > 280) return "La descripción no puede pasar de 280 caracteres.";
+    return "";
+  })();
+
+  const hayCambios =
+    !!user && (
+      alias.trim() !== (user.alias ?? user.username) ||
+      bio.trim()   !== (user.bio ?? "") ||
+      avatar       !== (user.avatar_url ?? AVATARES[0]) ||
+      idioma       !== user.language ||
+      tema         !== user.theme
+    );
+
   const guardar = useCallback(async () => {
     if (!token) return;
     setGuardando(true);
@@ -282,20 +303,38 @@ export default function PerfilPage() {
         </section>
       )}
 
-      <div style={s.actions}>
-        <button
-          style={{ ...s.btn, opacity: guardando ? 0.6 : 1 }}
-          disabled={guardando}
-          onClick={guardar}
-        >
-          {guardando ? "Guardando…" : "Guardar cambios"}
-        </button>
-        <button
-          style={s.btnGhost}
-          onClick={() => { logout(); router.push("/login"); }}
-        >
-          Cerrar sesión
-        </button>
+      {/* Espacio para que la barra anclada no tape el ultimo contenido */}
+      <div style={{ height: 84 }} />
+
+      {/* Barra anclada abajo: el boton se ve siempre, sin bajar hasta el final */}
+      <div style={s.barraAnclada}>
+        <span style={s.estadoGuardado}>
+          {problema
+            ? <span style={{ color: "#fca5a5" }}>{problema}</span>
+            : hayCambios
+              ? "Tienes cambios sin guardar"
+              : "Todo guardado"}
+        </span>
+
+        <div style={s.botonesAnclados}>
+          <button
+            style={s.btnGhost}
+            onClick={() => { logout(); router.push("/login"); }}
+          >
+            Cerrar sesión
+          </button>
+          <button
+            style={{
+              ...s.btn,
+              opacity: guardando || !!problema || !hayCambios ? 0.55 : 1,
+              cursor:  guardando || !!problema || !hayCambios ? "not-allowed" : "pointer",
+            }}
+            disabled={guardando || !!problema || !hayCambios}
+            onClick={guardar}
+          >
+            {guardando ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -314,6 +353,24 @@ const s: Record<string, React.CSSProperties> = {
     border: "1px solid #3a332b", background: "#1a1714",
     color: "#f5f0e8", fontSize: 14, fontFamily: "inherit",
   },
+  barraAnclada: {
+    position:       "fixed",
+    left:           0,
+    right:          0,
+    bottom:         0,
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "space-between",
+    gap:            12,
+    flexWrap:       "wrap",
+    padding:        "12px 24px",
+    background:     "rgba(33,29,25,0.96)",
+    borderTop:      "1px solid #3a3028",
+    backdropFilter: "blur(6px)",
+    zIndex:         40,
+  },
+  estadoGuardado:   { fontSize: 12, color: "#a0998b", flex: 1, minWidth: 160 },
+  botonesAnclados:  { display: "flex", gap: 10, flexWrap: "wrap" },
   fotoFila:   { display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 6 },
   fotoPrevia: {
     width:        84,
