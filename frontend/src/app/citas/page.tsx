@@ -20,12 +20,6 @@ import {
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
-const DURACIONES = [
-  { value: 25, label: "25 min" },
-  { value: 50, label: "50 min" },
-  { value: 90, label: "90 min" },
-];
-
 export default function CitasPage() {
   const router = useRouter();
   const { accessToken: token, hidratado } = useAuthStore();
@@ -39,7 +33,7 @@ export default function CitasPage() {
   const [creando,      setCreando]      = useState(false);
 
   const [nueva, setNueva] = useState({
-    invitee_id: "", topic: "", fecha: "", hora: "", duration_minutes: 25, title: "",
+    invitee_id: "", topic: "", fecha: "", hora: "", title: "",
   });
 
   const cargar = useCallback(async () => {
@@ -93,7 +87,6 @@ export default function CitasPage() {
     const ok = await accion(() => appointmentsApi.create(token, {
       scheduled_for: cuando.toISOString(),
       topic: nueva.topic,
-      duration_minutes: nueva.duration_minutes,
       invitee_id: nueva.invitee_id,
       title: nueva.title.trim() || undefined,
     }));
@@ -105,7 +98,7 @@ export default function CitasPage() {
     if (!ok) return;
 
     setCreando(false);
-    setNueva({ invitee_id: "", topic: "", fecha: "", hora: "", duration_minutes: 25, title: "" });
+    setNueva({ invitee_id: "", topic: "", fecha: "", hora: "", title: "" });
   };
 
   const unirse = async (id: string) => {
@@ -205,19 +198,6 @@ export default function CitasPage() {
                 </div>
               </div>
 
-              <p style={s.label}>Duración</p>
-              <div style={s.chips}>
-                {DURACIONES.map((d) => (
-                  <button
-                    key={d.value}
-                    style={{ ...s.chip, ...(nueva.duration_minutes === d.value ? s.chipOn : {}) }}
-                    onClick={() => setNueva({ ...nueva, duration_minutes: d.value })}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-
               <input
                 style={{ ...s.input, marginTop: 14 }}
                 placeholder="Tarea de la sesión (opcional)"
@@ -248,7 +228,7 @@ export default function CitasPage() {
                   {c.other_party?.alias || c.other_party?.username}
                 </span>
                 <span style={s.muted}>
-                  {formatear(c.scheduled_for)} · {c.duration_minutes} min
+                  {formatear(c.scheduled_for)}
                   {c.title && ` · ${c.title}`}
                 </span>
               </div>
@@ -291,7 +271,7 @@ export default function CitasPage() {
                     : c.other_party?.alias || c.other_party?.username}
                 </span>
                 <span style={s.muted}>
-                  {formatear(c.scheduled_for)} · {c.duration_minutes} min
+                  {formatear(c.scheduled_for)}
                   {c.title && ` · ${c.title}`}
                 </span>
               </div>
