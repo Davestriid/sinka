@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: limitar el apodo a 24 caracteres para que no rompa la barra ni las tarjetas" >> "%LOG%" 2>&1
+git commit -m "fix: la creacion de la sesion en DB chocaba cuando los dos se conectaban a la vez y uno se quedaba sin ver a su pareja" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

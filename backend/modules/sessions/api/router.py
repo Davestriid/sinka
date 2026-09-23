@@ -73,20 +73,48 @@ async def session_websocket(
             return
 
         state = json.loads(raw)
-        match = await match_repo.create(
-            user_a_id=state["user_a_id"],
-            user_b_id=state["user_b_id"],
-        )
-        focus_session = await session_repo.create(
-            session_id=session_id,
-            match_id=match.id,
-            user_a_id=state["user_a_id"],
-            user_b_id=state["user_b_id"],
-        )
-        logger.info(
-            "Sessions: registro DB creado sesion %s (match %s)",
-            session_id, match.id,
-        )
+
+        # Las dos personas de la pareja abren este socket casi al mismo tiempo
+        # (apenas reciben MATCHED), asi que las dos pueden llegar aqui viendo
+        # focus_session en None y tratar de crear el mismo registro. La
+        # segunda choca contra la clave primaria de FocusSession y, si eso no
+        # se atajaba, la excepcion no caia dentro del try/except de mas abajo:
+        # el socket se cerraba de golpe sin avisar nada y esa persona se
+        # quedaba sin ver jamas a su pareja, aunque la otra conexion siguiera
+        # perfecta. Se resuelve como "el que pierde la carrera simplemente lee
+        # lo que el otro ya escribio".
+        try:
+            match = await match_repo.create(
+                user_a_id=state["user_a_id"],
+                user_b_id=state["user_b_id"],
+            )
+            focus_session = await session_repo.create(
+                session_id=session_id,
+                match_id=match.id,
+                user_a_id=state["user_a_id"],
+                user_b_id=state["user_b_id"],
+            )
+            logger.info(
+                "Sessions: registro DB creado sesion %s (match %s)",
+                session_id, match.id,
+            )
+        except Exception:
+            await db.rollback()
+            focus_session = await session_repo.get_by_id(session_id)
+            if focus_session is None:
+                logger.exception(
+                    "Sessions WS: no se pudo crear ni leer la sesion %s", session_id
+                )
+                await websocket.send_json({
+                    "type":   "ERROR",
+                    "detail": "No se pudo iniciar la sesion. Intentalo de nuevo.",
+                })
+                await websocket.close(code=4000)
+                return
+            logger.info(
+                "Sessions: %s perdio la carrera de creacion, usa el registro existente de %s",
+                current_user.id, session_id,
+            )
 
     if current_user.id not in (focus_session.user_a_id, focus_session.user_b_id):
         await websocket.send_json({
