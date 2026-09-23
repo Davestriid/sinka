@@ -117,20 +117,7 @@ export default function DashboardPage() {
   return (
     <div style={styles.page}>
 
-      {/* Header */}
-      <header style={styles.header}>
-        <span style={styles.logo}>SINKA</span>
-        <div style={styles.headerRight}>
-          <button style={styles.btnGhost} onClick={() => router.push("/leaderboard")}>🏆</button>
-          <button style={styles.btnGhost} onClick={() => router.push("/shop")}>
-            🛍️{stats ? ` ${stats.focus_coins} FC` : ""}
-          </button>
-          <span style={styles.username}>{user?.username}</span>
-          <button style={styles.btnGhost} onClick={() => { logout(); router.push("/login"); }}>
-            Salir
-          </button>
-        </div>
-      </header>
+      {/* La navegacion vive en la barra comun, ver components/NavBar */}
 
       <main style={styles.main}>
 
