@@ -120,9 +120,13 @@ async function request<T>(
   options?: RequestInit,
   reintentado = false,
 ): Promise<T> {
+  // El orden importa. Antes las opciones se esparcian DESPUES de las
+  // cabeceras, asi que su propia clave "headers" pisaba la mezcla y se perdia
+  // el Content-Type. Cualquier peticion autenticada que llevara cuerpo salia
+  // como texto plano y el servidor la rechazaba diciendo que no era un objeto.
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
+    headers: { "Content-Type": "application/json", ...options?.headers },
   });
 
   if (!res.ok) {
