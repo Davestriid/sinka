@@ -11,9 +11,11 @@
  */
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { authApi, gamificationApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius, fontSerif } from "@/lib/theme";
 import { Notificaciones } from "./Notificaciones";
 
 interface Destino {
@@ -96,21 +98,32 @@ export function NavBar({ monedas }: NavBarProps) {
         onClick={() => router.push("/dashboard")}
         title="Ir al inicio"
       >
+        <span style={s.logoMark} aria-hidden>🌱</span>
         SINKA
       </button>
 
       <nav style={s.nav}>
-        {DESTINOS.map(d => (
-          <button
-            key={d.href}
-            onClick={() => router.push(d.href)}
-            style={{ ...s.enlace, ...(activo(d.href) ? s.enlaceActivo : {}) }}
-            title={d.texto}
-          >
-            <span aria-hidden>{d.icono}</span>
-            <span style={s.etiqueta}>{d.texto}</span>
-          </button>
-        ))}
+        {DESTINOS.map(d => {
+          const on = activo(d.href);
+          return (
+            <button
+              key={d.href}
+              onClick={() => router.push(d.href)}
+              style={{ ...s.enlace, ...(on ? s.enlaceActivo : {}) }}
+              title={d.texto}
+            >
+              <span aria-hidden>{d.icono}</span>
+              <span style={s.etiqueta}>{d.texto}</span>
+              {on && (
+                <motion.span
+                  layoutId="nav-activo"
+                  style={s.navIndicador}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       <div style={s.derecha}>
@@ -121,7 +134,17 @@ export function NavBar({ monedas }: NavBarProps) {
           onClick={() => router.push("/shop")}
           title="Tienda"
         >
-          🛍️{fc != null ? ` ${fc}` : ""}
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={fc ?? "sin-fc"}
+              initial={{ y: -6, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 6, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              🛍️{fc != null ? ` ${fc}` : ""}
+            </motion.span>
+          </AnimatePresence>
         </button>
 
         <button
@@ -157,48 +180,65 @@ const s: Record<string, CSSProperties> = {
     flexWrap:     "wrap",
     gap:          8,
     padding:      "10px 20px",
-    background:   "#211d19",
-    borderBottom: "1px solid #3a3028",
+    background:   "rgba(33, 29, 25, 0.92)",
+    backdropFilter: "blur(10px)",
+    borderBottom: `1px solid ${color.border}`,
     position:     "sticky",
     top:          0,
     zIndex:       50,
   },
   logo: {
+    display:       "inline-flex",
+    alignItems:    "center",
+    gap:           6,
     background:    "transparent",
     border:        "none",
     cursor:        "pointer",
-    fontWeight:    800,
-    fontSize:      20,
-    color:         "#f5f0e8",
-    letterSpacing: "0.05em",
+    fontFamily:    fontSerif,
+    fontWeight:    600,
+    fontSize:      19,
+    color:         color.text,
+    letterSpacing: "0.02em",
     padding:       0,
   },
+  logoMark: { fontSize: 16 },
   nav: {
     display:   "flex",
     flexWrap:  "wrap",
-    gap:       4,
+    gap:       2,
     flex:      1,
     justifyContent: "center",
     minWidth:  0,
   },
   derecha: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" },
   enlace: {
+    position:     "relative",
     display:      "inline-flex",
     alignItems:   "center",
     gap:          6,
     background:   "transparent",
-    color:        "#a0998b",
+    color:        color.textMuted,
     border:       "1px solid transparent",
-    borderRadius: 8,
-    padding:      "7px 12px",
+    borderRadius: radius.pill,
+    padding:      "7px 14px",
     cursor:       "pointer",
     fontSize:     13,
     whiteSpace:   "nowrap",
+    transition:   "color 0.15s ease, background 0.15s ease",
   },
   enlaceActivo: {
-    background:  "#2a2420",
-    color:       "#f5f0e8",
-    borderColor: "#4a3f35",
+    background:  color.surfaceRaised,
+    color:       color.text,
+    borderColor: color.border,
+  },
+  navIndicador: {
+    position:     "absolute",
+    left:         10,
+    right:        10,
+    bottom:       2,
+    height:       2,
+    borderRadius: radius.pill,
+    background:   color.accent,
   },
   etiqueta: { fontSize: 13, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   foto: {
@@ -207,13 +247,14 @@ const s: Record<string, CSSProperties> = {
     borderRadius: "50%",
     objectFit:    "cover",
     display:      "block",
+    boxShadow:    `0 0 0 2px ${color.borderSoft}`,
   },
   inicial: {
     width:        24,
     height:       24,
     borderRadius: "50%",
-    background:   "#3a3028",
-    color:        "#f5f0e8",
+    background:   color.accentSoft,
+    color:        color.text,
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
@@ -222,12 +263,13 @@ const s: Record<string, CSSProperties> = {
   },
   salir: {
     background:   "transparent",
-    color:        "#a0998b",
-    border:       "1px solid #3a3028",
-    borderRadius: 8,
-    padding:      "7px 14px",
+    color:        color.textMuted,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "7px 16px",
     cursor:       "pointer",
     fontSize:     13,
+    transition:   "border-color 0.15s ease, color 0.15s ease",
   },
 };
 

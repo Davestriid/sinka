@@ -56,3 +56,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Animaciones compartidas ──────────────────────────────────────────────
+   Antes cada pantalla se dibujaba de golpe, sin transición, lo que junto a
+   la tipografía genérica es lo que hacía sentir la app "hecha por IA". Estas
+   clases se usan desde los estilos en línea de cada página para que el
+   contenido entre con un poquito de vida. */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sinka-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sinka-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sinka-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(124, 92, 58, 0.35); }
+  100% { box-shadow: 0 0 0 10px rgba(124, 92, 58, 0); }
+}
+
+.sinka-fade-up {
+  animation: sinka-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sinka-fade-in {
+  animation: sinka-fade-in 0.4s ease both;
+}
+
+.sinka-pulse {
+  animation: sinka-pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Escalonado simple para listas/grids: agregar junto a sinka-fade-up y
+   sumar nth-child en el propio componente cuando haga falta. */
+.sinka-stagger > * {
+  animation: sinka-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sinka-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.sinka-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.sinka-stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.sinka-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.sinka-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.sinka-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.sinka-stagger > *:nth-child(n+7) { animation-delay: 0.26s; }
