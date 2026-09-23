@@ -4,7 +4,7 @@ Motor de matchmaking por afinidad de actividad.
 Flujo:
 1. El usuario conecta por WebSocket y envia TASK_INFO con su categoria y su tarea
 2. join_queue() lo registra en la cola de su categoria y espera
-3. Durante los primeros 30 segundos solo se le empareja con alguien de la misma
+3. Durante los primeros 10 segundos solo se le empareja con alguien de la misma
    categoria. Pasado ese tiempo entra a la cola general y se le empareja con
    quien este disponible, avisandole que su companero trabaja en otra area
 4. Ambos reciben MATCHED con el id de sesion, los datos del companero y su tarea
@@ -34,7 +34,7 @@ QUEUE_KEY = "matchmaking:global_queue"
 QUEUE_KEY_TOPIC = "matchmaking:queue:{topic}"
 
 QUEUE_TIMEOUT_SECONDS = 120     # tiempo maximo total en cola
-AFFINITY_WINDOW_SECONDS = 30    # cuanto se insiste en buscar la misma categoria
+AFFINITY_WINDOW_SECONDS = 10    # cuanto se insiste en buscar la misma categoria
 SWEEP_INTERVAL_SECONDS = 3      # cada cuanto se revisa la cola en segundo plano
 
 

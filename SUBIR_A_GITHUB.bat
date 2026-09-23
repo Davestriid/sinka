@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: quita el selector de duracion al agendar una cita (siempre empieza en 25 min y se extiende por acuerdo mutuo)" >> "%LOG%" 2>&1
+git commit -m "feat: baja la ventana de busqueda por afinidad de 30 a 10 segundos" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

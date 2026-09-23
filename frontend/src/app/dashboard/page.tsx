@@ -180,7 +180,7 @@ export default function DashboardPage() {
               ))}
             </div>
             <p style={styles.hint}>
-              Te buscaremos a alguien de tu misma área. Si en 30 segundos no hay
+              Te buscaremos a alguien de tu misma área. Si en 10 segundos no hay
               nadie disponible, te conectamos con quien esté trabajando.
             </p>
 
