@@ -40,9 +40,14 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: estado.refreshToken,
         user:         estado.user,
       }),
-      onRehydrateStorage: () => (estado) => {
-        // Se llama al terminar de leer, haya datos guardados o no
-        useAuthStore.setState({ hidratado: true, ...(estado ?? {}) });
+      onRehydrateStorage: () => () => {
+        // Se llama al terminar de leer, haya datos guardados o no.
+        //
+        // Aqui zustand ya dejo la sesion puesta, asi que solo falta levantar
+        // la bandera. Antes tambien se volcaba el estado recibido encima, y
+        // como ese estado traia la bandera en falso se pisaba a si misma: no
+        // se levantaba nunca y las pantallas se quedaban esperando.
+        useAuthStore.setState({ hidratado: true });
       },
     }
   )

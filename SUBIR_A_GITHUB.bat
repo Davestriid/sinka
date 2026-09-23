@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: las peticiones con cuerpo perdian el Content-Type, lo que rompia guardar perfil, onboarding, crear grupos y agendar citas" >> "%LOG%" 2>&1
+git commit -m "fix: la bandera de sesion cargada se pisaba a si misma y dejaba las pantallas en blanco" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

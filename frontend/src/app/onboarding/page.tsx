@@ -31,7 +31,10 @@ export default function OnboardingPage() {
     if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     if (user?.onboarding_completed) { router.push("/dashboard"); return; }
-    setAlias(user?.username ?? "");
+    // Solo se propone el nombre si el campo sigue vacio. Este efecto vuelve a
+    // correr cuando cambia el usuario, y rellenarlo siempre borraba lo que la
+    // persona estaba escribiendo.
+    setAlias((actual) => actual || user?.username || "");
     catalogApi.topics().then((r) => setTopics(r.topics)).catch(() => setTopics([]));
   }, [token, user, router, hidratado]);
 
