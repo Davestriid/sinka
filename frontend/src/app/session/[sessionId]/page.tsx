@@ -640,7 +640,7 @@ export default function SessionPage() {
 
             {/* Escenario principal: la pantalla compartida, si hay alguna */}
             {hayPantalla && (
-              <div style={{ ...styles.baldosa, aspectRatio: "16 / 10" }}>
+              <div style={{ ...styles.baldosa, aspectRatio: "16 / 9", flex: 1, minHeight: 0 }}>
                 <video
                   ref={partnerSharing ? remoteScreenRef : localScreenRef}
                   autoPlay
@@ -659,11 +659,16 @@ export default function SessionPage() {
             {/* Mosaico de camaras */}
             <div style={{
               ...styles.mosaico,
+              // Al compartir pantalla las camaras se achican a miniaturas para
+              // que el espacio se lo lleve lo que de verdad se esta mirando.
               gridTemplateColumns: hayPantalla
-                ? "repeat(auto-fit, minmax(150px, 1fr))"
+                ? `repeat(${partnerConnected ? 2 : 1}, minmax(0, 1fr))`
                 : partnerConnected
                   ? "repeat(auto-fit, minmax(240px, 1fr))"
                   : "1fr",
+              maxWidth:   hayPantalla ? (partnerConnected ? 340 : 170) : "none",
+              marginLeft: hayPantalla ? "auto" : undefined,
+              flexShrink: 0,
             }}>
 
               {/* Tu camara */}
@@ -994,12 +999,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:     12,
     fontWeight:   600,
   },
+  // La pantalla ocupa el alto de la ventana y cada columna se desplaza por su
+  // cuenta. Antes la pagina entera se movia, asi que para leer el chat habia
+  // que arrastrar tambien el video y el temporizador fuera de la vista.
   main: {
     display:  "flex",
     gap:      20,
     padding:  24,
     flex:     1,
     flexWrap: "wrap",
+    height:   "calc(100vh - 56px)",
+    minHeight: 480,
+    overflow: "hidden",
+    boxSizing: "border-box",
   },
   leftCol: {
     display:       "flex",
@@ -1007,6 +1019,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap:           16,
     flex:          "1 1 240px",
     maxWidth:      320,
+    overflowY:     "auto",
+    minHeight:     0,
   },
   // El video es el centro de la pantalla, como en cualquier videollamada.
   // Antes estaba limitado a 340px y el chat se llevaba el doble de espacio.
@@ -1016,13 +1030,15 @@ const styles: Record<string, React.CSSProperties> = {
     gap:           12,
     flex:          "3 1 520px",
     minWidth:      0,
+    overflowY:     "auto",
+    minHeight:     0,
   },
   rightCol: {
     display:       "flex",
     flexDirection: "column",
     flex:          "1 1 260px",
     maxWidth:      340,
-    minHeight:     400,
+    minHeight:     0,
   },
 
   // ── Escenario de video ──────────────────────────────────────────────────
@@ -1030,6 +1046,7 @@ const styles: Record<string, React.CSSProperties> = {
     display:       "flex",
     flexDirection: "column",
     gap:           10,
+    minHeight:     0,
     background:    "#0f0d0b",
     border:        "1px solid #3a3028",
     borderRadius:  14,
@@ -1265,14 +1282,16 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 12,
     fontSize:     15,
   },
+  // Sin maxHeight fijo: el chat ocupa lo que le deje la columna y se desplaza
+  // dentro de su propia caja. minHeight en cero es lo que permite que un hijo
+  // flexible se encoja lo suficiente como para que aparezca su barra.
   chatMessages: {
     flex:          1,
     overflowY:     "auto",
     display:       "flex",
     flexDirection: "column",
     gap:           8,
-    minHeight:     200,
-    maxHeight:     340,
+    minHeight:     0,
     padding:       "4px 0",
   },
   chatBubble: {

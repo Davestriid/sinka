@@ -15,7 +15,7 @@ import { useAuthStore } from "@/store/auth.store";
 export default function PlantaPage() {
   const router = useRouter();
   const params = useParams<{ friendshipId: string }>();
-  const { accessToken: token } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [plant,   setPlant]   = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,7 @@ export default function PlantaPage() {
   const [nombre,  setNombre]  = useState("");
 
   const cargar = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try {
       const p = await gardenApi.detail(token, params.friendshipId);
@@ -33,7 +34,7 @@ export default function PlantaPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, params.friendshipId, router]);
+  }, [token, params.friendshipId, router, hidratado]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

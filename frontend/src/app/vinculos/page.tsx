@@ -20,7 +20,7 @@ import { useAuthStore } from "@/store/auth.store";
 
 export default function VinculosPage() {
   const router = useRouter();
-  const { accessToken: token } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [friends,  setFriends]  = useState<Friend[]>([]);
   const [requests, setRequests] = useState<RequestsPayload | null>(null);
@@ -33,6 +33,7 @@ export default function VinculosPage() {
   const [searching, setSearching] = useState(false);
 
   const cargar = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try {
       const [f, r] = await Promise.all([
@@ -47,7 +48,7 @@ export default function VinculosPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, router, hidratado]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

@@ -28,7 +28,7 @@ const DURACIONES = [
 
 export default function CitasPage() {
   const router = useRouter();
-  const { accessToken: token } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [agenda,       setAgenda]       = useState<Agenda | null>(null);
   const [invitaciones, setInvitaciones] = useState<Appointment[]>([]);
@@ -43,6 +43,7 @@ export default function CitasPage() {
   });
 
   const cargar = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try {
       const [a, i, f] = await Promise.all([
@@ -59,29 +60,40 @@ export default function CitasPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, router, hidratado]);
 
   useEffect(() => {
     cargar();
     catalogApi.topics().then((r) => setTopics(r.topics)).catch(() => setTopics([]));
   }, [cargar]);
 
-  const accion = async (fn: () => Promise<unknown>) => {
-    try { await fn(); await cargar(); setError(""); }
-    catch (e) { setError(e instanceof Error ? e.message : "Algo salió mal."); }
+  /** Devuelve true solo si la accion salio bien. */
+  const accion = async (fn: () => Promise<unknown>): Promise<boolean> => {
+    try { await fn(); await cargar(); setError(""); return true; }
+    catch (e) {
+      setError(e instanceof Error ? e.message : "Algo salió mal.");
+      return false;
+    }
   };
 
   const crear = async () => {
     if (!token) return;
     // La fecha y la hora se combinan en el huso del navegador y viajan en ISO
     const cuando = new Date(`${nueva.fecha}T${nueva.hora}`);
-    await accion(() => appointmentsApi.create(token, {
+    const ok = await accion(() => appointmentsApi.create(token, {
       scheduled_for: cuando.toISOString(),
       topic: nueva.topic,
       duration_minutes: nueva.duration_minutes,
       invitee_id: nueva.invitee_id,
       title: nueva.title.trim() || undefined,
     }));
+
+    // El formulario solo se cierra y se limpia si la cita quedo agendada.
+    // Antes se cerraba siempre, asi que un rechazo del servidor se veia igual
+    // que un exito: el formulario desaparecia y la cita no estaba en ningun
+    // lado, sin que se entendiera por que.
+    if (!ok) return;
+
     setCreando(false);
     setNueva({ invitee_id: "", topic: "", fecha: "", hora: "", duration_minutes: 25, title: "" });
   };

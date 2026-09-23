@@ -17,7 +17,7 @@ const MAX_INTERESES = 5;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { accessToken: token, user, setUser } = useAuthStore();
+  const { accessToken: token, user, setUser, hidratado } = useAuthStore();
 
   const [paso,      setPaso]      = useState(1);
   const [alias,     setAlias]     = useState("");
@@ -28,11 +28,12 @@ export default function OnboardingPage() {
   const [error,     setError]     = useState("");
 
   useEffect(() => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     if (user?.onboarding_completed) { router.push("/dashboard"); return; }
     setAlias(user?.username ?? "");
     catalogApi.topics().then((r) => setTopics(r.topics)).catch(() => setTopics([]));
-  }, [token, user, router]);
+  }, [token, user, router, hidratado]);
 
   const alternarInteres = (slug: string) => {
     setIntereses((prev) =>

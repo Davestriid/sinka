@@ -15,7 +15,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function ShopPage() {
   const router                       = useRouter();
-  const { accessToken: token, user } = useAuthStore();
+  const { accessToken: token, user, hidratado } = useAuthStore();
 
   const [items,   setItems]   = useState<ShopItem[]>([]);
   const [stats,   setStats]   = useState<UserStats | null>(null);
@@ -45,9 +45,10 @@ export default function ShopPage() {
   }, [token]);
 
   useEffect(() => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     fetchData();
-  }, [token, router, fetchData]);
+  }, [token, router, fetchData, hidratado]);
 
   const handleBuy = async (item: ShopItem) => {
     if (!token || buying) return;

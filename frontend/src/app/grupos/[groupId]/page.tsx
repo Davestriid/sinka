@@ -16,7 +16,7 @@ import { useAuthStore } from "@/store/auth.store";
 export default function SalaGrupoPage() {
   const router = useRouter();
   const params = useParams<{ groupId: string }>();
-  const { accessToken: token, user } = useAuthStore();
+  const { accessToken: token, user, hidratado } = useAuthStore();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
@@ -28,10 +28,11 @@ export default function SalaGrupoPage() {
   const wsRef = useRef<WebSocket | null>(null);
 
   const cargarGrupo = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try { setGroup(await groupsApi.detail(token, params.groupId)); }
     catch { setError("No pudimos abrir ese grupo."); }
-  }, [token, params.groupId, router]);
+  }, [token, params.groupId, router, hidratado]);
 
   useEffect(() => { cargarGrupo(); }, [cargarGrupo]);
 

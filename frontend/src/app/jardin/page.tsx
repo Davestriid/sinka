@@ -14,18 +14,19 @@ import { useAuthStore } from "@/store/auth.store";
 
 export default function JardinPage() {
   const router = useRouter();
-  const { accessToken: token } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [plants,  setPlants]  = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try { setPlants((await gardenApi.list(token)).plants); }
     catch { setPlants([]); }
     finally { setLoading(false); }
-  }, [token, router]);
+  }, [token, router, hidratado]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

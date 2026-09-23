@@ -14,7 +14,7 @@ type Pestana = "explorar" | "mios";
 
 export default function GruposPage() {
   const router = useRouter();
-  const { accessToken: token } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [pestana, setPestana] = useState<Pestana>("mios");
   const [explorar, setExplorar] = useState<Group[]>([]);
@@ -30,6 +30,7 @@ export default function GruposPage() {
   });
 
   const cargar = useCallback(async () => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try {
       const [e, m] = await Promise.all([groupsApi.explore(token), groupsApi.mine(token)]);
@@ -41,7 +42,7 @@ export default function GruposPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, router, hidratado]);
 
   useEffect(() => {
     cargar();

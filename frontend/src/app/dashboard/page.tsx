@@ -35,7 +35,7 @@ type Screen = "config" | "searching" | "matched" | "timeout" | "error";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, accessToken: token, logout } = useAuthStore();
+  const { user, accessToken: token, logout, hidratado } = useAuthStore();
 
   // Formulario de configuración
   const [topic,            setTopic]            = useState("");
@@ -66,6 +66,7 @@ export default function DashboardPage() {
     // Ambos son obligatorios: sin categoría no hay con quién emparejar por afinidad
     if (!title || !topic) return;
 
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
 
     const ws = new WebSocket(wsUrl.matchmakingQueue(token));

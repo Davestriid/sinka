@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: campana de notificaciones para solicitudes de amistad y renovacion automatica de la sesion" >> "%LOG%" 2>&1
+git commit -m "fix: la sesion ya no se pierde al recargar en el celular, citas que informan el rechazo, chat con su propia barra y notificaciones de todo tipo" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

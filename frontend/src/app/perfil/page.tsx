@@ -15,7 +15,7 @@ const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥",
 
 export default function PerfilPage() {
   const router = useRouter();
-  const { accessToken: token, user, setUser, logout } = useAuthStore();
+  const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
 
   const [alias,  setAlias]  = useState("");
   const [bio,    setBio]    = useState("");
@@ -29,6 +29,7 @@ export default function PerfilPage() {
   const [error,   setError]   = useState("");
 
   useEffect(() => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     if (user) {
       setAlias(user.alias ?? user.username);
@@ -38,7 +39,7 @@ export default function PerfilPage() {
       setTema(user.theme);
     }
     trustApi.me(token).then(setTrust).catch(() => setTrust(null));
-  }, [token, user, router]);
+  }, [token, user, router, hidratado]);
 
   const guardar = useCallback(async () => {
     if (!token) return;

@@ -10,7 +10,7 @@ const REFRESH_INTERVAL_MS = 30_000; // actualizar cada 30 s
 
 export default function LeaderboardPage() {
   const router                = useRouter();
-  const { accessToken: token, user } = useAuthStore();
+  const { accessToken: token, user, hidratado } = useAuthStore();
 
   const [entries,   setEntries]   = useState<LeaderboardEntry[]>([]);
   const [myStats,   setMyStats]   = useState<UserStats | null>(null);
@@ -35,11 +35,12 @@ export default function LeaderboardPage() {
   }, [token]);
 
   useEffect(() => {
+    if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     fetchData();
     const id = setInterval(fetchData, REFRESH_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [token, router, fetchData]);
+  }, [token, router, fetchData, hidratado]);
 
   // ¿el usuario autenticado aparece en el top-10?
   const myRank = entries.find(e => e.user_id === user?.id)?.rank ?? null;
