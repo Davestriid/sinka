@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, MicOff, Video, VideoOff, MonitorUp, MonitorX, Maximize2, WifiOff } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { wsUrl } from "@/lib/api";
 import { focusDetector } from "@/lib/focus-detector";
 import { usePeerConnection, type WebRtcSignal } from "@/lib/peer-connection";
 import { gamificationApi, profileApi, type UserBrief, type UserStats } from "@/lib/api";
+import { color, radius, shadow, fontSerif, ease } from "@/lib/theme";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -167,6 +170,7 @@ export default function SessionPage() {
     isScreenSharing,
     estadoCamara,
     iceState,
+    remoteFrozen,
     connected: peerConnected,
     handleSignal,
     toggleMic,
@@ -831,6 +835,30 @@ export default function SessionPage() {
                     </div>
                   )}
 
+                  {/* La imagen se congela sin avisar cuando la otra persona
+                      bloquea su celular: WebRTC no dispara ningun evento en
+                      ese caso, el cuadro se queda pegado. Este aviso se
+                      limpia solo apenas vuelvan a fluir cuadros nuevos. */}
+                  <AnimatePresence>
+                    {hayVideoPareja && remoteFrozen && (
+                      <motion.div
+                        style={styles.capaCongelada}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <WifiOff size={26} color={color.textMuted} />
+                        <span style={{ fontSize: 12, color: color.text, fontWeight: 600 }}>
+                          Imagen congelada
+                        </span>
+                        <span style={{ fontSize: 11, color: color.textMuted, textAlign: "center", maxWidth: 200 }}>
+                          {nombrePareja} probablemente bloqueó su celular. Se
+                          reanuda sola en cuanto vuelva.
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div style={styles.nombre}>
                     <Avatar nombre={nombrePareja} url={partnerProfile?.avatar_url} />
                     <span style={styles.nombreTexto}>{nombrePareja}</span>
@@ -842,41 +870,49 @@ export default function SessionPage() {
 
             {/* Barra de controles, centrada bajo el vídeo */}
             <div style={styles.barraControles}>
-              <button
+              <motion.button
                 style={{ ...styles.botonRedondo, ...(micEnabled ? {} : styles.botonApagado) }}
                 onClick={toggleMic}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.94 }}
                 title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
               >
-                <span style={{ fontSize: 17 }}>{micEnabled ? "🎤" : "🔇"}</span>
+                {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
                 {micEnabled ? "Micrófono" : "Silenciado"}
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 style={{ ...styles.botonRedondo, ...(camEnabled ? {} : styles.botonApagado) }}
                 onClick={toggleCam}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.94 }}
                 title={camEnabled ? "Apagar cámara" : "Encender cámara"}
               >
-                <span style={{ fontSize: 17 }}>{camEnabled ? "📹" : "🚫"}</span>
+                {camEnabled ? <Video size={18} /> : <VideoOff size={18} />}
                 {camEnabled ? "Cámara" : "Apagada"}
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 style={{ ...styles.botonRedondo, ...(isScreenSharing ? styles.botonActivo : {}) }}
                 onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.94 }}
                 title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
               >
-                <span style={{ fontSize: 17 }}>🖥️</span>
+                {isScreenSharing ? <MonitorX size={18} /> : <MonitorUp size={18} />}
                 {isScreenSharing ? "Dejar" : "Pantalla"}
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 style={styles.botonRedondo}
                 onClick={alternarPantallaCompleta}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.94 }}
                 title="Pantalla completa"
               >
-                <span style={{ fontSize: 17 }}>⛶</span>
+                <Maximize2 size={18} />
                 Ampliar
-              </button>
+              </motion.button>
             </div>
 
             {partnerConnected && !isBreak && (
@@ -1181,6 +1217,19 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign:      "center",
     background:     "#17130f",
   },
+  capaCongelada: {
+    position:       "absolute",
+    inset:          0,
+    display:        "flex",
+    flexDirection:  "column",
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            6,
+    padding:        14,
+    textAlign:      "center",
+    background:     "rgba(15, 13, 11, 0.72)",
+    backdropFilter: "blur(2px)",
+  },
   nombre: {
     position:     "absolute",
     bottom:       8,
@@ -1211,28 +1260,33 @@ const styles: Record<string, React.CSSProperties> = {
     display:        "inline-flex",
     flexDirection:  "column",
     alignItems:     "center",
-    gap:            3,
-    background:     "#2a2420",
-    color:          "#f5f0e8",
-    border:         "1px solid #3a3028",
-    borderRadius:   10,
-    padding:        "8px 14px",
+    gap:            4,
+    background:     color.surfaceRaised,
+    color:          color.text,
+    border:         `1px solid ${color.border}`,
+    borderRadius:   radius.pill,
+    padding:        "9px 16px",
     cursor:         "pointer",
     fontSize:       11,
-    minWidth:       68,
+    fontWeight:     500,
+    minWidth:       72,
+    transition:     `background 0.15s ${ease}, border-color 0.15s ${ease}`,
   },
   botonApagado: {
-    background:  "#7f1d1d",
-    borderColor: "#991b1b",
+    background:  "#3a1f1f",
+    borderColor: "#7f1d1d",
+    color:       "#fca5a5",
   },
   botonActivo: {
-    background:  "#1e3a5f",
-    borderColor: "#2563eb",
+    background:  color.accentSoft,
+    borderColor: color.accentDeep,
+    color:       "#f5d49a",
   },
   card: {
-    background:   "#211d19",
-    border:       "1px solid #3a3028",
-    borderRadius: 12,
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.md,
+    boxShadow:    shadow.card,
     padding:      20,
   },
   timerPhaseLabel: {
@@ -1265,11 +1319,10 @@ const styles: Record<string, React.CSSProperties> = {
     transition:   "width 1s linear",
   },
   focusTitle: {
-    fontSize:      12,
-    fontWeight:    700,
-    color:         "#6b6358",
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
+    fontFamily:    fontSerif,
+    fontSize:      15,
+    fontWeight:    500,
+    color:         color.text,
     marginBottom:  10,
   },
   focusRow: {

@@ -86,6 +86,7 @@ export function usePeerConnection({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [connected,       setConnected]       = useState(false);
   const [iceState,        setIceState]        = useState<RTCIceConnectionState | "">("");
+  const [remoteFrozen,    setRemoteFrozen]    = useState(false);
 
   const cameraAllowed = estadoCamara === "lista";
 
@@ -174,6 +175,60 @@ export function usePeerConnection({
   useEffect(() => {
     const el = remoteVideoRef.current;
     if (el && el.srcObject !== remoteStream) el.srcObject = remoteStream;
+  }, [remoteStream]);
+
+  // Vigía de imagen congelada. Cuando la otra persona bloquea su celular, el
+  // navegador suele dejar de mandar cuadros nuevos sin avisar por ningún
+  // evento de WebRTC: la pista sigue "viva" y sin silenciar, así que la
+  // pantalla se queda pegada en el último cuadro en vez de mostrar el aviso
+  // de "conectando". Este vigía mide si de verdad siguen llegando cuadros y,
+  // si no, lo marca aparte para que la interfaz pueda avisarlo. En cuanto la
+  // otra persona desbloquea el celular, los cuadros vuelven a fluir solos y
+  // esto se limpia sin que nadie tenga que hacer nada.
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (!el || !remoteStream || remoteStream.getVideoTracks().length === 0) {
+      setRemoteFrozen(false);
+      return;
+    }
+
+    let cancelado  = false;
+    let ultimoCuadro = performance.now();
+    let rvfcId: number | null = null;
+
+    type ElementoConRVFC = HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: () => void) => number;
+      cancelVideoFrameCallback?:  (id: number) => void;
+    };
+    const elRvfc = el as ElementoConRVFC;
+    const soportaRVFC = typeof elRvfc.requestVideoFrameCallback === "function";
+
+    const marcarCuadro = () => {
+      ultimoCuadro = performance.now();
+      if (!cancelado) setRemoteFrozen(false);
+      if (!cancelado && soportaRVFC) {
+        rvfcId = elRvfc.requestVideoFrameCallback!(marcarCuadro);
+      }
+    };
+
+    if (soportaRVFC) {
+      rvfcId = elRvfc.requestVideoFrameCallback!(marcarCuadro);
+    }
+
+    // Revisa cada 2s. Si no hay evidencia de cuadro nuevo en 6s, se marca
+    // congelado. En navegadores sin requestVideoFrameCallback (Safari viejo)
+    // esto nunca se limpia solo, pero es un caso raro y prefiere avisar de
+    // mas a quedarse callado.
+    const vigilante = setInterval(() => {
+      if (cancelado) return;
+      setRemoteFrozen(performance.now() - ultimoCuadro > 6000);
+    }, 2000);
+
+    return () => {
+      cancelado = true;
+      clearInterval(vigilante);
+      if (soportaRVFC && rvfcId != null) elRvfc.cancelVideoFrameCallback?.(rvfcId);
+    };
   }, [remoteStream]);
 
   useEffect(() => {
@@ -447,6 +502,7 @@ export function usePeerConnection({
     isScreenSharing,
     connected,
     iceState,
+    remoteFrozen,
     handleSignal,
     toggleMic,
     toggleCam,
