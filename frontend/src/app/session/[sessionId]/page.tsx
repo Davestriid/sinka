@@ -141,7 +141,6 @@ export default function SessionPage() {
     remoteVideoRef,
     remoteScreenRef,
     remoteStream,
-    partnerSharing,
     micEnabled,
     camEnabled,
     isScreenSharing,
@@ -166,6 +165,19 @@ export default function SessionPage() {
     remoteStream?.getVideoTracks().some(t => t.readyState === "live" && !t.muted)
   );
 
+  // Si la pareja esta compartiendo pantalla, segun lo que ella misma avisa.
+  //
+  // El canal de "pantalla" es uno de los tres canales fijos de video que se
+  // crean siempre, exista o no algo que compartir, para no tener que
+  // renegociar la conexion cuando alguien aprieta el boton. El problema es
+  // que WebRTC no distingue "nadie esta mandando nada" de "hay algo pero
+  // esta en silencio": apenas la conexion queda lista, ese canal vacio
+  // igual se reporta como activo un instante despues. Guiarse por eso hacia
+  // mostraba el recuadro grande en negro aunque nadie hubiera compartido
+  // nada. Por eso la pareja avisa por su cuenta, con un mensaje aparte,
+  // cuando de verdad empieza o deja de compartir.
+  const [partnerSharingSignal, setPartnerSharingSignal] = useState(false);
+
   /** Resumen corto del estado de las pistas remotas, para diagnosticar a ojo. */
   const diagnosticoPistas = remoteStream
     ? remoteStream.getTracks()
@@ -179,7 +191,7 @@ export default function SessionPage() {
   useEffect(() => { señalRef.current = handleSignal; }, [handleSignal]);
 
   const nombrePareja = partnerId ?? "Tu pareja";
-  const hayPantalla  = partnerSharing || isScreenSharing;
+  const hayPantalla  = partnerSharingSignal || isScreenSharing;
 
   /** Amplia el escenario de video a pantalla completa. */
   const escenarioRef = useRef<HTMLElement | null>(null);
@@ -314,6 +326,7 @@ export default function SessionPage() {
 
         case "PARTNER_DISCONNECTED":
           setPartnerConnected(false);
+          setPartnerSharingSignal(false);
           break;
 
         case "PARTNER_MESSAGE": {
@@ -338,6 +351,12 @@ export default function SessionPage() {
               ts:   Date.now(),
             }]);
           }
+
+          // Aviso explicito de la pareja: "estoy compartiendo" / "deje de
+          // compartir". Ver la nota junto a partnerSharingSignal.
+          if (inner.type === "SCREEN_SHARE_STATE") {
+            setPartnerSharingSignal(Boolean(inner.sharing));
+          }
           break;
         }
 
@@ -360,6 +379,17 @@ export default function SessionPage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Avisar a la pareja cuando empezamos o dejamos de compartir pantalla.
+  // Ver la nota junto a partnerSharingSignal sobre por que no basta con
+  // mirar el canal de WebRTC.
+  useEffect(() => {
+    if (!wsReady) return;
+    wsRef.current?.send(JSON.stringify({
+      type:    "SCREEN_SHARE_STATE",
+      sharing: isScreenSharing,
+    }));
+  }, [isScreenSharing, wsReady]);
 
   // Cuenta atrás de la propuesta de continuar
   useEffect(() => {
@@ -652,14 +682,14 @@ export default function SessionPage() {
             {hayPantalla && (
               <div style={{ ...styles.baldosa, aspectRatio: "16 / 9", flex: 1, minHeight: 0 }}>
                 <video
-                  ref={partnerSharing ? remoteScreenRef : localScreenRef}
+                  ref={partnerSharingSignal ? remoteScreenRef : localScreenRef}
                   autoPlay
                   playsInline
                   muted
                   style={{ ...styles.videoLleno, objectFit: "contain" }}
                 />
                 <div style={styles.nombre}>
-                  🖥️ {partnerSharing
+                  🖥️ {partnerSharingSignal
                         ? `Pantalla de ${nombrePareja}`
                         : "Tu pantalla"}
                 </div>
@@ -824,7 +854,7 @@ export default function SessionPage() {
 
         {/* ── Columna derecha: Chat ── */}
         <div style={styles.rightCol}>
-          <section style={{ ...styles.card, flex: 1, display: "flex", flexDirection: "column" }}>
+          <section style={{ ...styles.card, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
             <div style={styles.chatHeader}>
               Chat
               {isBreak
@@ -882,12 +912,17 @@ export default function SessionPage() {
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
+  // Altura fija y sin desbordar: antes era minHeight, asi que en cuanto el
+  // contenido no cabia el navegador dejaba desplazar la pagina entera para
+  // llegar al chat. Con altura fija y overflow oculto aca, cada columna de
+  // mas abajo es la unica responsable de su propio desplazamiento.
   page: {
-    minHeight:     "100vh",
+    height:        "100dvh",
     background:    "#1a1612",
     fontFamily:    "system-ui, sans-serif",
     display:       "flex",
     flexDirection: "column",
+    overflow:      "hidden",
   },
   centered: {
     minHeight:      "100vh",
@@ -1001,8 +1036,11 @@ const styles: Record<string, React.CSSProperties> = {
     padding:        "12px 24px",
     background:     "#211d19",
     borderBottom:   "1px solid #3a3028",
+    flexShrink:     0,
+    flexWrap:       "wrap",
+    gap:            8,
   },
-  headerLeft: { display: "flex", alignItems: "center", gap: 12 },
+  headerLeft: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" },
   pill: {
     borderRadius: 999,
     padding:      "3px 10px",
@@ -1012,15 +1050,20 @@ const styles: Record<string, React.CSSProperties> = {
   // La pantalla ocupa el alto de la ventana y cada columna se desplaza por su
   // cuenta. Antes la pagina entera se movia, asi que para leer el chat habia
   // que arrastrar tambien el video y el temporizador fuera de la vista.
+  //
+  // El alto ya no se calcula restando un numero fijo (antes se asumia que el
+  // header media 56px, y en el celular el encabezado se envuelve en dos
+  // lineas y mide mas). Con flex: 1 y minHeight: 0 dentro de una pagina de
+  // altura fija, este bloque ocupa exactamente lo que sobra del header, sea
+  // cual sea su alto real.
   main: {
-    display:  "flex",
-    gap:      20,
-    padding:  24,
-    flex:     1,
-    flexWrap: "wrap",
-    height:   "calc(100vh - 56px)",
-    minHeight: 480,
-    overflow: "hidden",
+    display:   "flex",
+    gap:       20,
+    padding:   24,
+    flex:      1,
+    flexWrap:  "wrap",
+    minHeight: 0,
+    overflow:  "hidden",
     boxSizing: "border-box",
   },
   leftCol: {
@@ -1049,6 +1092,7 @@ const styles: Record<string, React.CSSProperties> = {
     flex:          "1 1 260px",
     maxWidth:      340,
     minHeight:     0,
+    overflow:      "hidden",
   },
 
   // ── Escenario de video ──────────────────────────────────────────────────

@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: bajar el pool de conexiones a la base para no agotar el limite del pooler de Supabase" >> "%LOG%" 2>&1
+git commit -m "fix: pantalla compartida por senal explicita, chat con scroll propio y la planta ya no corta la sesion" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

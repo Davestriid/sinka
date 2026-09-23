@@ -353,16 +353,12 @@ class SessionService:
                 if tick % 10 == 0:
                     await self._persist_state(session_id, plant, timer_state)
 
-                # --- Verificar si la planta murio ---
-                if plant["hp"] <= 0:
-                    await self._broadcast(session_id, {
-                        "type":    "SESSION_ENDED",
-                        "payload": {"reason": "plant_died", "plant": plant},
-                    })
-                    await self._publish_session_completed(
-                        session_id, conn, timer_state, "plant_died", plant
-                    )
-                    break
+                # La planta ya no corta la sesion si el HP llega a cero. Antes
+                # una pareja con algo de inactividad perdia toda la sesion de
+                # golpe, lo cual era demasiado castigo: ahora el HP bajo solo
+                # se refleja en menos XP y FocusCoins al terminar (mas abajo,
+                # via plant_stage), pero el Pomodoro siempre se puede
+                # completar entero.
 
                 # --- Verificar si se completaron todos los rounds ---
                 if timer_state.get("all_completed"):
