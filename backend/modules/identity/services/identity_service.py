@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from core.config import settings
 from modules.identity.models import User
 from modules.identity.repositories.user_repository import SessionRepository, UserRepository
-from modules.identity.schemas.auth import TokenResponse, UserResponse
+from modules.identity.schemas.auth import PublicProfile, TokenResponse, UserResponse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -191,6 +191,16 @@ class IdentityService:
             return []
         encontrados = await self.user_repo.search(termino, excluir_id=actual_id)
         return [UserResponse.model_validate(u) for u in encontrados]
+
+    async def get_public_profile(self, user_id: str) -> PublicProfile:
+        """
+        Perfil publico minimo de otra persona: nombre y foto para mostrar en
+        pantalla (por ejemplo, la pareja de una sesion), nunca su correo.
+        """
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Ese usuario no existe.")
+        return PublicProfile.model_validate(user)
 
     async def _issue_tokens(self, user: User) -> TokenResponse:
         access_token = self.create_access_token(user.id)

@@ -191,9 +191,65 @@ class SessionService:
         })
         logger.info("SessionService: %s desconecto de sesion %s", user_id, session_id)
 
-        # Si ninguno sigue conectado, cancelar game-loop
-        if conn.ws_a is None and conn.ws_b is None:
+        partner_sigue = conn.ws_a is not None or conn.ws_b is not None
+        sesion_en_curso = session_id in self._loops
+
+        if partner_sigue and sesion_en_curso:
+            # Alguien se fue a media sesion. No tiene sentido dejar al otro
+            # esperando indefinidamente con "esperando pareja": se cierra la
+            # sesion ya mismo para los dos, y quien abandono pierde puntaje
+            # de confianza (ver GamificationService._penalizar_abandono).
+            await self._end_session_por_abandono(session_id, conn, user_id)
+        elif conn.ws_a is None and conn.ws_b is None:
+            # Ninguno sigue conectado: no queda a quien avisar, solo limpiar.
             self._cancel_loop(session_id)
+
+    async def _end_session_por_abandono(
+        self,
+        session_id: str,
+        conn: "_SessionConnection",
+        quien_salio: str,
+    ) -> None:
+        """Cierra la sesion de inmediato porque alguien se fue a medio camino."""
+        timer = self._timers.get(session_id)
+        plant = self._gardens.get(session_id, {})
+        timer_state = timer.snapshot() if timer else {}
+        rounds = timer_state.get("round", 1)
+
+        # Aproximacion de cuantos minutos alcanzaron a trabajar juntos, solo
+        # para pesar la penalizacion (irse muy al principio pesa mas).
+        minutos = 0
+        if timer:
+            minutos = max(0, (timer.round - 1) * 30 + timer.elapsed // 60)
+
+        self._cancel_loop(session_id)
+
+        await self._broadcast(session_id, {
+            "type":    "SESSION_ENDED",
+            "payload": {"reason": "user_left", "left_by": quien_salio, "plant": plant},
+        })
+
+        await EventBus.publish("session.completed", {
+            "session_id":       session_id,
+            "user_a_id":        conn.user_a_id,
+            "user_b_id":        conn.user_b_id,
+            "rounds_completed": rounds,
+            "reason":           "user_left",
+            "left_by":          quien_salio,
+            "penalty_severity": "normal",
+            "minutes_elapsed":  minutos,
+            "plant_stage":      plant.get("stage", ""),
+        })
+        logger.info(
+            "SessionService: sesion %s cerrada porque %s abandono", session_id, quien_salio
+        )
+
+        self._timers.pop(session_id, None)
+        self._gardens.pop(session_id, None)
+        self._encuentros.pop(session_id, None)
+        self._voto_listo.pop(session_id, None)
+        self._voto_resultado.pop(session_id, None)
+        extension_service.limpiar(session_id)
 
     def update_focus(self, session_id: str, user_id: str, is_active: bool) -> None:
         """Actualiza el estado de actividad de un usuario (sin IO)."""

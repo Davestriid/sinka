@@ -319,6 +319,13 @@ export const profileApi = {
     request<UserResponse[]>(`/auth/users/search?q=${encodeURIComponent(q)}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
+
+  // Perfil publico minimo de otra persona (nombre y foto), sin su correo.
+  // Se usa para mostrar quien es la pareja dentro de una sesion.
+  getPublic: (accessToken: string, userId: string) =>
+    request<UserBrief>(`/auth/users/${userId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
 };
 
 // ── Social: amigos y jardin ──────────────────────────────────────────────────

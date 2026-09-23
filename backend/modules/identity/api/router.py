@@ -7,6 +7,7 @@ from modules.identity.schemas.auth import (
     LoginRequest,
     OnboardingRequest,
     ProfileUpdateRequest,
+    PublicProfile,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -108,6 +109,19 @@ async def search_users(
 ) -> list[UserResponse]:
     """Busca usuarios para enviarles una solicitud de amistad."""
     return await service.search_users(q, actual_id=current_user.id)
+
+
+@router.get("/users/{user_id}", response_model=PublicProfile)
+async def get_public_profile(
+    user_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> PublicProfile:
+    """
+    Perfil publico minimo de otra persona (nombre y foto). Se usa, por
+    ejemplo, para mostrar quien es tu pareja dentro de una sesion.
+    """
+    return await service.get_public_profile(user_id)
 
 
 # ---------------------------------------------------------------------------

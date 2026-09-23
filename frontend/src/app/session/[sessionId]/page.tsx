@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { wsUrl } from "@/lib/api";
 import { focusDetector } from "@/lib/focus-detector";
 import { usePeerConnection, type WebRtcSignal } from "@/lib/peer-connection";
-import { gamificationApi, type UserStats } from "@/lib/api";
+import { gamificationApi, profileApi, type UserBrief, type UserStats } from "@/lib/api";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -70,10 +70,27 @@ function fmtTime(seconds: number): string {
   return `${m}:${s}`;
 }
 
-function hpColor(hp: number): string {
-  if (hp > 60) return "#4ade80";
-  if (hp > 30) return "#facc15";
-  return "#f87171";
+/** Foto de perfil si hay una, o iniciales del nombre. */
+function Avatar({ nombre, url, size = 22 }: { nombre: string; url?: string | null; size?: number }) {
+  if (url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={url}
+        alt={nombre}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+      />
+    );
+  }
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: "50%", background: "#3a3028",
+      color: "#f5f0e8", display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.42, fontWeight: 700, flexShrink: 0,
+    }}>
+      {nombre.slice(0, 2).toUpperCase()}
+    </span>
+  );
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -96,6 +113,10 @@ export default function SessionPage() {
   // Pareja
   const [partnerConnected, setPartnerConnected] = useState(false);
   const [partnerId, setPartnerId]               = useState<string | null>(null);
+  const [partnerProfile, setPartnerProfile]      = useState<UserBrief | null>(null);
+
+  // Confirmación al salir
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Sesión
   const [sessionEnded, setSessionEnded] = useState(false);
@@ -190,7 +211,8 @@ export default function SessionPage() {
   const señalRef = useRef(handleSignal);
   useEffect(() => { señalRef.current = handleSignal; }, [handleSignal]);
 
-  const nombrePareja = partnerId ?? "Tu pareja";
+  const nombrePareja = partnerProfile?.alias || partnerProfile?.username || "Tu pareja";
+  const miNombre      = user?.alias || user?.username || "Yo";
   const hayPantalla  = partnerSharingSignal || isScreenSharing;
 
   /** Amplia el escenario de video a pantalla completa. */
@@ -228,6 +250,14 @@ export default function SessionPage() {
     if (!token) return;
     gamificationApi.getStats(token).then(setStatsBefore).catch(() => {});
   }, [token]);
+
+  // Nombre y foto de la pareja, en cuanto se sabe quién es. Antes se
+  // mostraba el id crudo (un UUID) porque era lo único que llegaba por el
+  // WebSocket.
+  useEffect(() => {
+    if (!token || !partnerId) return;
+    profileApi.getPublic(token, partnerId).then(setPartnerProfile).catch(() => {});
+  }, [token, partnerId]);
 
   // ── Focus heartbeat (cada 10 s) ────────────────────────────────────────────
   useEffect(() => {
@@ -529,6 +559,31 @@ export default function SessionPage() {
   return (
     <div style={styles.page}>
 
+      {/* ── Confirmación al terminar la sesión ── */}
+      {showExitConfirm && (
+        <div style={styles.overlay}>
+          <div style={styles.voteCard}>
+            <div style={{ fontSize: 40 }}>⚠️</div>
+            <h3 style={{ margin: "10px 0 6px", color: "#f5f0e8" }}>
+              ¿Salir de la sesión?
+            </h3>
+            <p style={{ color: "#a0998b", fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+              {partnerConnected
+                ? `Si sales ahora, la sesión termina también para ${nombrePareja} y baja tu puntaje de confianza.`
+                : "Si sales ahora, la sesión termina y no cuenta como completada."}
+            </p>
+            <div style={styles.voteButtons}>
+              <button style={styles.btnGhost} onClick={() => setShowExitConfirm(false)}>
+                Seguir en la sesión
+              </button>
+              <button style={styles.btnDangerFull} onClick={endSession}>
+                Salir de todas formas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Propuesta de continuar otro bloque ── */}
       {extensionOffer && (
         <div style={styles.overlay}>
@@ -591,7 +646,9 @@ export default function SessionPage() {
             </span>
           )}
         </div>
-        <button style={styles.btnDanger} onClick={endSession}>Terminar</button>
+        <button style={styles.btnDanger} onClick={() => setShowExitConfirm(true)}>
+          Terminar
+        </button>
       </header>
 
       <main style={styles.main}>
@@ -626,7 +683,7 @@ export default function SessionPage() {
             <section style={styles.taskPanel}>
               {myTask && (
                 <div style={styles.taskCard}>
-                  <span style={styles.taskLabel}>Yo</span>
+                  <span style={styles.taskLabel}>{miNombre}</span>
                   <span style={styles.taskArea}>{AREA_LABELS[myTask.work_area] ?? myTask.work_area}</span>
                   <span style={styles.taskTitle}>"{myTask.task_title}"</span>
                   <span style={styles.taskPoms}>{"🍅".repeat(myTask.target_pomodoros)}</span>
@@ -634,7 +691,7 @@ export default function SessionPage() {
               )}
               {partnerTask && (
                 <div style={styles.taskCard}>
-                  <span style={styles.taskLabel}>{partnerId ?? "Pareja"}</span>
+                  <span style={styles.taskLabel}>{nombrePareja}</span>
                   <span style={styles.taskArea}>{AREA_LABELS[partnerTask.work_area] ?? partnerTask.work_area}</span>
                   <span style={styles.taskTitle}>"{partnerTask.task_title}"</span>
                   <span style={styles.taskPoms}>{"🍅".repeat(partnerTask.target_pomodoros)}</span>
@@ -643,33 +700,15 @@ export default function SessionPage() {
             </section>
           )}
 
-          {/* Planta */}
+          {/* Estado de enfoque */}
           <section style={styles.card}>
-            <div style={styles.plantEmoji}>{plant?.emoji ?? "🌱"}</div>
-            <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <span style={{ color: "#f5f0e8", fontWeight: 600, textTransform: "capitalize" }}>
-                {plant?.stage ?? "–"}
-              </span>
-            </div>
-            <div style={styles.hpLabel}>
-              HP <span style={{ float: "right", color: "#f5f0e8" }}>
-                {plant ? plant.hp.toFixed(1) : "–"} / 100
-              </span>
-            </div>
-            <div style={styles.progressTrack}>
-              <div style={{
-                ...styles.progressBar,
-                width:      `${plant ? plant.hp : 50}%`,
-                background: plant ? hpColor(plant.hp) : "#4ade80",
-                transition: "width 1s linear, background 1s",
-              }} />
-            </div>
+            <div style={styles.focusTitle}>Enfoque</div>
             <div style={styles.focusRow}>
               <span style={focusDot(myActive)}>
-                {myActive ? "✓" : "✗"} Yo
+                {myActive ? "✓" : "✗"} {miNombre}
               </span>
               <span style={focusDot(partnerConnected && (plant?.both_focused || false))}>
-                {partnerConnected ? "" : "–"} {partnerId ?? "Pareja"}
+                {partnerConnected ? "" : "–"} {nombrePareja}
               </span>
             </div>
           </section>
@@ -733,9 +772,7 @@ export default function SessionPage() {
 
                 {(estadoCamara !== "lista" || !camEnabled) && (
                   <div style={styles.capaCentral}>
-                    <div style={styles.inicial}>
-                      {(user?.username ?? "yo").slice(0, 2).toUpperCase()}
-                    </div>
+                    <Avatar nombre={miNombre} url={user?.avatar_url} size={64} />
                     <p style={{ fontSize: 11, color: "#a0998b", margin: 0, maxWidth: 260, lineHeight: 1.4 }}>
                       {!camEnabled && estadoCamara === "lista" && "Tu cámara está apagada."}
                       {estadoCamara === "pidiendo"   && "Permite el acceso a la cámara en el aviso del navegador."}
@@ -753,7 +790,9 @@ export default function SessionPage() {
                 )}
 
                 <div style={styles.nombre}>
-                  {!micEnabled && "🔇"} Tú
+                  <Avatar nombre={miNombre} url={user?.avatar_url} />
+                  <span style={styles.nombreTexto}>{miNombre}</span>
+                  {!micEnabled && <span title="Silenciado">🔇</span>}
                 </div>
               </div>
 
@@ -776,9 +815,7 @@ export default function SessionPage() {
 
                   {!hayVideoPareja && (
                     <div style={styles.capaCentral}>
-                      <div style={styles.inicial}>
-                        {nombrePareja.slice(0, 2).toUpperCase()}
-                      </div>
+                      <Avatar nombre={nombrePareja} url={partnerProfile?.avatar_url} size={64} />
                       <span style={{ fontSize: 12, color: "#6b6358" }}>
                         Conectando vídeo…
                       </span>
@@ -796,7 +833,9 @@ export default function SessionPage() {
                   )}
 
                   <div style={styles.nombre}>
-                    {!isBreak && "🔇"} {nombrePareja}
+                    <Avatar nombre={nombrePareja} url={partnerProfile?.avatar_url} />
+                    <span style={styles.nombreTexto}>{nombrePareja}</span>
+                    {!isBreak && <span title="Silenciado hasta el descanso">🔇</span>}
                   </div>
                 </div>
               )}
@@ -1143,18 +1182,6 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign:      "center",
     background:     "#17130f",
   },
-  inicial: {
-    width:          64,
-    height:         64,
-    borderRadius:   "50%",
-    background:     "#2a2420",
-    color:          "#f5f0e8",
-    display:        "flex",
-    alignItems:     "center",
-    justifyContent: "center",
-    fontSize:       24,
-    fontWeight:     700,
-  },
   nombre: {
     position:     "absolute",
     bottom:       8,
@@ -1165,9 +1192,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:     12,
     color:        "#f5f0e8",
     background:   "rgba(0,0,0,0.6)",
-    padding:      "3px 10px",
+    padding:      "3px 10px 3px 4px",
     borderRadius: 999,
     maxWidth:     "80%",
+  },
+  nombreTexto: {
     overflow:     "hidden",
     whiteSpace:   "nowrap",
     textOverflow: "ellipsis",
@@ -1236,21 +1265,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     transition:   "width 1s linear",
   },
-  plantEmoji: {
-    textAlign:    "center",
-    fontSize:     72,
-    lineHeight:   1,
-    marginBottom: 8,
-  },
-  hpLabel: {
-    fontSize: 12,
-    color:    "#a0998b",
-    margin:   "10px 0 4px",
+  focusTitle: {
+    fontSize:      12,
+    fontWeight:    700,
+    color:         "#6b6358",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    marginBottom:  10,
   },
   focusRow: {
     display:        "flex",
     justifyContent: "space-between",
-    marginTop:      12,
     gap:            8,
   },
   taskPanel: {
@@ -1390,6 +1415,17 @@ const styles: Record<string, React.CSSProperties> = {
     padding:      "6px 16px",
     cursor:       "pointer",
     fontSize:     13,
+  },
+  btnDangerFull: {
+    background:   "#7f1d1d",
+    color:        "#fecaca",
+    border:       "1px solid #991b1b",
+    borderRadius: 8,
+    padding:      "10px 16px",
+    fontSize:     14,
+    fontWeight:   600,
+    cursor:       "pointer",
+    width:        "100%",
   },
 };
 

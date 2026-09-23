@@ -61,6 +61,20 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PublicProfile(BaseModel):
+    """
+    Perfil publico minimo de otra persona — nunca su correo. Se usa para
+    mostrar nombre y foto de la pareja dentro de una sesion, por ejemplo.
+    """
+
+    id:         str
+    username:   str
+    alias:      str | None = None
+    avatar_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class ProfileUpdateRequest(BaseModel):
     """Actualizacion parcial del perfil. Todo opcional."""
 
