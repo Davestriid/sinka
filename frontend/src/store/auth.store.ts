@@ -40,15 +40,23 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: estado.refreshToken,
         user:         estado.user,
       }),
-      onRehydrateStorage: () => () => {
-        // Se llama al terminar de leer, haya datos guardados o no.
-        //
-        // Aqui zustand ya dejo la sesion puesta, asi que solo falta levantar
-        // la bandera. Antes tambien se volcaba el estado recibido encima, y
-        // como ese estado traia la bandera en falso se pisaba a si misma: no
-        // se levantaba nunca y las pantallas se quedaban esperando.
-        useAuthStore.setState({ hidratado: true });
-      },
     }
   )
 );
+
+/**
+ * Levanta la bandera cuando la sesion guardada ya esta cargada.
+ *
+ * Se consulta de dos maneras a proposito. La lectura del almacenamiento del
+ * navegador suele terminar antes de que corra esta linea, y en ese caso el
+ * aviso de finalizado ya paso y no volveria a llegar nunca; por eso primero
+ * se pregunta si ya termino. Si todavia no, se queda escuchando.
+ *
+ * Sin esto las pantallas miraban un token que aun no estaba cargado, lo veian
+ * vacio y se quedaban esperando o mandaban al login.
+ */
+if (typeof window !== "undefined") {
+  const marcar = () => useAuthStore.setState({ hidratado: true });
+  if (useAuthStore.persist.hasHydrated()) marcar();
+  else useAuthStore.persist.onFinishHydration(marcar);
+}
