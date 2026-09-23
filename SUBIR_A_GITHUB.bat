@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "feat: quita la planta de la sesion en vivo, muestra nombre y foto real de cada persona, confirmacion al salir con aviso de riesgo, y cierra la sesion para ambos si alguien abandona" >> "%LOG%" 2>&1
+git commit -m "fix: vuelve a restringir el audio de la sesion solo al descanso (se prueba con exito)" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"
