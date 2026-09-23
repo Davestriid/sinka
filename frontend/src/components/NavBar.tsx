@@ -10,8 +10,9 @@
  * En pantallas angostas los enlaces se envuelven en vez de desbordarse.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, type LucideProps } from "lucide-react";
 
 import { authApi, gamificationApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
@@ -20,16 +21,19 @@ import { Notificaciones } from "./Notificaciones";
 
 interface Destino {
   href:   string;
-  icono:  string;
+  Icono:  ComponentType<LucideProps>;
   texto:  string;
 }
 
+// Iconos propios en vez de emoji: en varios sistemas el emoji se ve distinto
+// (o de plano no se ve) y da un aire mas generico. Con trazos de un mismo
+// set el conjunto se siente diseñado, no improvisado.
 const DESTINOS: Destino[] = [
-  { href: "/dashboard",   icono: "🎯", texto: "Enfocarme" },
-  { href: "/vinculos",    icono: "🤝", texto: "Vínculos"  },
-  { href: "/jardin",      icono: "🌿", texto: "Jardín"    },
-  { href: "/grupos",      icono: "👥", texto: "Grupos"    },
-  { href: "/citas",       icono: "📅", texto: "Citas"     },
+  { href: "/dashboard",   Icono: Target,        texto: "Enfocarme" },
+  { href: "/vinculos",    Icono: Handshake,      texto: "Vínculos"  },
+  { href: "/jardin",      Icono: Sprout,         texto: "Jardín"    },
+  { href: "/grupos",      Icono: Users,          texto: "Grupos"    },
+  { href: "/citas",       Icono: CalendarDays,   texto: "Citas"     },
   // La tabla de lideres queda fuera de la barra por ahora. La pagina sigue
   // existiendo en /leaderboard por si se quiere volver a mostrar.
 ];
@@ -98,7 +102,7 @@ export function NavBar({ monedas }: NavBarProps) {
         onClick={() => router.push("/dashboard")}
         title="Ir al inicio"
       >
-        <span style={s.logoMark} aria-hidden>🌱</span>
+        <Sprout size={17} strokeWidth={2} color={color.accent} aria-hidden />
         SINKA
       </button>
 
@@ -112,7 +116,7 @@ export function NavBar({ monedas }: NavBarProps) {
               style={{ ...s.enlace, ...(on ? s.enlaceActivo : {}) }}
               title={d.texto}
             >
-              <span aria-hidden>{d.icono}</span>
+              <d.Icono size={15} strokeWidth={2} aria-hidden />
               <span style={s.etiqueta}>{d.texto}</span>
               {on && (
                 <motion.span
@@ -134,6 +138,7 @@ export function NavBar({ monedas }: NavBarProps) {
           onClick={() => router.push("/shop")}
           title="Tienda"
         >
+          <ShoppingBag size={15} strokeWidth={2} aria-hidden />
           <AnimatePresence mode="popLayout">
             <motion.span
               key={fc ?? "sin-fc"}
@@ -142,7 +147,7 @@ export function NavBar({ monedas }: NavBarProps) {
               exit={{ y: 6, opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
-              🛍️{fc != null ? ` ${fc}` : ""}
+              {fc != null ? fc : ""}
             </motion.span>
           </AnimatePresence>
         </button>

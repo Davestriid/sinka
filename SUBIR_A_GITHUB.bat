@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: avisa cuando el video de la pareja se congela y cambia los iconos de la sesion por SVG animados" >> "%LOG%" 2>&1
+git commit -m "fix: iconos SVG en lugar de emoji en NavBar y areas del dashboard, en linea con el texto" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

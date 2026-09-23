@@ -3,25 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Code, Smartphone, Globe, Palette, Clapperboard, Pencil, PenTool,
+  Music, Megaphone, Camera, BarChart3, Languages, Sparkles,
+  type LucideProps,
+} from "lucide-react";
+import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { wsUrl, gamificationApi, type UserStats } from "@/lib/api";
 import { color, radius, shadow, fontSerif, ease } from "@/lib/theme";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
-const TOPICS = [
-  { value: "software",  label: "💻 Desarrollo de software" },
-  { value: "mobile",    label: "📱 Apps móviles" },
-  { value: "web",       label: "🌐 Desarrollo web" },
-  { value: "design",    label: "🎨 Diseño gráfico" },
-  { value: "video",     label: "🎬 Edición de video" },
-  { value: "writing",   label: "✍️ Escritura" },
-  { value: "drawing",   label: "🖌️ Dibujo digital" },
-  { value: "music",     label: "🎵 Música y producción" },
-  { value: "marketing", label: "📢 Marketing digital" },
-  { value: "photo",     label: "📷 Fotografía" },
-  { value: "data",      label: "📊 Análisis de datos" },
-  { value: "languages", label: "🗣️ Idiomas" },
-  { value: "other",     label: "✨ Otro" },
+// Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
+const TOPICS: { value: string; label: string; Icon: ComponentType<LucideProps> }[] = [
+  { value: "software",  label: "Desarrollo de software", Icon: Code },
+  { value: "mobile",    label: "Apps móviles",           Icon: Smartphone },
+  { value: "web",       label: "Desarrollo web",         Icon: Globe },
+  { value: "design",    label: "Diseño gráfico",         Icon: Palette },
+  { value: "video",     label: "Edición de video",       Icon: Clapperboard },
+  { value: "writing",   label: "Escritura",              Icon: Pencil },
+  { value: "drawing",   label: "Dibujo digital",         Icon: PenTool },
+  { value: "music",     label: "Música y producción",    Icon: Music },
+  { value: "marketing", label: "Marketing digital",      Icon: Megaphone },
+  { value: "photo",     label: "Fotografía",             Icon: Camera },
+  { value: "data",      label: "Análisis de datos",      Icon: BarChart3 },
+  { value: "languages", label: "Idiomas",                Icon: Languages },
+  { value: "other",     label: "Otro",                   Icon: Sparkles },
 ];
 
 // ── Estado de la pantalla ─────────────────────────────────────────────────────
@@ -196,7 +203,8 @@ export default function DashboardPage() {
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setTopic(a.value)}
                   >
-                    {a.label}
+                    <a.Icon size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
+                    <span>{a.label}</span>
                   </motion.button>
                 ))}
               </div>
@@ -402,10 +410,13 @@ const styles: Record<string, React.CSSProperties> = {
     gap:                 8,
   },
   areaBtn: {
+    display:      "flex",
+    alignItems:   "center",
+    gap:          8,
     background:   color.borderSoft,
     border:       `1px solid ${color.border}`,
     borderRadius: radius.md,
-    padding:      "8px 10px",
+    padding:      "9px 12px",
     color:        "#c4b99a",
     cursor:       "pointer",
     fontSize:     13,
