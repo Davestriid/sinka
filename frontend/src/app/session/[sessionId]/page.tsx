@@ -166,12 +166,43 @@ export default function SessionPage() {
     remoteStream?.getVideoTracks().some(t => t.readyState === "live" && !t.muted)
   );
 
+  /** Resumen corto del estado de las pistas remotas, para diagnosticar a ojo. */
+  const diagnosticoPistas = remoteStream
+    ? remoteStream.getTracks()
+        .map(t => `${t.kind[0]}:${t.readyState === "live" ? (t.muted ? "silenciada" : "ok") : t.readyState}`)
+        .join(" ") || "ninguna"
+    : "sin flujo";
+
+  const nombrePareja = partnerId ?? "Tu pareja";
+  const hayPantalla  = partnerSharing || isScreenSharing;
+
+  /** Amplia el escenario de video a pantalla completa. */
+  const escenarioRef = useRef<HTMLElement | null>(null);
+  const alternarPantallaCompleta = useCallback(() => {
+    const el = escenarioRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    else void el.requestFullscreen?.().catch(() => {});
+  }, []);
+
   // Mute remote audio durante fase de enfoque
   useEffect(() => {
     const el = remoteVideoRef.current;
     if (!el) return;
     el.muted = timer?.phase === "focus";
   }, [timer?.phase, remoteVideoRef]);
+
+  // Arrancar la reproduccion a mano. El atributo autoPlay solo actua en la
+  // primera carga del elemento, y aqui el origen se asigna despues de montarlo.
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (!el || !hayVideoPareja) return;
+    void el.play().catch(() => {
+      // Si el navegador lo frena por el audio, se reintenta en silencio
+      el.muted = true;
+      void el.play().catch(() => {});
+    });
+  }, [hayVideoPareja, remoteVideoRef]);
 
   // ── Cargar stats de gamificación al iniciar la sesión ────────────────────
   useEffect(() => {
@@ -605,208 +636,175 @@ export default function SessionPage() {
         {/* ── Columna central: Vídeo ── */}
         <div style={styles.centerCol}>
 
-          {/* ── Pantalla compartida ── */}
-          {(partnerSharing || isScreenSharing) && (
-            <section style={{ ...styles.card, padding: 0, overflow: "hidden", position: "relative" as const, background: "#0d0b09" }}>
-              <video
-                ref={partnerSharing ? remoteScreenRef : localScreenRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width:      "100%",
-                  height:     300,
-                  objectFit:  "contain",
-                  display:    "block",
-                  background: "#0d0b09",
-                }}
-              />
-              <div style={styles.videoLabel}>
-                {partnerSharing
-                  ? `Pantalla de ${partnerId ?? "tu pareja"}`
-                  : "Tu pantalla"}
-              </div>
-            </section>
-          )}
+          <section style={styles.escenario} ref={escenarioRef}>
 
-          {/* Si los dos comparten, la tuya queda debajo en pequeno */}
-          {partnerSharing && isScreenSharing && (
-            <section style={{ ...styles.card, padding: 0, overflow: "hidden", position: "relative" as const, background: "#0d0b09" }}>
-              <video
-                ref={localScreenRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: "100%", height: 130, objectFit: "contain", display: "block", background: "#0d0b09" }}
-              />
-              <div style={styles.videoLabel}>Tu pantalla</div>
-            </section>
-          )}
-
-          {/* ── Camaras, una al lado de la otra ── */}
-          <div style={{
-            display:             "grid",
-            gridTemplateColumns: partnerConnected ? "1fr 1fr" : "1fr",
-            gap:                 10,
-          }}>
-
-            {/* Tu camara. Se ve siempre, estes solo o acompanado. */}
-            <section style={{ ...styles.card, padding: 0, overflow: "hidden", position: "relative" as const }}>
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width:      "100%",
-                  height:     partnerConnected ? 150 : 240,
-                  objectFit:  "cover",
-                  display:    estadoCamara === "lista" && camEnabled ? "block" : "none",
-                  background: "#0d0b09",
-                  transform:  "scaleX(-1)",
-                  transition: "height 0.4s ease",
-                }}
-              />
-
-              {(estadoCamara !== "lista" || !camEnabled) && (
-                <div style={{
-                  height:         partnerConnected ? 150 : 240,
-                  display:        "flex",
-                  flexDirection:  "column" as const,
-                  alignItems:     "center",
-                  justifyContent: "center",
-                  gap:            8,
-                  padding:        14,
-                  textAlign:      "center" as const,
-                  background:     "#0d0b09",
-                }}>
-                  <div style={{ fontSize: 26 }}>
-                    {!camEnabled && estadoCamara === "lista" ? "🚫" : estadoCamara === "pidiendo" ? "📷" : "🚫"}
-                  </div>
-                  <p style={{ fontSize: 11, color: "#a0998b", margin: 0, maxWidth: 240, lineHeight: 1.4 }}>
-                    {!camEnabled && estadoCamara === "lista" && "Tu camara esta apagada."}
-                    {estadoCamara === "pidiendo"   && "Permite el acceso a la camara en el aviso del navegador."}
-                    {estadoCamara === "denegada"   && "Bloqueaste la camara para este sitio. Toca el candado junto a la direccion, permite camara y microfono, y vuelve a intentar."}
-                    {estadoCamara === "sin-camara" && "No se encontro ninguna camara conectada."}
-                    {estadoCamara === "ocupada"    && "Otra aplicacion esta usando la camara. Cierrala y vuelve a intentar."}
-                    {estadoCamara === "error"      && "No se pudo abrir la camara."}
-                  </p>
-                  {estadoCamara !== "lista" && estadoCamara !== "pidiendo" && (
-                    <button style={styles.mediaBtn} onClick={() => { void reintentarCamara(); }}>
-                      Reintentar
-                    </button>
-                  )}
+            {/* Escenario principal: la pantalla compartida, si hay alguna */}
+            {hayPantalla && (
+              <div style={{ ...styles.baldosa, aspectRatio: "16 / 10" }}>
+                <video
+                  ref={partnerSharing ? remoteScreenRef : localScreenRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{ ...styles.videoLleno, objectFit: "contain" }}
+                />
+                <div style={styles.nombre}>
+                  🖥️ {partnerSharing
+                        ? `Pantalla de ${nombrePareja}`
+                        : "Tu pantalla"}
                 </div>
-              )}
-
-              <div style={styles.videoLabel}>
-                Tu camara {!micEnabled && "🔇"}
               </div>
-            </section>
+            )}
 
-            {/* Camara de la otra persona */}
-            {partnerConnected && (
-              <section style={{
-                ...styles.card,
-                padding:    0,
-                overflow:   "hidden",
-                position:   "relative" as const,
-                background: "#0d0b09",
+            {/* Mosaico de camaras */}
+            <div style={{
+              ...styles.mosaico,
+              gridTemplateColumns: hayPantalla
+                ? "repeat(auto-fit, minmax(150px, 1fr))"
+                : partnerConnected
+                  ? "repeat(auto-fit, minmax(240px, 1fr))"
+                  : "1fr",
+            }}>
+
+              {/* Tu camara */}
+              <div style={{
+                ...styles.baldosa,
+                ...(myActive && camEnabled && estadoCamara === "lista" ? styles.baldosaActiva : {}),
               }}>
-                {!hayVideoPareja && (
-                  <div style={{
-                    position:       "absolute" as const,
-                    inset:          0,
-                    display:        "flex",
-                    flexDirection:  "column" as const,
-                    alignItems:     "center",
-                    justifyContent: "center",
-                    background:     "#0d0b09",
-                    gap:            8,
-                    padding:        12,
-                    zIndex:         2,
-                  }}>
-                    <div style={{
-                      width:        46,
-                      height:       46,
-                      borderRadius: "50%",
-                      background:   "#1c1816",
-                      display:      "flex",
-                      alignItems:   "center",
-                      justifyContent: "center",
-                      fontSize:     19,
-                    }}>
-                      {(partnerId ?? "P").slice(0, 2).toUpperCase()}
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{
+                    ...styles.videoLleno,
+                    transform: "scaleX(-1)",
+                    display:   estadoCamara === "lista" && camEnabled ? "block" : "none",
+                  }}
+                />
+
+                {(estadoCamara !== "lista" || !camEnabled) && (
+                  <div style={styles.capaCentral}>
+                    <div style={styles.inicial}>
+                      {(user?.username ?? "yo").slice(0, 2).toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 12, color: "#6b6358" }}>
-                      Conectando video…
-                    </span>
-                    {iceState === "failed" && (
-                      <span style={{ fontSize: 11, color: "#fca5a5", textAlign: "center" as const }}>
-                        No se pudo establecer la conexion de video.
-                      </span>
+                    <p style={{ fontSize: 11, color: "#a0998b", margin: 0, maxWidth: 260, lineHeight: 1.4 }}>
+                      {!camEnabled && estadoCamara === "lista" && "Tu cámara está apagada."}
+                      {estadoCamara === "pidiendo"   && "Permite el acceso a la cámara en el aviso del navegador."}
+                      {estadoCamara === "denegada"   && "Bloqueaste la cámara para este sitio. Toca el candado junto a la dirección, permite cámara y micrófono, y vuelve a intentar."}
+                      {estadoCamara === "sin-camara" && "No se encontró ninguna cámara conectada."}
+                      {estadoCamara === "ocupada"    && "Otra aplicación está usando la cámara. Ciérrala y vuelve a intentar."}
+                      {estadoCamara === "error"      && "No se pudo abrir la cámara."}
+                    </p>
+                    {estadoCamara !== "lista" && estadoCamara !== "pidiendo" && (
+                      <button style={styles.mediaBtn} onClick={() => { void reintentarCamara(); }}>
+                        Reintentar
+                      </button>
                     )}
                   </div>
                 )}
 
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  muted={!isBreak}
-                  style={{
-                    width:      "100%",
-                    height:     150,
-                    objectFit:  "cover",
-                    display:    "block",
-                    opacity:    hayVideoPareja ? 1 : 0,
-                  }}
-                />
-                <div style={styles.videoLabel}>
-                  {partnerId ?? "Pareja"} {!isBreak && "🔇"}
+                <div style={styles.nombre}>
+                  {!micEnabled && "🔇"} Tú
                 </div>
-              </section>
+              </div>
+
+              {/* Camara de la otra persona */}
+              {partnerConnected && (
+                <div style={{
+                  ...styles.baldosa,
+                  ...(plant?.both_focused ? styles.baldosaActiva : {}),
+                }}>
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    muted={!isBreak}
+                    style={{
+                      ...styles.videoLleno,
+                      display: hayVideoPareja ? "block" : "none",
+                    }}
+                  />
+
+                  {!hayVideoPareja && (
+                    <div style={styles.capaCentral}>
+                      <div style={styles.inicial}>
+                        {nombrePareja.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 12, color: "#6b6358" }}>
+                        Conectando vídeo…
+                      </span>
+                      {iceState === "failed" && (
+                        <span style={{ fontSize: 11, color: "#fca5a5" }}>
+                          No se pudo establecer la conexión de vídeo.
+                        </span>
+                      )}
+                      {/* Diagnostico. Si el video no aparece, esta linea dice
+                          en que punto se quedo, sin tener que abrir la consola. */}
+                      <span style={{ fontSize: 10, color: "#4a443c", fontFamily: "monospace" }}>
+                        red: {iceState || "iniciando"} · pistas: {diagnosticoPistas}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={styles.nombre}>
+                    {!isBreak && "🔇"} {nombrePareja}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Barra de controles, centrada bajo el vídeo */}
+            <div style={styles.barraControles}>
+              <button
+                style={{ ...styles.botonRedondo, ...(micEnabled ? {} : styles.botonApagado) }}
+                onClick={toggleMic}
+                title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
+              >
+                <span style={{ fontSize: 17 }}>{micEnabled ? "🎤" : "🔇"}</span>
+                {micEnabled ? "Micrófono" : "Silenciado"}
+              </button>
+
+              <button
+                style={{ ...styles.botonRedondo, ...(camEnabled ? {} : styles.botonApagado) }}
+                onClick={toggleCam}
+                title={camEnabled ? "Apagar cámara" : "Encender cámara"}
+              >
+                <span style={{ fontSize: 17 }}>{camEnabled ? "📹" : "🚫"}</span>
+                {camEnabled ? "Cámara" : "Apagada"}
+              </button>
+
+              <button
+                style={{ ...styles.botonRedondo, ...(isScreenSharing ? styles.botonActivo : {}) }}
+                onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
+              >
+                <span style={{ fontSize: 17 }}>🖥️</span>
+                {isScreenSharing ? "Dejar" : "Pantalla"}
+              </button>
+
+              <button
+                style={styles.botonRedondo}
+                onClick={alternarPantallaCompleta}
+                title="Pantalla completa"
+              >
+                <span style={{ fontSize: 17 }}>⛶</span>
+                Ampliar
+              </button>
+            </div>
+
+            {partnerConnected && !isBreak && (
+              <p style={{ fontSize: 11, color: "#6b6358", textAlign: "center", margin: 0 }}>
+                El audio se habilita durante el descanso ☕
+              </p>
             )}
-          </div>
 
-          {/* Controles. Disponibles siempre, no solo en el descanso. */}
-          <div style={styles.mediaControls}>
-            <button
-              style={{ ...styles.mediaBtn, background: micEnabled ? "#2a2420" : "#7f1d1d" }}
-              onClick={toggleMic}
-              title={micEnabled ? "Silenciar microfono" : "Activar microfono"}
-            >
-              {micEnabled ? "🎤" : "🔇"} Mic
-            </button>
-            <button
-              style={{ ...styles.mediaBtn, background: camEnabled ? "#2a2420" : "#7f1d1d" }}
-              onClick={toggleCam}
-              title={camEnabled ? "Apagar camara" : "Encender camara"}
-            >
-              {camEnabled ? "📹" : "🚫"} Camara
-            </button>
-            <button
-              style={{ ...styles.mediaBtn, background: isScreenSharing ? "#1e3a5f" : "#2a2420" }}
-              onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-              title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
-            >
-              {isScreenSharing ? "🖥️ Dejar de compartir" : "🖥️ Compartir pantalla"}
-            </button>
-          </div>
-
-          {partnerConnected && !isBreak && (
-            <p style={{ fontSize: 11, color: "#6b6358", textAlign: "center", margin: "4px 0 0" }}>
-              Audio habilitado durante el descanso ☕
-            </p>
-          )}
-
-          {!partnerConnected && (
-            <section style={{ ...styles.card, textAlign: "center", color: "#a0998b", padding: 20 }}>
-              <div style={{ fontSize: 30, marginBottom: 8 }}>⏳</div>
-              <p style={{ margin: 0 }}>Esperando que tu pareja se conecte...</p>
-            </section>
-          )}
-
+            {!partnerConnected && (
+              <p style={{ fontSize: 12, color: "#a0998b", textAlign: "center", margin: 0 }}>
+                ⏳ Esperando que tu pareja se conecte...
+              </p>
+            )}
+          </section>
         </div>
 
         {/* ── Columna derecha: Chat ── */}
@@ -1010,18 +1008,124 @@ const styles: Record<string, React.CSSProperties> = {
     flex:          "1 1 240px",
     maxWidth:      320,
   },
+  // El video es el centro de la pantalla, como en cualquier videollamada.
+  // Antes estaba limitado a 340px y el chat se llevaba el doble de espacio.
   centerCol: {
     display:       "flex",
     flexDirection: "column",
     gap:           12,
-    flex:          "1 1 240px",
-    maxWidth:      340,
+    flex:          "3 1 520px",
+    minWidth:      0,
   },
   rightCol: {
     display:       "flex",
     flexDirection: "column",
-    flex:          "2 1 280px",
+    flex:          "1 1 260px",
+    maxWidth:      340,
     minHeight:     400,
+  },
+
+  // ── Escenario de video ──────────────────────────────────────────────────
+  escenario: {
+    display:       "flex",
+    flexDirection: "column",
+    gap:           10,
+    background:    "#0f0d0b",
+    border:        "1px solid #3a3028",
+    borderRadius:  14,
+    padding:       10,
+  },
+  mosaico: {
+    display: "grid",
+    gap:     10,
+  },
+  baldosa: {
+    position:     "relative",
+    background:   "#000",
+    borderRadius: 10,
+    overflow:     "hidden",
+    aspectRatio:  "16 / 9",
+    border:       "2px solid transparent",
+    transition:   "border-color 0.25s",
+  },
+  baldosaActiva: {
+    borderColor: "#4ade80",
+  },
+  videoLleno: {
+    width:     "100%",
+    height:    "100%",
+    objectFit: "cover",
+    display:   "block",
+  },
+  capaCentral: {
+    position:       "absolute",
+    inset:          0,
+    display:        "flex",
+    flexDirection:  "column",
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            8,
+    padding:        14,
+    textAlign:      "center",
+    background:     "#17130f",
+  },
+  inicial: {
+    width:          64,
+    height:         64,
+    borderRadius:   "50%",
+    background:     "#2a2420",
+    color:          "#f5f0e8",
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    fontSize:       24,
+    fontWeight:     700,
+  },
+  nombre: {
+    position:     "absolute",
+    bottom:       8,
+    left:         8,
+    display:      "flex",
+    alignItems:   "center",
+    gap:          6,
+    fontSize:     12,
+    color:        "#f5f0e8",
+    background:   "rgba(0,0,0,0.6)",
+    padding:      "3px 10px",
+    borderRadius: 999,
+    maxWidth:     "80%",
+    overflow:     "hidden",
+    whiteSpace:   "nowrap",
+    textOverflow: "ellipsis",
+  },
+  barraControles: {
+    display:        "flex",
+    justifyContent: "center",
+    gap:            8,
+    flexWrap:       "wrap",
+    paddingTop:     2,
+  },
+  botonRedondo: {
+    display:        "inline-flex",
+    flexDirection:  "column",
+    alignItems:     "center",
+    gap:            3,
+    background:     "#2a2420",
+    color:          "#f5f0e8",
+    border:         "1px solid #3a3028",
+    borderRadius:   10,
+    padding:        "8px 14px",
+    cursor:         "pointer",
+    fontSize:       11,
+    minWidth:       68,
+  },
+  botonApagado: {
+    background:  "#7f1d1d",
+    borderColor: "#991b1b",
+  },
+  botonActivo: {
+    background:  "#1e3a5f",
+    borderColor: "#2563eb",
   },
   card: {
     background:   "#211d19",

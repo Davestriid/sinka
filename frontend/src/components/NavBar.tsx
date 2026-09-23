@@ -27,7 +27,8 @@ const DESTINOS: Destino[] = [
   { href: "/jardin",      icono: "🌿", texto: "Jardín"    },
   { href: "/grupos",      icono: "👥", texto: "Grupos"    },
   { href: "/citas",       icono: "📅", texto: "Citas"     },
-  { href: "/leaderboard", icono: "🏆", texto: "Tabla"     },
+  // La tabla de lideres queda fuera de la barra por ahora. La pagina sigue
+  // existiendo en /leaderboard por si se quiere volver a mostrar.
 ];
 
 /**
