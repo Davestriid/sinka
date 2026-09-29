@@ -240,6 +240,36 @@ export const gamificationApi = {
     }),
 };
 
+// ── Logros ────────────────────────────────────────────────────────────────────
+
+export interface Achievement {
+  id:              string;
+  category:        string;
+  name_es:         string;
+  name_en:         string;
+  description_es:  string;
+  description_en:  string;
+  icon:            string;
+  reward_fc:       number;
+  target:          number;
+  progress:        number;
+  unlocked:        boolean;
+  unlocked_at:     string | null;
+}
+
+export interface AchievementsSummary {
+  total:        number;
+  unlocked:     number;
+  achievements: Achievement[];
+}
+
+export const achievementsApi = {
+  getMine: (accessToken: string) =>
+    request<AchievementsSummary>("/achievements", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
 // ── Tienda ────────────────────────────────────────────────────────────────────
 
 export interface ShopItem {

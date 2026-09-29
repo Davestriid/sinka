@@ -11,24 +11,27 @@ import {
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { wsUrl, gamificationApi, type UserStats } from "@/lib/api";
+import { useTranslation } from "@/components/I18nProvider";
+import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, shadow, fontSerif, ease } from "@/lib/theme";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
 // Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
-const TOPICS: { value: string; label: string; Icon: ComponentType<LucideProps> }[] = [
-  { value: "software",  label: "Desarrollo de software", Icon: Code },
-  { value: "mobile",    label: "Apps móviles",           Icon: Smartphone },
-  { value: "web",       label: "Desarrollo web",         Icon: Globe },
-  { value: "design",    label: "Diseño gráfico",         Icon: Palette },
-  { value: "video",     label: "Edición de video",       Icon: Clapperboard },
-  { value: "writing",   label: "Escritura",              Icon: Pencil },
-  { value: "drawing",   label: "Dibujo digital",         Icon: PenTool },
-  { value: "music",     label: "Música y producción",    Icon: Music },
-  { value: "marketing", label: "Marketing digital",      Icon: Megaphone },
-  { value: "photo",     label: "Fotografía",             Icon: Camera },
-  { value: "data",      label: "Análisis de datos",      Icon: BarChart3 },
-  { value: "languages", label: "Idiomas",                Icon: Languages },
-  { value: "other",     label: "Otro",                   Icon: Sparkles },
+// `clave` es la entrada del diccionario i18n (src/lib/i18n.ts), no el texto.
+const TOPICS: { value: string; clave: ClaveTraduccion; Icon: ComponentType<LucideProps> }[] = [
+  { value: "software",  clave: "topic.software",  Icon: Code },
+  { value: "mobile",    clave: "topic.mobile",    Icon: Smartphone },
+  { value: "web",       clave: "topic.web",       Icon: Globe },
+  { value: "design",    clave: "topic.design",    Icon: Palette },
+  { value: "video",     clave: "topic.video",     Icon: Clapperboard },
+  { value: "writing",   clave: "topic.writing",   Icon: Pencil },
+  { value: "drawing",   clave: "topic.drawing",   Icon: PenTool },
+  { value: "music",     clave: "topic.music",     Icon: Music },
+  { value: "marketing", clave: "topic.marketing", Icon: Megaphone },
+  { value: "photo",     clave: "topic.photo",     Icon: Camera },
+  { value: "data",      clave: "topic.data",      Icon: BarChart3 },
+  { value: "languages", clave: "topic.languages", Icon: Languages },
+  { value: "other",     clave: "topic.other",     Icon: Sparkles },
 ];
 
 // ── Estado de la pantalla ─────────────────────────────────────────────────────
@@ -37,6 +40,7 @@ type Screen = "config" | "searching" | "matched" | "timeout" | "error";
 export default function DashboardPage() {
   const router = useRouter();
   const { user, accessToken: token, hidratado } = useAuthStore();
+  const { t } = useTranslation();
 
   // Formulario de configuración
   const [topic,            setTopic]            = useState("");
@@ -161,14 +165,14 @@ export default function DashboardPage() {
                 <span style={{ fontWeight: 700, color: stats.streak_current > 0 ? color.accent : color.textFaint }}>
                   {stats.streak_current}
                 </span>
-                <span style={{ fontSize: 10, color: color.textFaint }}>días</span>
+                <span style={{ fontSize: 10, color: color.textFaint }}>{t("dashboard.dias")}</span>
               </div>
             </div>
             {/* Fila inferior: stats rápidas */}
             <div style={styles.statsMini}>
-              <span>🍅 {stats.pomodoros_completed} pomodoros</span>
-              <span>✅ {stats.sessions_completed} sesiones</span>
-              <span>🏆 Racha máx. {stats.streak_max}</span>
+              <span>🍅 {stats.pomodoros_completed} {t("dashboard.pomodoros")}</span>
+              <span>✅ {stats.sessions_completed} {t("dashboard.sesiones")}</span>
+              <span>🏆 {t("dashboard.racha_max")} {stats.streak_max}</span>
             </div>
           </div>
         )}
@@ -184,13 +188,13 @@ export default function DashboardPage() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h2 style={styles.cardTitle}>¿En qué vas a trabajar hoy?</h2>
+              <h2 style={styles.cardTitle}>{t("dashboard.titulo_config")}</h2>
               <p style={styles.cardSub}>
-                Cuéntanos tu tarea antes de buscar pareja.
+                {t("dashboard.subtitulo_config")}
               </p>
 
               {/* Categoría de actividad — define con quién te empareja el sistema */}
-              <label style={styles.label}>¿En qué área trabajas?</label>
+              <label style={styles.label}>{t("dashboard.label_area")}</label>
               <div style={styles.areaGrid} className="sinka-stagger">
                 {TOPICS.map(a => (
                   <motion.button
@@ -204,20 +208,19 @@ export default function DashboardPage() {
                     onClick={() => setTopic(a.value)}
                   >
                     <a.Icon size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
-                    <span>{a.label}</span>
+                    <span>{t(a.clave)}</span>
                   </motion.button>
                 ))}
               </div>
               <p style={styles.hint}>
-                Te buscaremos a alguien de tu misma área. Si en 10 segundos no hay
-                nadie disponible, te conectamos con quien esté trabajando.
+                {t("dashboard.hint_area")}
               </p>
 
               {/* Título de tarea */}
-              <label style={styles.label}>¿Qué tarea vas a hacer?</label>
+              <label style={styles.label}>{t("dashboard.label_tarea")}</label>
               <input
                 style={styles.input}
-                placeholder='Ej: "Implementar login con JWT"'
+                placeholder={t("dashboard.placeholder_tarea")}
                 maxLength={80}
                 value={taskTitle}
                 onChange={e => setTaskTitle(e.target.value)}
@@ -226,9 +229,7 @@ export default function DashboardPage() {
               <span style={styles.charCount}>{taskTitle.length}/80</span>
 
               <p style={styles.pomNota}>
-                🍅 Empiezan con un Pomodoro de 25 minutos. Al llegar al descanso
-                les preguntamos a los dos si quieren seguir con otro — solo
-                continúa si ambos dicen que sí.
+                {t("dashboard.nota_pomodoro")}
               </p>
 
               <motion.button
@@ -244,7 +245,7 @@ export default function DashboardPage() {
                 disabled={!taskTitle.trim() || !topic}
                 onClick={startSearch}
               >
-                Buscar pareja →
+                {t("dashboard.buscar_pareja")}
               </motion.button>
             </motion.div>
           )}
@@ -263,15 +264,18 @@ export default function DashboardPage() {
                 <div style={styles.spinner} />
               </div>
               <h2 style={{ ...styles.cardTitle, marginTop: 20 }}>
-                Buscando pareja...
+                {t("dashboard.buscando_pareja")}
               </h2>
               <p style={{ color: color.textMuted, margin: "0 0 8px" }}>
-                {TOPICS.find(a => a.value === topic)?.label}
+                {(() => {
+                  const encontrada = TOPICS.find(a => a.value === topic);
+                  return encontrada ? t(encontrada.clave) : "";
+                })()}
               </p>
               <p style={{ color: color.sand, fontSize: 14, margin: "0 0 24px", fontStyle: "italic" }}>
                 &ldquo;{taskTitle}&rdquo;
               </p>
-              <button style={styles.btnGhost} onClick={cancelSearch}>Cancelar</button>
+              <button style={styles.btnGhost} onClick={cancelSearch}>{t("dashboard.cancelar")}</button>
             </motion.div>
           )}
 
@@ -292,8 +296,8 @@ export default function DashboardPage() {
               >
                 🎉
               </motion.div>
-              <h2 style={{ ...styles.cardTitle, color: color.success, marginTop: 12 }}>¡Pareja encontrada!</h2>
-              <p style={{ color: color.textMuted }}>Entrando a la sesión...</p>
+              <h2 style={{ ...styles.cardTitle, color: color.success, marginTop: 12 }}>{t("dashboard.pareja_encontrada")}</h2>
+              <p style={{ color: color.textMuted }}>{t("dashboard.entrando_sesion")}</p>
             </motion.div>
           )}
 

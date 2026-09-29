@@ -4,35 +4,44 @@
 
 @layer base {
   /*
-   * Paleta wabi-sabi ("noche de tinta") en HSL para los componentes shadcn/ui
-   * (Button, Card, Input...), que leen estas variables. Sincronizada a mano
-   * con los tokens hexadecimales de src/lib/theme.ts — si cambias una paleta,
-   * cambia la otra.
+   * Paleta wabi-sabi, en dos variantes — "noche de tinta" (oscuro) y "washi"
+   * (claro) — como custom properties. src/lib/theme.ts las referencia con
+   * var(--c-x) en vez de valores fijos, así que cambiar [data-theme] en el
+   * <html> (ver ThemeProvider.tsx) repinta toda la app sin tocar cada
+   * pantalla. Debajo, el mismo par de paletas repetido en HSL para los
+   * componentes shadcn/ui (Button, Card, Input...), que leen otro juego de
+   * variables por convención propia de la librería.
    */
-  :root {
-    --background: 228 19% 9%;        /* #15171d */
-    --foreground: 42 20% 88%;        /* #e9e5dc */
-    --card: 220 19% 14%;             /* #1d212a */
-    --card-foreground: 42 20% 88%;
-    --popover: 220 19% 14%;
-    --popover-foreground: 42 20% 88%;
-    --primary: 9 65% 68%;            /* #dd8068 vermilion */
-    --primary-foreground: 228 19% 9%;
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 42 20% 88%;
-    --muted: 220 15% 18%;
-    --muted-foreground: 222 12% 68%; /* #aab0bd */
-    --accent: 220 15% 18%;
-    --accent-foreground: 42 20% 88%;
-    --destructive: 9 65% 68%;
-    --destructive-foreground: 228 19% 9%;
-    --border: 42 20% 88% / 0.10;
-    --input: 42 20% 88% / 0.16;
-    --ring: 9 65% 68%;
-    --radius: 0.8rem;
-  }
+  :root,
+  [data-theme="dark"] {
+    color-scheme: dark;
 
-  .dark {
+    --c-bg:             #15171d;
+    --c-bg-alt:         #111319;
+    --c-surface:        #1d212a;
+    --c-surface-raised: #20242d;
+    --c-surface-sunken: #1b1e26;
+    --c-border:         rgba(233, 229, 220, 0.10);
+    --c-border-soft:    rgba(233, 229, 220, 0.16);
+
+    --c-text:        #e9e5dc;
+    --c-text-muted:  #aab0bd;
+    --c-text-faint:  #6f7585;
+
+    --c-accent:      #dd8068;
+    --c-accent-deep: #c9684f;
+    --c-accent-soft: rgba(221, 128, 104, 0.14);
+
+    --c-moss:      #9db5a0;
+    --c-moss-soft: rgba(157, 181, 160, 0.14);
+    --c-sand:      #c9b79b;
+    --c-clay:      #a98368;
+
+    --c-success: #9db5a0;
+    --c-danger:  #dd8068;
+    --c-info:    #7d8aa0;
+
+    /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 228 19% 9%;
     --foreground: 42 20% 88%;
     --card: 220 19% 14%;
@@ -52,6 +61,57 @@
     --border: 42 20% 88% / 0.10;
     --input: 42 20% 88% / 0.16;
     --ring: 9 65% 68%;
+    --radius: 0.8rem;
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+
+    --c-bg:             #f3efe6;
+    --c-bg-alt:         #ece5d8;
+    --c-surface:        #faf7f0;
+    --c-surface-raised: #ffffff;
+    --c-surface-sunken: #e3dac9;
+    --c-border:         rgba(44, 42, 36, 0.10);
+    --c-border-soft:    rgba(44, 42, 36, 0.16);
+
+    --c-text:        #2c2a24;
+    --c-text-muted:  #6b6456;
+    --c-text-faint:  #9b9484;
+
+    --c-accent:      #bd5340;
+    --c-accent-deep: #9c4433;
+    --c-accent-soft: rgba(189, 83, 64, 0.12);
+
+    --c-moss:      #3d4a3a;
+    --c-moss-soft: rgba(61, 74, 58, 0.10);
+    --c-sand:      #b08968;
+    --c-clay:      #9c7656;
+
+    --c-success: #3d4a3a;
+    --c-danger:  #bd5340;
+    --c-info:    #6b7a8f;
+
+    /* — mismos colores, en HSL, para shadcn/ui — */
+    --background: 42 30% 91%;
+    --foreground: 60 8% 14%;
+    --card: 43 42% 97%;
+    --card-foreground: 60 8% 14%;
+    --popover: 43 42% 97%;
+    --popover-foreground: 60 8% 14%;
+    --primary: 6 51% 50%;
+    --primary-foreground: 43 42% 97%;
+    --secondary: 40 25% 87%;
+    --secondary-foreground: 60 8% 14%;
+    --muted: 40 25% 87%;
+    --muted-foreground: 30 8% 42%;
+    --accent: 40 25% 87%;
+    --accent-foreground: 60 8% 14%;
+    --destructive: 6 51% 50%;
+    --destructive-foreground: 43 42% 97%;
+    --border: 60 8% 14% / 0.10;
+    --input: 60 8% 14% / 0.16;
+    --ring: 6 51% 50%;
   }
 
   * {
@@ -60,6 +120,7 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
 

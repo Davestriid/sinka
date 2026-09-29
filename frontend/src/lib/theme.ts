@@ -10,35 +10,40 @@
  */
 
 /**
- * Paleta wabi-sabi — "noche de tinta" (yoru). Beige washi cálido de día,
- * tinta y sumi de noche; terracota como sello, musgo como acento secundario.
- * Sustituye la paleta genérica anterior por una con identidad propia.
+ * Paleta wabi-sabi — "noche de tinta" (yoru) de noche, "washi" de día.
+ * Terracota como sello, musgo como acento secundario en ambas variantes.
+ *
+ * Cada token apunta a una custom property (--c-x) definida en globals.css
+ * para las dos variantes de tema, en vez de a un valor fijo. El toggle real
+ * (ver ThemeProvider.tsx) solo cambia el atributo `data-theme` en el <html>;
+ * como todas las pantallas ya usan estos tokens, repintan solas sin tocar
+ * cada archivo de nuevo.
  */
 export const color = {
-  bg:            "#15171d",
-  bgAlt:         "#111319",
-  surface:       "#1d212a",
-  surfaceRaised: "#20242d",
-  surfaceSunken: "#1b1e26",
-  border:        "rgba(233, 229, 220, 0.10)",
-  borderSoft:    "rgba(233, 229, 220, 0.16)",
+  bg:            "var(--c-bg)",
+  bgAlt:         "var(--c-bg-alt)",
+  surface:       "var(--c-surface)",
+  surfaceRaised: "var(--c-surface-raised)",
+  surfaceSunken: "var(--c-surface-sunken)",
+  border:        "var(--c-border)",
+  borderSoft:    "var(--c-border-soft)",
 
-  text:       "#e9e5dc",
-  textMuted:  "#aab0bd",
-  textFaint:  "#6f7585",
+  text:       "var(--c-text)",
+  textMuted:  "var(--c-text-muted)",
+  textFaint:  "var(--c-text-faint)",
 
-  accent:      "#dd8068",   /* vermilion — sello */
-  accentDeep:  "#c9684f",
-  accentSoft:  "rgba(221, 128, 104, 0.14)",
+  accent:      "var(--c-accent)",       /* vermilion — sello */
+  accentDeep:  "var(--c-accent-deep)",
+  accentSoft:  "var(--c-accent-soft)",
 
-  moss:      "#9db5a0",     /* verde profundo — acento secundario */
-  mossSoft:  "rgba(157, 181, 160, 0.14)",
-  sand:      "#c9b79b",
-  clay:      "#a98368",
+  moss:      "var(--c-moss)",           /* verde profundo — acento secundario */
+  mossSoft:  "var(--c-moss-soft)",
+  sand:      "var(--c-sand)",
+  clay:      "var(--c-clay)",
 
-  success: "#9db5a0",
-  danger:  "#dd8068",
-  info:    "#7d8aa0",
+  success: "var(--c-success)",
+  danger:  "var(--c-danger)",
+  info:    "var(--c-info)",
 } as const;
 
 export const radius = {

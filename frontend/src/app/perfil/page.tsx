@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 
 import { authApi, profileApi, trustApi, type TrustState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useTheme } from "@/components/ThemeProvider";
+import { useTranslation } from "@/components/I18nProvider";
 import { color, radius } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
@@ -62,6 +64,8 @@ async function prepararFoto(archivo: File): Promise<string> {
 export default function PerfilPage() {
   const router = useRouter();
   const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
+  const { setTema: aplicarTemaGlobal } = useTheme();
+  const { setIdioma: aplicarIdiomaGlobal } = useTranslation();
 
   const [alias,  setAlias]  = useState("");
   const [bio,    setBio]    = useState("");
@@ -256,33 +260,35 @@ export default function PerfilPage() {
         <div style={s.chips}>
           <button
             style={{ ...s.chip, ...(idioma === "es" ? s.chipOn : {}) }}
-            onClick={() => setIdioma("es")}
+            onClick={() => { setIdioma("es"); aplicarIdiomaGlobal("es"); }}
           >
             Español
           </button>
           <button
             style={{ ...s.chip, ...(idioma === "en" ? s.chipOn : {}) }}
-            onClick={() => setIdioma("en")}
+            onClick={() => { setIdioma("en"); aplicarIdiomaGlobal("en"); }}
           >
             English
           </button>
         </div>
+        <span style={s.muted}>Se aplica al instante en el menú y el panel de inicio.</span>
 
         <p style={s.label}>Tema</p>
         <div style={s.chips}>
           <button
             style={{ ...s.chip, ...(tema === "dark" ? s.chipOn : {}) }}
-            onClick={() => setTema("dark")}
+            onClick={() => { setTema("dark"); aplicarTemaGlobal("dark"); }}
           >
             Oscuro
           </button>
           <button
             style={{ ...s.chip, ...(tema === "light" ? s.chipOn : {}) }}
-            onClick={() => setTema("light")}
+            onClick={() => { setTema("light"); aplicarTemaGlobal("light"); }}
           >
             Claro
           </button>
         </div>
+        <span style={s.muted}>Se aplica al instante. &quot;Guardar cambios&quot; lo recuerda en tu cuenta.</span>
       </section>
 
       {trust && (

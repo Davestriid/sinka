@@ -12,28 +12,32 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, type CSSProperties, type ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, type LucideProps } from "lucide-react";
+import { Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy, type LucideProps } from "lucide-react";
 
 import { authApi, gamificationApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useTranslation } from "@/components/I18nProvider";
+import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, fontSerif } from "@/lib/theme";
 import { Notificaciones } from "./Notificaciones";
 
 interface Destino {
   href:   string;
   Icono:  ComponentType<LucideProps>;
-  texto:  string;
+  /** Clave del diccionario i18n (ver src/lib/i18n.ts), no el texto final. */
+  clave:  ClaveTraduccion;
 }
 
 // Iconos propios en vez de emoji: en varios sistemas el emoji se ve distinto
 // (o de plano no se ve) y da un aire mas generico. Con trazos de un mismo
 // set el conjunto se siente diseñado, no improvisado.
 const DESTINOS: Destino[] = [
-  { href: "/dashboard",   Icono: Target,        texto: "Enfocarme" },
-  { href: "/vinculos",    Icono: Handshake,      texto: "Vínculos"  },
-  { href: "/jardin",      Icono: Sprout,         texto: "Jardín"    },
-  { href: "/grupos",      Icono: Users,          texto: "Grupos"    },
-  { href: "/citas",       Icono: CalendarDays,   texto: "Citas"     },
+  { href: "/dashboard",   Icono: Target,        clave: "nav.enfocarme" },
+  { href: "/vinculos",    Icono: Handshake,      clave: "nav.vinculos"  },
+  { href: "/jardin",      Icono: Sprout,         clave: "nav.jardin"    },
+  { href: "/grupos",      Icono: Users,          clave: "nav.grupos"    },
+  { href: "/citas",       Icono: CalendarDays,   clave: "nav.citas"     },
+  { href: "/logros",      Icono: Trophy,         clave: "nav.logros"    },
   // La tabla de lideres queda fuera de la barra por ahora. La pagina sigue
   // existiendo en /leaderboard por si se quiere volver a mostrar.
 ];
@@ -53,6 +57,7 @@ export function NavBar({ monedas }: NavBarProps) {
   const router   = useRouter();
   const pathname = usePathname();
   const { accessToken: token, user, logout, setUser } = useAuthStore();
+  const { t } = useTranslation();
 
   const [stats, setStats] = useState<UserStats | null>(null);
 
@@ -90,7 +95,7 @@ export function NavBar({ monedas }: NavBarProps) {
 
   // El alias es el nombre que la persona eligio mostrar. Si no puso ninguno,
   // vale el nombre de usuario del registro.
-  const nombre = user?.alias || user?.username || "Perfil";
+  const nombre = user?.alias || user?.username || t("nav.perfil");
 
   const activo = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -114,10 +119,10 @@ export function NavBar({ monedas }: NavBarProps) {
               key={d.href}
               onClick={() => router.push(d.href)}
               style={{ ...s.enlace, ...(on ? s.enlaceActivo : {}) }}
-              title={d.texto}
+              title={t(d.clave)}
             >
               <d.Icono size={15} strokeWidth={2} aria-hidden />
-              <span style={s.etiqueta}>{d.texto}</span>
+              <span style={s.etiqueta}>{t(d.clave)}</span>
               {on && (
                 <motion.span
                   layoutId="nav-activo"
@@ -136,7 +141,7 @@ export function NavBar({ monedas }: NavBarProps) {
         <button
           style={{ ...s.enlace, ...(activo("/shop") ? s.enlaceActivo : {}) }}
           onClick={() => router.push("/shop")}
-          title="Tienda"
+          title={t("nav.tienda")}
         >
           <ShoppingBag size={15} strokeWidth={2} aria-hidden />
           <AnimatePresence mode="popLayout">
@@ -170,7 +175,7 @@ export function NavBar({ monedas }: NavBarProps) {
           style={s.salir}
           onClick={() => { logout(); router.push("/login"); }}
         >
-          Salir
+          {t("nav.salir")}
         </button>
       </div>
     </header>

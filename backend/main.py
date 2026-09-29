@@ -11,6 +11,8 @@ from core.config import settings
 from core.database import engine
 from core.event_bus import EventBus
 from core.middleware import SecurityHeadersMiddleware
+from modules.achievements.api.router import router as achievements_router
+from modules.achievements.services.achievements_service import achievements_service
 from modules.gamification.api.router import router as gamification_router
 from modules.gamification.api.shop_router import router as shop_router
 from modules.gamification.services.gamification_service import gamification_service
@@ -25,6 +27,7 @@ from modules.social.api.router import router as social_router
 from modules.sessions.services.session_service import session_service
 
 # Importar modelos para que Alembic los detecte en el contexto de la app
+import modules.achievements.models  # noqa: F401
 import modules.gamification.models  # noqa: F401
 import modules.matchmaking.models   # noqa: F401
 import modules.sessions.models      # noqa: F401
@@ -62,6 +65,7 @@ app.include_router(social_router,       prefix="/api")
 app.include_router(garden_router,       prefix="/api")
 app.include_router(groups_router,       prefix="/api")
 app.include_router(scheduling_router,   prefix="/api")
+app.include_router(achievements_router, prefix="/api")
 
 
 async def _regar_jardin(payload: dict) -> None:
@@ -102,6 +106,10 @@ async def startup_event() -> None:
     EventBus.subscribe("session.completed", gamification_service.on_session_completed)
     # Sessions -> Social: si los dos son amigos, la sesion riega su planta
     EventBus.subscribe("session.completed", _regar_jardin)
+    # Sessions -> Logros: revisa si la sesion recien completada desbloquea algo
+    EventBus.subscribe("session.completed", achievements_service.on_session_completed)
+    # Grupos -> Logros: cuenta sesiones de grupo iniciadas para sus logros
+    EventBus.subscribe("group.session.started", achievements_service.on_group_session_started)
 
     logger.info(
         "SINKA API iniciada (v%s). EventBus configurado. "
