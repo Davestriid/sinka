@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { shopApi, gamificationApi, type ShopItem, type UserStats, ApiError } from "@/lib/api";
 import { SkeletonShopCard } from "@/components/Skeleton";
+import { color, radius } from "@/lib/theme";
 
 const CATEGORY_LABELS: Record<string, string> = {
   background:   "🖼️ Fondos",
@@ -93,7 +94,7 @@ export default function ShopPage() {
     <div style={styles.page}>
       {/* Toast */}
       {toast && (
-        <div style={{ ...styles.toast, background: toast.ok ? "#14532d" : "#7f1d1d", borderColor: toast.ok ? "#4ade80" : "#f87171" }}>
+        <div style={{ ...styles.toast, background: toast.ok ? color.mossSoft : color.accentSoft, borderColor: toast.ok ? color.moss : color.accent }}>
           {toast.ok ? "✅" : "❌"} {toast.msg}
         </div>
       )}
@@ -155,8 +156,8 @@ export default function ShopPage() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:     "100vh",
-    background:    "#0f0e0d",
-    color:         "#e8e0d5",
+    background:    color.bg,
+    color:         color.text,
     fontFamily:    "system-ui, sans-serif",
     padding:       "24px 16px",
     display:       "flex",
@@ -169,8 +170,8 @@ const styles: Record<string, React.CSSProperties> = {
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
-    color:          "#a0998b",
-    background:     "#0f0e0d",
+    color:          color.textMuted,
+    background:     color.bg,
   },
   toast: {
     position:     "fixed" as const,
@@ -178,11 +179,11 @@ const styles: Record<string, React.CSSProperties> = {
     left:         "50%",
     transform:    "translateX(-50%)",
     padding:      "10px 20px",
-    borderRadius: 8,
+    borderRadius: radius.sm,
     border:       "1px solid",
     fontSize:     14,
     zIndex:       100,
-    color:        "#e8e0d5",
+    color:        color.text,
     boxShadow:    "0 4px 12px rgba(0,0,0,0.4)",
   },
   header: {
@@ -195,11 +196,11 @@ const styles: Record<string, React.CSSProperties> = {
   back: {
     background:   "none",
     border:       "none",
-    color:        "#a0998b",
+    color:        color.textMuted,
     cursor:       "pointer",
     fontSize:     14,
     padding:      "4px 8px",
-    borderRadius: 6,
+    borderRadius: radius.sm,
   },
   title: {
     flex:     1,
@@ -208,18 +209,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
   },
   fcBadge: {
-    background:   "#1c1816",
-    border:       "1px solid #2a2520",
-    borderRadius: 8,
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.sm,
     padding:      "6px 14px",
     fontSize:     15,
-    color:        "#fbbf24",
+    color:        color.sand,
   },
   hint: {
     width:     "100%",
     maxWidth:  600,
     fontSize:  13,
-    color:     "#6b6358",
+    color:     color.textFaint,
     margin:    0,
     textAlign: "center" as const,
   },
@@ -231,8 +232,8 @@ const styles: Record<string, React.CSSProperties> = {
     margin:       "0 0 12px 0",
     fontSize:     16,
     fontWeight:   700,
-    color:        "#a0998b",
-    borderBottom: "1px solid #2a2520",
+    color:        color.textMuted,
+    borderBottom: `1px solid ${color.border}`,
     paddingBottom: 6,
   },
   grid: {
@@ -241,9 +242,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap:                 12,
   },
   card: {
-    background:    "#1c1816",
-    border:        "1px solid #2a2520",
-    borderRadius:  12,
+    background:    color.surface,
+    border:        `1px solid ${color.border}`,
+    borderRadius:  radius.md,
     padding:       "16px 12px",
     display:       "flex",
     flexDirection: "column",
@@ -253,8 +254,8 @@ const styles: Record<string, React.CSSProperties> = {
     transition:    "border-color 0.2s",
   },
   cardOwned: {
-    border:     "1px solid #2d5a44",
-    background: "#0f1f17",
+    border:     `1px solid ${color.moss}`,
+    background: color.mossSoft,
   },
   preview: {
     fontSize:   36,
@@ -266,14 +267,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardDesc: {
     fontSize:  11,
-    color:     "#6b6358",
+    color:     color.textFaint,
     flexGrow:  1,
   },
   buyBtn: {
-    background:   "#854d0e",
+    background:   color.accentDeep,
     border:       "none",
-    borderRadius: 8,
-    color:        "#fef08a",
+    borderRadius: radius.sm,
+    color:        color.text,
     fontWeight:   700,
     fontSize:     13,
     padding:      "6px 14px",
@@ -282,12 +283,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   ownedBadge: {
     fontSize:   12,
-    color:      "#4ade80",
+    color:      color.success,
     fontWeight: 600,
   },
   empty: {
     textAlign: "center" as const,
-    color:     "#6b6358",
+    color:     color.textFaint,
     padding:   40,
     fontSize:  14,
   },

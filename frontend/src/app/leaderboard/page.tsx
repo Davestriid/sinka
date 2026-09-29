@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type LeaderboardEntry, type UserStats } from "@/lib/api";
 import { SkeletonLeaderboardRow } from "@/components/Skeleton";
+import { color, radius } from "@/lib/theme";
 
 const REFRESH_INTERVAL_MS = 30_000; // actualizar cada 30 s
 
@@ -134,11 +135,11 @@ export default function LeaderboardPage() {
 
 function rankBadgeStyle(rank: number): React.CSSProperties {
   const colors: Record<number, { bg: string; color: string }> = {
-    1: { bg: "#854d0e", color: "#fef08a" },
-    2: { bg: "#374151", color: "#d1d5db" },
-    3: { bg: "#78350f", color: "#fed7aa" },
+    1: { bg: color.accentDeep, color: color.text },
+    2: { bg: color.surfaceRaised, color: color.textMuted },
+    3: { bg: color.clay, color: color.text },
   };
-  const c = colors[rank] ?? { bg: "#1c1816", color: "#a0998b" };
+  const c = colors[rank] ?? { bg: color.surface, color: color.textMuted };
   return {
     ...styles.rankBadge,
     background: c.bg,
@@ -151,8 +152,8 @@ function rankBadgeStyle(rank: number): React.CSSProperties {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:       "100vh",
-    background:      "#0f0e0d",
-    color:           "#e8e0d5",
+    background:      color.bg,
+    color:           color.text,
     fontFamily:      "system-ui, sans-serif",
     padding:         "24px 16px",
     display:         "flex",
@@ -165,8 +166,8 @@ const styles: Record<string, React.CSSProperties> = {
     display:   "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#a0998b",
-    background: "#0f0e0d",
+    color: color.textMuted,
+    background: color.bg,
   },
   header: {
     width:          "100%",
@@ -179,11 +180,11 @@ const styles: Record<string, React.CSSProperties> = {
   back: {
     background:   "none",
     border:       "none",
-    color:        "#a0998b",
+    color:        color.textMuted,
     cursor:       "pointer",
     fontSize:     14,
     padding:      "4px 8px",
-    borderRadius: 6,
+    borderRadius: radius.sm,
   },
   title: {
     flex:     1,
@@ -193,25 +194,25 @@ const styles: Record<string, React.CSSProperties> = {
   },
   updated: {
     fontSize: 11,
-    color:    "#6b6358",
+    color:    color.textFaint,
   },
   myCard: {
     width:          "100%",
     maxWidth:       540,
-    background:     "#1e3a2f",
-    border:         "1px solid #2d5a44",
-    borderRadius:   10,
+    background:     color.mossSoft,
+    border:         `1px solid ${color.moss}`,
+    borderRadius:   radius.md,
     padding:        "12px 16px",
     display:        "flex",
     alignItems:     "center",
     gap:            12,
     fontSize:       14,
   },
-  myLabel: { color: "#6ee7b7", fontSize: 11 },
+  myLabel: { color: color.moss, fontSize: 11 },
   myRank:  { fontWeight: 700, fontSize: 18, minWidth: 36, textAlign: "center" as const },
   myName:  { flex: 1, fontWeight: 600 },
-  myXp:   { color: "#fbbf24", fontWeight: 700 },
-  myLevel: { color: "#a0998b" },
+  myXp:   { color: color.sand, fontWeight: 700 },
+  myLevel: { color: color.textMuted },
   table: {
     width:     "100%",
     maxWidth:  540,
@@ -221,14 +222,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   empty: {
     textAlign: "center" as const,
-    color:     "#6b6358",
+    color:     color.textFaint,
     padding:   32,
     fontSize:  14,
   },
   row: {
-    background:   "#1c1816",
-    border:       "1px solid #2a2520",
-    borderRadius: 10,
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.md,
     padding:      "12px 14px",
     display:      "flex",
     alignItems:   "center",
@@ -236,8 +237,8 @@ const styles: Record<string, React.CSSProperties> = {
     transition:   "border-color 0.2s",
   },
   rowMe: {
-    border:     "1px solid #4ade80",
-    background: "#0f2318",
+    border:     `1px solid ${color.success}`,
+    background: color.mossSoft,
   },
   rankBadge: {
     width:        32,
@@ -254,13 +255,13 @@ const styles: Record<string, React.CSSProperties> = {
     width:          36,
     height:         36,
     borderRadius:   "50%",
-    background:     "#2d2520",
+    background:     color.surfaceRaised,
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
     fontSize:       13,
     fontWeight:     700,
-    color:          "#a0998b",
+    color:          color.textMuted,
     flexShrink:     0,
   },
   info: {
@@ -270,21 +271,21 @@ const styles: Record<string, React.CSSProperties> = {
     gap:           2,
   },
   name: { fontWeight: 600, fontSize: 15 },
-  sub:  { fontSize: 12, color: "#a0998b" },
+  sub:  { fontSize: 12, color: color.textMuted },
   xpCol: {
     display:       "flex",
     flexDirection: "column",
     alignItems:    "flex-end",
     gap:           2,
   },
-  xpNum:   { fontWeight: 700, fontSize: 16, color: "#fbbf24" },
-  xpLabel: { fontSize: 11, color: "#6b6358" },
+  xpNum:   { fontWeight: 700, fontSize: 16, color: color.sand },
+  xpLabel: { fontSize: 11, color: color.textFaint },
   refreshBtn: {
     marginTop:    8,
     background:   "none",
-    border:       "1px solid #2a2520",
-    borderRadius: 8,
-    color:        "#a0998b",
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.sm,
+    color:        color.textMuted,
     cursor:       "pointer",
     padding:      "8px 20px",
     fontSize:     13,

@@ -6,6 +6,7 @@
  *   <Skeleton width={120} height={16} borderRadius={8} />
  *   <SkeletonCard />  — tarjeta predefinida para stats / leaderboard
  */
+import { color, radius } from "@/lib/theme";
 
 interface SkeletonProps {
   width?: string | number;
@@ -17,7 +18,7 @@ interface SkeletonProps {
 export function Skeleton({
   width = "100%",
   height = 16,
-  borderRadius = 6,
+  borderRadius = radius.sm,
   style,
 }: SkeletonProps) {
   return (
@@ -26,7 +27,7 @@ export function Skeleton({
         width,
         height,
         borderRadius,
-        background:   "linear-gradient(90deg, #1c1816 25%, #2a2520 50%, #1c1816 75%)",
+        background:   `linear-gradient(90deg, ${color.surface} 25%, ${color.surfaceRaised} 50%, ${color.surface} 75%)`,
         backgroundSize: "200% 100%",
         animation:    "skeleton-shimmer 1.4s infinite",
         ...style,
@@ -38,7 +39,7 @@ export function Skeleton({
 /** Skeleton para una fila del leaderboard */
 export function SkeletonLeaderboardRow() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: "#1c1816", border: "1px solid #2a2520" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: radius.md, background: color.surface, border: `1px solid ${color.border}` }}>
       <Skeleton width={32} height={32} borderRadius="50%" />
       <Skeleton width={36} height={36} borderRadius="50%" />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -56,11 +57,11 @@ export function SkeletonLeaderboardRow() {
 /** Skeleton para una tarjeta de la tienda */
 export function SkeletonShopCard() {
   return (
-    <div style={{ background: "#1c1816", border: "1px solid #2a2520", borderRadius: 12, padding: "16px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <Skeleton width={48} height={48} borderRadius={8} />
+    <div style={{ background: color.surface, border: `1px solid ${color.border}`, borderRadius: radius.md, padding: "16px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <Skeleton width={48} height={48} borderRadius={radius.sm} />
       <Skeleton width="80%" height={14} />
       <Skeleton width="90%" height={11} />
-      <Skeleton width="60%" height={30} borderRadius={8} />
+      <Skeleton width="60%" height={30} borderRadius={radius.sm} />
     </div>
   );
 }
@@ -68,7 +69,7 @@ export function SkeletonShopCard() {
 /** Skeleton para el panel de stats del dashboard */
 export function SkeletonStatCard() {
   return (
-    <div style={{ background: "#1c1816", border: "1px solid #2a2520", borderRadius: 12, padding: "20px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ background: color.surface, border: `1px solid ${color.border}`, borderRadius: radius.md, padding: "20px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
       <Skeleton width="50%" height={14} />
       <Skeleton width="70%" height={28} />
       <Skeleton width="100%" height={8} borderRadius={4} />

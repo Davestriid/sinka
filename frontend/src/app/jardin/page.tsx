@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 export default function JardinPage() {
   const router = useRouter();
@@ -96,37 +97,37 @@ export default function JardinPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
+  back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },
-  count:  { marginLeft: "auto", color: "#8b8378", fontSize: 13 },
+  count:  { marginLeft: "auto", color: color.textFaint, fontSize: 13 },
   scroller: {
     display: "flex", gap: 16, overflowX: "auto", paddingBottom: 16,
     scrollbarWidth: "thin",
   },
   plantCard: {
-    flex: "0 0 200px", background: "#221e1a", border: "1px solid #2f2a24",
-    borderRadius: 14, padding: 20, cursor: "pointer", textAlign: "center",
+    flex: "0 0 200px", background: color.surface, border: `1px solid ${color.border}`,
+    borderRadius: radius.lg, padding: 20, cursor: "pointer", textAlign: "center",
     display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-    color: "#f5f0e8",
+    color: color.text,
   },
   plantEmoji: { fontSize: 52, lineHeight: 1 },
   plantName:  { fontWeight: 700, fontSize: 15 },
-  phase:      { color: "#7fa05a", fontSize: 12, fontWeight: 600 },
+  phase:      { color: color.moss, fontSize: 12, fontWeight: 600 },
   barTrack: {
-    width: "100%", height: 6, background: "#2f2a24",
-    borderRadius: 3, overflow: "hidden", margin: "6px 0",
+    width: "100%", height: 6, background: color.borderSoft,
+    borderRadius: radius.sm, overflow: "hidden", margin: "6px 0",
   },
-  barFill: { height: "100%", background: "#7fa05a", borderRadius: 3 },
-  muted:   { color: "#8b8378", fontSize: 12 },
+  barFill: { height: "100%", background: color.moss, borderRadius: radius.sm },
+  muted:   { color: color.textFaint, fontSize: 12 },
   emptyCard: {
-    background: "#221e1a", borderRadius: 14, padding: 40,
+    background: color.surface, borderRadius: radius.lg, padding: 40,
     textAlign: "center", maxWidth: 420,
   },
-  empty: { color: "#8b8378", fontSize: 13, lineHeight: 1.7, margin: "0 0 20px" },
+  empty: { color: color.textFaint, fontSize: 13, lineHeight: 1.7, margin: "0 0 20px" },
   btn: {
-    padding: "10px 20px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 14,
+    padding: "10px 20px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 14,
   },
 };

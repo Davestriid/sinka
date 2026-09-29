@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { catalogApi, groupsApi, type Group, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius, fontSerif } from "@/lib/theme";
 
 type Pestana = "explorar" | "mios";
 
@@ -276,70 +277,70 @@ export default function GruposPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
-  title:  { fontSize: 26, margin: 0, marginRight: "auto" },
-  card:      { background: "#221e1a", borderRadius: 12, padding: 20, marginBottom: 16 },
-  cardTitle: { fontSize: 16, margin: "0 0 14px" },
-  label:  { color: "#c4b99a", fontSize: 13, margin: "14px 0 8px" },
+  back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
+  title:  { fontSize: 26, margin: 0, marginRight: "auto", fontFamily: fontSerif },
+  card:      { background: color.surface, borderRadius: radius.lg, padding: 20, marginBottom: 16, border: `1px solid ${color.border}` },
+  cardTitle: { fontSize: 16, margin: "0 0 14px", fontFamily: fontSerif },
+  label:  { color: color.textMuted, fontSize: 13, margin: "14px 0 8px" },
   input: {
-    width: "100%", padding: "10px 14px", borderRadius: 8, marginBottom: 10,
-    border: "1px solid #3a332b", background: "#1a1714", color: "#f5f0e8", fontSize: 14,
+    width: "100%", padding: "10px 14px", borderRadius: radius.md, marginBottom: 10,
+    border: `1px solid ${color.border}`, background: color.bg, color: color.text, fontSize: 14,
   },
   joinRow: { display: "flex", gap: 10 },
   chips:  { display: "flex", flexWrap: "wrap", gap: 8 },
   chip: {
-    padding: "7px 13px", borderRadius: 18, fontSize: 12,
-    border: "1px solid #3a332b", background: "#1a1714",
-    color: "#c4b99a", cursor: "pointer",
+    padding: "7px 13px", borderRadius: radius.pill, fontSize: 12,
+    border: `1px solid ${color.border}`, background: color.bg,
+    color: color.textMuted, cursor: "pointer",
   },
-  chipOn: { borderColor: "#7fa05a", background: "#2a3524", color: "#f5f0e8" },
+  chipOn: { borderColor: color.moss, background: color.mossSoft, color: color.text },
   aviso: {
-    color: "#c4a05a", fontSize: 12, lineHeight: 1.6,
-    background: "#2a2318", padding: 10, borderRadius: 8, margin: "12px 0",
+    color: color.sand, fontSize: 12, lineHeight: 1.6,
+    background: color.accentSoft, padding: 10, borderRadius: radius.md, margin: "12px 0",
   },
   tabs: { display: "flex", gap: 8, marginBottom: 16 },
   tab: {
-    padding: "8px 16px", borderRadius: 8, fontSize: 13,
-    border: "1px solid #3a332b", background: "none",
-    color: "#8b8378", cursor: "pointer",
+    padding: "8px 16px", borderRadius: radius.md, fontSize: 13,
+    border: `1px solid ${color.border}`, background: "none",
+    color: color.textFaint, cursor: "pointer",
   },
-  tabOn: { background: "#2f2a24", color: "#f5f0e8", borderColor: "#4a4238" },
+  tabOn: { background: color.surfaceRaised, color: color.text, borderColor: color.borderSoft },
   grid: {
     display: "grid", gap: 14,
     gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
   },
   groupCard: {
-    background: "#221e1a", border: "1px solid #2f2a24",
-    borderRadius: 12, padding: 18,
+    background: color.surface, border: `1px solid ${color.border}`,
+    borderRadius: radius.lg, padding: 18,
   },
   groupHead: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 },
-  groupName: { fontWeight: 700, fontSize: 15 },
+  groupName: { fontWeight: 500, fontSize: 15, fontFamily: fontSerif },
   tag: {
-    fontSize: 10, padding: "2px 7px", borderRadius: 8,
-    background: "#2f2a24", color: "#8b8378",
+    fontSize: 10, padding: "2px 7px", borderRadius: radius.md,
+    background: color.surfaceRaised, color: color.textFaint,
   },
-  code:  { fontSize: 12, color: "#7fa05a", margin: "6px 0" },
+  code:  { fontSize: 12, color: color.moss, margin: "6px 0" },
   inviteRow: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 },
   btnGhost: {
-    padding: "5px 10px", borderRadius: 6, fontSize: 11,
-    border: "1px solid #3a332b", background: "none",
-    color: "#c4b99a", cursor: "pointer",
+    padding: "5px 10px", borderRadius: radius.sm, fontSize: 11,
+    border: `1px solid ${color.border}`, background: "none",
+    color: color.textMuted, cursor: "pointer",
   },
   groupActions: { marginTop: 12 },
-  muted: { color: "#8b8378", fontSize: 12, lineHeight: 1.6, margin: "4px 0" },
-  empty: { color: "#8b8378", fontSize: 13, lineHeight: 1.7 },
+  muted: { color: color.textFaint, fontSize: 12, lineHeight: 1.6, margin: "4px 0" },
+  empty: { color: color.textFaint, fontSize: 13, lineHeight: 1.7 },
   btn: {
-    padding: "9px 16px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 13,
+    padding: "9px 16px", borderRadius: radius.md, border: "none",
+    background: color.accent, color: color.bg, cursor: "pointer", fontSize: 13, fontWeight: 500,
   },
   btnSmall: {
-    width: "100%", padding: "8px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 13,
+    width: "100%", padding: "8px", borderRadius: radius.md, border: "none",
+    background: color.accent, color: color.bg, cursor: "pointer", fontSize: 13, fontWeight: 500,
   },
   error: {
-    background: "#3a2420", color: "#f0a090", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13,
+    background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.md, marginBottom: 16, fontSize: 13,
   },
 };

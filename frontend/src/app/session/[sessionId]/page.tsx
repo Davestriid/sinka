@@ -87,8 +87,8 @@ function Avatar({ nombre, url, size = 22 }: { nombre: string; url?: string | nul
   }
   return (
     <span style={{
-      width: size, height: size, borderRadius: "50%", background: "#3a3028",
-      color: "#f5f0e8", display: "flex", alignItems: "center", justifyContent: "center",
+      width: size, height: size, borderRadius: "50%", background: color.border,
+      color: color.text, display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: size * 0.42, fontWeight: 700, flexShrink: 0,
     }}>
       {nombre.slice(0, 2).toUpperCase()}
@@ -102,6 +102,36 @@ export default function SessionPage() {
   const router         = useRouter();
   const { sessionId }  = useParams<{ sessionId: string }>();
   const { accessToken: token, user } = useAuthStore();
+
+  // ── Recuperar sesión del localStorage si se recargó ──────────────────────
+  const [isRecovering, setIsRecovering] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !sessionId) return;
+
+    const stored = localStorage.getItem(`session_${sessionId}`);
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        // Si la sesión se guardó hace menos de 30 minutos, es probablemente un reload
+        if (Date.now() - data.timestamp < 30 * 60 * 1000 && data.active) {
+          setIsRecovering(true);
+          // Restaurar el estado COMPLETO de la sesión
+          if (data.partnerId) setPartnerId(data.partnerId);
+          if (data.partnerProfile) setPartnerProfile(data.partnerProfile);
+          if (data.timer) setTimer(data.timer);
+          if (data.plant) setPlant(data.plant);
+          if (data.myTask) setMyTask(data.myTask);
+          if (data.partnerTask) setPartnerTask(data.partnerTask);
+          if (data.messages?.length > 0) setMessages(data.messages);
+          if (data.isInitiator !== undefined) setIsInitiator(data.isInitiator);
+          // Mostrar aviso breve de recuperación
+          setTimeout(() => setIsRecovering(false), 2000);
+        }
+      } catch (e) {
+        // Ignorar errores de JSON
+      }
+    }
+  }, [sessionId]);
 
   // WS
   const wsRef     = useRef<WebSocket | null>(null);
@@ -277,6 +307,33 @@ export default function SessionPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // ── Guardar estado COMPLETO de la sesión para recuperación tras recarga ──────
+  useEffect(() => {
+    if (!sessionId || !wsReady || sessionEnded || typeof window === "undefined") return;
+
+    // Guardar TODOS los datos críticos de la sesión cada 2 segundos
+    const interval = setInterval(() => {
+      localStorage.setItem(`session_${sessionId}`, JSON.stringify({
+        sessionId,
+        partnerId,
+        partnerProfile: partnerProfile ? { alias: partnerProfile.alias, username: partnerProfile.username, avatar_url: partnerProfile.avatar_url } : null,
+        timer: timer ? { phase: timer.phase, remaining: timer.remaining, elapsed: timer.elapsed, round: timer.round, max_rounds: timer.max_rounds } : null,
+        plant: plant ? { hp: plant.hp, stage: plant.stage, emoji: plant.emoji } : null,
+        myTask,
+        partnerTask,
+        messages,
+        isInitiator,
+        timestamp: Date.now(),
+        active: true,
+      }));
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      localStorage.removeItem(`session_${sessionId}`);
+    };
+  }, [sessionId, wsReady, sessionEnded, partnerId, partnerProfile, timer, plant, myTask, partnerTask, messages, isInitiator]);
+
   // ── Conexión WS ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token || !sessionId) return;
@@ -400,7 +457,22 @@ export default function SessionPage() {
       }
     };
 
-    ws.onclose = () => setWsReady(false);
+    ws.onclose = () => {
+      setWsReady(false);
+      // Si se cierra sin que el usuario haya terminado la sesión manualmente,
+      // intentar reconectar en 3 segundos (ej: recarga accidental)
+      if (!sessionEnded) {
+        setTimeout(() => {
+          if (wsRef.current?.readyState !== WebSocket.OPEN && token && sessionId) {
+            const wsRetry = new WebSocket(wsUrl.session(sessionId, token));
+            wsRef.current = wsRetry;
+            wsRetry.onopen = () => setWsReady(true);
+            wsRetry.onmessage = ws.onmessage;
+            wsRetry.onclose = ws.onclose;
+          }
+        }, 3000);
+      }
+    };
 
     return () => ws.close();
     // Solo el token y la sesion deben reabrir el canal. handleSignal cambia de
@@ -408,7 +480,7 @@ export default function SessionPage() {
     // hacia que el WebSocket se cerrara y volviera a abrir justo en ese momento,
     // tirando abajo la negociacion del video recien empezada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, sessionId]);
+  }, [token, sessionId, sessionEnded]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -489,11 +561,11 @@ export default function SessionPage() {
       <div style={styles.centered}>
         <div style={styles.endCard}>
           <div style={{ fontSize: 64 }}>{plant?.emoji ?? "🌱"}</div>
-          <h2 style={{ margin: "12px 0 4px", color: "#f5f0e8" }}>
+          <h2 style={{ margin: "12px 0 4px", color: color.text }}>
             {reasons[endReason] ?? "Sesión finalizada"}
           </h2>
           {plant && (
-            <p style={{ color: "#a0998b", margin: "0 0 16px" }}>
+            <p style={{ color: color.textMuted, margin: "0 0 16px" }}>
               HP final: {plant.hp.toFixed(1)} — {plant.stage}
             </p>
           )}
@@ -507,13 +579,13 @@ export default function SessionPage() {
                     +{xpEarned} <span style={{ fontSize: 14 }}>XP</span>
                   </div>
                   {fcEarned !== null && fcEarned > 0 && (
-                    <div style={{ ...styles.xpEarned, color: "#fbbf24", fontSize: 24 }}>
+                    <div style={{ ...styles.xpEarned, color: color.sand, fontSize: 24 }}>
                       +{fcEarned} <span style={{ fontSize: 14 }}>FC</span>
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ color: "#6b6358", fontSize: 13 }}>Calculando recompensas...</div>
+                <div style={{ color: color.textFaint, fontSize: 13 }}>Calculando recompensas...</div>
               )}
 
               {leveledUp && statsAfter && (
@@ -530,15 +602,15 @@ export default function SessionPage() {
 
               {statsAfter && (
                 <div style={styles.xpBarMini}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a0998b", marginBottom: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: color.textMuted, marginBottom: 4 }}>
                     <span>Nivel {statsAfter.level}</span>
                     <span>{statsAfter.xp_current_level} / {statsAfter.xp_next_level > 0 ? statsAfter.xp_next_level : "MAX"} XP</span>
                   </div>
-                  <div style={{ height: 6, background: "#3a3028", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: 6, background: color.border, borderRadius: 3, overflow: "hidden" }}>
                     <div style={{
                       height: "100%",
                       width: `${Math.round(statsAfter.xp_progress_pct * 100)}%`,
-                      background: "linear-gradient(90deg, #7c5c3a, #c4813a)",
+                      background: `linear-gradient(90deg, ${color.clay}, ${color.clay})`,
                       borderRadius: 3,
                     }} />
                   </div>
@@ -562,15 +634,30 @@ export default function SessionPage() {
   return (
     <div style={styles.page}>
 
+      {/* ── Aviso de recuperación tras recarga ── */}
+      {isRecovering && (
+        <div style={{ ...styles.overlay, background: "rgba(0, 0, 0, 0.3)" }}>
+          <div style={styles.voteCard}>
+            <div style={{ fontSize: 40 }}>🔄</div>
+            <h3 style={{ margin: "10px 0 6px", color: color.text }}>
+              Recuperando sesión...
+            </h3>
+            <p style={{ color: color.textMuted, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+              Reconectando con tu pareja y restaurando estado
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Confirmación al terminar la sesión ── */}
       {showExitConfirm && (
         <div style={styles.overlay}>
           <div style={styles.voteCard}>
             <div style={{ fontSize: 40 }}>⚠️</div>
-            <h3 style={{ margin: "10px 0 6px", color: "#f5f0e8" }}>
+            <h3 style={{ margin: "10px 0 6px", color: color.text }}>
               ¿Salir de la sesión?
             </h3>
-            <p style={{ color: "#a0998b", fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+            <p style={{ color: color.textMuted, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
               {partnerConnected
                 ? `Si sales ahora, la sesión termina también para ${nombrePareja} y baja tu puntaje de confianza.`
                 : "Si sales ahora, la sesión termina y no cuenta como completada."}
@@ -592,10 +679,10 @@ export default function SessionPage() {
         <div style={styles.overlay}>
           <div style={styles.voteCard}>
             <div style={{ fontSize: 44 }}>⏳</div>
-            <h3 style={{ margin: "10px 0 6px", color: "#f5f0e8" }}>
+            <h3 style={{ margin: "10px 0 6px", color: color.text }}>
               ¿Siguen otro bloque?
             </h3>
-            <p style={{ color: "#a0998b", fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+            <p style={{ color: color.textMuted, fontSize: 14, lineHeight: 1.5, margin: 0 }}>
               Terminaron las rondas. Pueden continuar {extensionOffer.minutes} minutos
               más si los dos están de acuerdo.
             </p>
@@ -610,12 +697,12 @@ export default function SessionPage() {
                     Terminar aquí
                   </button>
                 </div>
-                <span style={{ fontSize: 12, color: "#7c7367" }}>
+                <span style={{ fontSize: 12, color: color.textFaint }}>
                   Quedan {voteSeconds} s para responder
                 </span>
               </>
             ) : (
-              <span style={{ fontSize: 13, color: "#a0998b", marginTop: 14 }}>
+              <span style={{ fontSize: 13, color: color.textMuted, marginTop: 14 }}>
                 {myVote
                   ? partnerPending
                     ? "Esperando la respuesta de tu compañero..."
@@ -635,16 +722,16 @@ export default function SessionPage() {
       {/* ── Header ── */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <span style={{ fontWeight: 700, fontSize: 18, color: "#f5f0e8" }}>SINKA</span>
+          <span style={{ fontWeight: 700, fontSize: 18, color: color.text }}>SINKA</span>
           <span style={{
             ...styles.pill,
-            background: wsReady && partnerConnected ? "#166534" : "#78350f",
-            color:      wsReady && partnerConnected ? "#bbf7d0" : "#fde68a",
+            background: wsReady && partnerConnected ? color.moss : color.clay,
+            color:      wsReady && partnerConnected ? color.success : color.sand,
           }}>
             {wsReady && partnerConnected ? "● Sesión activa" : "● Esperando pareja..."}
           </span>
           {peerConnected && (
-            <span style={{ ...styles.pill, background: "#1e3a5f", color: "#93c5fd" }}>
+            <span style={{ ...styles.pill, background: color.info, color: color.info }}>
               🎥 Video conectado
             </span>
           )}
@@ -664,7 +751,7 @@ export default function SessionPage() {
             <div style={styles.timerPhaseLabel}>
               {isBreak ? "☕ DESCANSO" : "🍅 ENFOQUE"}
               {timer && (
-                <span style={{ fontSize: 13, color: "#a0998b", marginLeft: 8 }}>
+                <span style={{ fontSize: 13, color: color.textMuted, marginLeft: 8 }}>
                   Ronda {timer.round}/{timer.max_rounds}
                 </span>
               )}
@@ -676,7 +763,7 @@ export default function SessionPage() {
               <div style={{
                 ...styles.progressBar,
                 width:      `${Math.round(progress * 100)}%`,
-                background: isBreak ? "#3b82f6" : "#ef4444",
+                background: isBreak ? color.info : color.danger,
               }} />
             </div>
           </section>
@@ -776,7 +863,7 @@ export default function SessionPage() {
                 {(estadoCamara !== "lista" || !camEnabled) && (
                   <div style={styles.capaCentral}>
                     <Avatar nombre={miNombre} url={user?.avatar_url} size={64} />
-                    <p style={{ fontSize: 11, color: "#a0998b", margin: 0, maxWidth: 260, lineHeight: 1.4 }}>
+                    <p style={{ fontSize: 11, color: color.textMuted, margin: 0, maxWidth: 260, lineHeight: 1.4 }}>
                       {!camEnabled && estadoCamara === "lista" && "Tu cámara está apagada."}
                       {estadoCamara === "pidiendo"   && "Permite el acceso a la cámara en el aviso del navegador."}
                       {estadoCamara === "denegada"   && "Bloqueaste la cámara para este sitio. Toca el candado junto a la dirección, permite cámara y micrófono, y vuelve a intentar."}
@@ -819,17 +906,17 @@ export default function SessionPage() {
                   {!hayVideoPareja && (
                     <div style={styles.capaCentral}>
                       <Avatar nombre={nombrePareja} url={partnerProfile?.avatar_url} size={64} />
-                      <span style={{ fontSize: 12, color: "#6b6358" }}>
+                      <span style={{ fontSize: 12, color: color.textFaint }}>
                         Conectando vídeo…
                       </span>
                       {iceState === "failed" && (
-                        <span style={{ fontSize: 11, color: "#fca5a5" }}>
+                        <span style={{ fontSize: 11, color: color.accent }}>
                           No se pudo establecer la conexión de vídeo.
                         </span>
                       )}
                       {/* Diagnostico. Si el video no aparece, esta linea dice
                           en que punto se quedo, sin tener que abrir la consola. */}
-                      <span style={{ fontSize: 10, color: "#4a443c", fontFamily: "monospace" }}>
+                      <span style={{ fontSize: 10, color: color.textFaint, fontFamily: "monospace" }}>
                         red: {iceState || "iniciando"} · pistas: {diagnosticoPistas}
                       </span>
                     </div>
@@ -916,13 +1003,13 @@ export default function SessionPage() {
             </div>
 
             {partnerConnected && !isBreak && (
-              <p style={{ fontSize: 11, color: "#6b6358", textAlign: "center", margin: 0 }}>
+              <p style={{ fontSize: 11, color: color.textFaint, textAlign: "center", margin: 0 }}>
                 El audio se habilita durante el descanso ☕
               </p>
             )}
 
             {!partnerConnected && (
-              <p style={{ fontSize: 12, color: "#a0998b", textAlign: "center", margin: 0 }}>
+              <p style={{ fontSize: 12, color: color.textMuted, textAlign: "center", margin: 0 }}>
                 ⏳ Esperando que tu pareja se conecte...
               </p>
             )}
@@ -935,13 +1022,13 @@ export default function SessionPage() {
             <div style={styles.chatHeader}>
               Chat
               {isBreak
-                ? <span style={{ fontSize: 11, color: "#86efac", marginLeft: 6 }}>● descanso</span>
-                : <span style={{ fontSize: 11, color: "#a0998b", marginLeft: 6 }}>● silencioso</span>
+                ? <span style={{ fontSize: 11, color: color.success, marginLeft: 6 }}>● descanso</span>
+                : <span style={{ fontSize: 11, color: color.textMuted, marginLeft: 6 }}>● silencioso</span>
               }
             </div>
             <div style={styles.chatMessages}>
               {messages.length === 0 && (
-                <p style={{ color: "#a0998b", textAlign: "center", margin: "auto" }}>
+                <p style={{ color: color.textMuted, textAlign: "center", margin: "auto" }}>
                   Manda un mensaje a tu pareja
                 </p>
               )}
@@ -951,12 +1038,12 @@ export default function SessionPage() {
                   style={{
                     ...styles.chatBubble,
                     alignSelf:   m.from === user?.username ? "flex-end" : "flex-start",
-                    background:  m.from === user?.username ? "#3b2f1e" : "#2a2420",
-                    borderColor: m.from === user?.username ? "#7c5c3a" : "#4a3f35",
+                    background:  m.from === user?.username ? color.surfaceSunken : color.surfaceRaised,
+                    borderColor: m.from === user?.username ? color.clay : color.border,
                   }}
                 >
-                  <span style={{ fontSize: 11, color: "#a0998b" }}>{m.from}</span>
-                  <p style={{ margin: "2px 0 0", color: "#f5f0e8" }}>{m.text}</p>
+                  <span style={{ fontSize: 11, color: color.textMuted }}>{m.from}</span>
+                  <p style={{ margin: "2px 0 0", color: color.text }}>{m.text}</p>
                 </div>
               ))}
               <div ref={chatEndRef} />
@@ -995,7 +1082,7 @@ const styles: Record<string, React.CSSProperties> = {
   // mas abajo es la unica responsable de su propio desplazamiento.
   page: {
     height:        "100dvh",
-    background:    "#1a1612",
+    background:    color.bg,
     fontFamily:    "system-ui, sans-serif",
     display:       "flex",
     flexDirection: "column",
@@ -1003,7 +1090,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   centered: {
     minHeight:      "100vh",
-    background:     "#1a1612",
+    background:     color.bg,
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
@@ -1018,8 +1105,8 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex:         50,
   },
   voteCard: {
-    background:    "#211d19",
-    border:        "1px solid #3a3028",
+    background:    color.surface,
+    border:        `1px solid ${color.border}`,
     borderRadius:  16,
     padding:       "32px 36px",
     textAlign:     "center" as const,
@@ -1039,8 +1126,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btnGhost: {
     background:   "transparent",
-    color:        "#a0998b",
-    border:       "1px solid #3a3028",
+    color:        color.textMuted,
+    border:       `1px solid ${color.border}`,
     borderRadius: 8,
     padding:      "10px 16px",
     fontSize:     14,
@@ -1052,17 +1139,17 @@ const styles: Record<string, React.CSSProperties> = {
     top:          16,
     left:         "50%",
     transform:    "translateX(-50%)",
-    background:   "#1f3a24",
-    color:        "#bbf7d0",
-    border:       "1px solid #2f5c38",
+    background:   color.mossSoft,
+    color:        color.success,
+    border:       `1px solid ${color.moss}`,
     borderRadius: 999,
     padding:      "8px 18px",
     fontSize:     13,
     zIndex:       60,
   },
   endCard: {
-    background:   "#211d19",
-    border:       "1px solid #3a3028",
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
     borderRadius: 16,
     padding:      40,
     textAlign:    "center",
@@ -1070,8 +1157,8 @@ const styles: Record<string, React.CSSProperties> = {
     width:        "100%",
   },
   xpSummary: {
-    background:   "#2a2420",
-    border:       "1px solid #3a3028",
+    background:   color.surfaceRaised,
+    border:       `1px solid ${color.border}`,
     borderRadius: 10,
     padding:      "16px 20px",
     marginBottom: 4,
@@ -1082,24 +1169,24 @@ const styles: Record<string, React.CSSProperties> = {
   xpEarned: {
     fontSize:   32,
     fontWeight: 800,
-    color:      "#f5d49a",
+    color:      color.sand,
     textAlign:  "center" as const,
   },
   levelUpBanner: {
-    background:   "#1e3a1e",
-    border:       "1px solid #166534",
+    background:   color.mossSoft,
+    border:       `1px solid ${color.moss}`,
     borderRadius: 8,
     padding:      "8px 14px",
-    color:        "#86efac",
+    color:        color.success,
     fontWeight:   700,
     fontSize:     14,
   },
   streakUp: {
-    background:   "#2d1f10",
-    border:       "1px solid #7c3a10",
+    background:   color.accentSoft,
+    border:       `1px solid ${color.accentDeep}`,
     borderRadius: 8,
     padding:      "8px 14px",
-    color:        "#fb923c",
+    color:        color.accent,
     fontWeight:   700,
     fontSize:     14,
   },
@@ -1111,8 +1198,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems:     "center",
     justifyContent: "space-between",
     padding:        "12px 24px",
-    background:     "#211d19",
-    borderBottom:   "1px solid #3a3028",
+    background:     color.surface,
+    borderBottom:   `1px solid ${color.border}`,
     flexShrink:     0,
     flexWrap:       "wrap",
     gap:            8,
@@ -1178,8 +1265,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap:           10,
     minHeight:     0,
-    background:    "#0f0d0b",
-    border:        "1px solid #3a3028",
+    background:    color.bgAlt,
+    border:        `1px solid ${color.border}`,
     borderRadius:  14,
     padding:       10,
   },
@@ -1189,7 +1276,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   baldosa: {
     position:     "relative",
-    background:   "#000",
+    background:   color.bg,
     borderRadius: 10,
     overflow:     "hidden",
     aspectRatio:  "16 / 9",
@@ -1197,7 +1284,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition:   "border-color 0.25s",
   },
   baldosaActiva: {
-    borderColor: "#4ade80",
+    borderColor: color.success,
   },
   videoLleno: {
     width:     "100%",
@@ -1215,7 +1302,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap:            8,
     padding:        14,
     textAlign:      "center",
-    background:     "#17130f",
+    background:     color.bgAlt,
   },
   capaCongelada: {
     position:       "absolute",
@@ -1238,7 +1325,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems:   "center",
     gap:          6,
     fontSize:     12,
-    color:        "#f5f0e8",
+    color:        color.text,
     background:   "rgba(0,0,0,0.6)",
     padding:      "3px 10px 3px 4px",
     borderRadius: 999,
@@ -1273,14 +1360,14 @@ const styles: Record<string, React.CSSProperties> = {
     transition:     `background 0.15s ${ease}, border-color 0.15s ${ease}`,
   },
   botonApagado: {
-    background:  "#3a1f1f",
-    borderColor: "#7f1d1d",
-    color:       "#fca5a5",
+    background:  color.accentSoft,
+    borderColor: color.accentDeep,
+    color:       color.accent,
   },
   botonActivo: {
     background:  color.accentSoft,
     borderColor: color.accentDeep,
-    color:       "#f5d49a",
+    color:       color.sand,
   },
   card: {
     background:   color.surface,
@@ -1291,7 +1378,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   timerPhaseLabel: {
     textAlign:     "center",
-    color:         "#a0998b",
+    color:         color.textMuted,
     fontWeight:    700,
     fontSize:      13,
     letterSpacing: "0.1em",
@@ -1302,14 +1389,14 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign:          "center",
     fontSize:           64,
     fontWeight:         700,
-    color:              "#f5f0e8",
+    color:              color.text,
     fontVariantNumeric: "tabular-nums",
     lineHeight:         1.1,
     margin:             "4px 0 12px",
   },
   progressTrack: {
     height:       8,
-    background:   "#3a3028",
+    background:   color.border,
     borderRadius: 4,
     overflow:     "hidden",
   },
@@ -1337,8 +1424,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   taskCard: {
     flex:          "1 1 120px",
-    background:    "#211d19",
-    border:        "1px solid #3a3028",
+    background:    color.surface,
+    border:        `1px solid ${color.border}`,
     borderRadius:  10,
     padding:       "10px 14px",
     display:       "flex",
@@ -1348,14 +1435,14 @@ const styles: Record<string, React.CSSProperties> = {
   taskLabel: {
     fontSize:      11,
     fontWeight:    700,
-    color:         "#6b6358",
+    color:         color.textFaint,
     textTransform: "uppercase" as const,
     letterSpacing: "0.06em",
   },
-  taskArea:  { fontSize: 13, color: "#a0998b" },
+  taskArea:  { fontSize: 13, color: color.textMuted },
   taskTitle: {
     fontSize:     14,
-    color:        "#f5f0e8",
+    color:        color.text,
     fontWeight:   600,
     overflow:     "hidden",
     textOverflow: "ellipsis",
@@ -1368,7 +1455,7 @@ const styles: Record<string, React.CSSProperties> = {
     bottom:     8,
     left:       10,
     fontSize:   11,
-    color:      "#e5e7eb",
+    color:      color.text,
     background: "rgba(0,0,0,0.5)",
     padding:    "2px 8px",
     borderRadius: 999,
@@ -1381,8 +1468,8 @@ const styles: Record<string, React.CSSProperties> = {
     height:       60,
     borderRadius: 6,
     overflow:     "hidden",
-    border:       "2px solid #3a3028",
-    background:   "#0d0b09",
+    border:       `2px solid ${color.border}`,
+    background:   color.bgAlt,
   },
   avatarPlaceholder: {
     width:          "100%",
@@ -1391,7 +1478,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems:     "center",
     justifyContent: "center",
     fontSize:       28,
-    background:     "#2a2420",
+    background:     color.surfaceRaised,
   },
   mediaControls: {
     display: "flex",
@@ -1402,8 +1489,8 @@ const styles: Record<string, React.CSSProperties> = {
     flex:         "1 1 auto",
     padding:      "9px 14px",
     borderRadius: 8,
-    border:       "1px solid #3a3028",
-    color:        "#f5f0e8",
+    border:       `1px solid ${color.border}`,
+    color:        color.text,
     cursor:       "pointer",
     fontSize:     13,
     fontWeight:   600,
@@ -1412,7 +1499,7 @@ const styles: Record<string, React.CSSProperties> = {
   // Chat
   chatHeader: {
     fontWeight:   700,
-    color:        "#f5f0e8",
+    color:        color.text,
     marginBottom: 12,
     fontSize:     15,
   },
@@ -1443,15 +1530,15 @@ const styles: Record<string, React.CSSProperties> = {
     flex:         1,
     padding:      "10px 14px",
     borderRadius: 8,
-    border:       "1px solid #3a3028",
-    background:   "#2a2420",
-    color:        "#f5f0e8",
+    border:       `1px solid ${color.border}`,
+    background:   color.surfaceRaised,
+    color:        color.text,
     fontSize:     14,
     outline:      "none",
   },
   btnPrimary: {
-    background:   "#7c5c3a",
-    color:        "#fff",
+    background:   color.clay,
+    color:        color.text,
     border:       "none",
     borderRadius: 8,
     padding:      "10px 24px",
@@ -1461,17 +1548,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btnDanger: {
     background:   "transparent",
-    color:        "#f87171",
-    border:       "1px solid #f87171",
+    color:        color.accent,
+    border:       `1px solid ${color.accent}`,
     borderRadius: 8,
     padding:      "6px 16px",
     cursor:       "pointer",
     fontSize:     13,
   },
   btnDangerFull: {
-    background:   "#7f1d1d",
-    color:        "#fecaca",
-    border:       "1px solid #991b1b",
+    background:   color.accentDeep,
+    color:        color.accent,
+    border:       `1px solid ${color.accentDeep}`,
     borderRadius: 8,
     padding:      "10px 16px",
     fontSize:     14,
@@ -1490,7 +1577,7 @@ function focusDot(active: boolean): React.CSSProperties {
     fontWeight:   600,
     padding:      "3px 10px",
     borderRadius: 999,
-    background:   active ? "#14532d" : "#3f1919",
-    color:      active ? "#86efac" : "#fca5a5",
+    background:   active ? color.moss : color.accentSoft,
+    color:      active ? color.success : color.accent,
   };
 }

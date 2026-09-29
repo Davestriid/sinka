@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 
 import { catalogApi, profileApi, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
 const MAX_INTERESES = 5;
@@ -202,54 +203,54 @@ export default function OnboardingPage() {
 
 const s: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh", background: "#1a1714", color: "#f5f0e8",
+    minHeight: "100vh", background: color.bg, color: color.text,
     display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
   },
   card: {
-    background: "#221e1a", borderRadius: 16, padding: 36,
+    background: color.surface, borderRadius: radius.lg, padding: 36,
     width: "100%", maxWidth: 480,
   },
   dots: { display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 },
-  dot:  { width: 28, height: 4, borderRadius: 2, background: "#3a332b" },
-  dotOn: { background: "#7fa05a" },
+  dot:  { width: 28, height: 4, borderRadius: 2, background: color.border },
+  dotOn: { background: color.moss },
   title: { fontSize: 22, margin: "0 0 8px", textAlign: "center" },
-  sub:   { color: "#8b8378", fontSize: 14, lineHeight: 1.6, textAlign: "center", margin: "0 0 20px" },
-  label: { color: "#c4b99a", fontSize: 13, margin: "20px 0 10px" },
+  sub:   { color: color.textFaint, fontSize: 14, lineHeight: 1.6, textAlign: "center", margin: "0 0 20px" },
+  label: { color: color.sand, fontSize: 13, margin: "20px 0 10px" },
   input: {
-    width: "100%", padding: "12px 14px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "#1a1714",
-    color: "#f5f0e8", fontSize: 15,
+    width: "100%", padding: "12px 14px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: color.bg,
+    color: color.text, fontSize: 15,
   },
   avatarGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 },
   avatarBtn: {
-    width: 46, height: 46, fontSize: 22, borderRadius: 10,
-    border: "1px solid #3a332b", background: "#1a1714", cursor: "pointer",
+    width: 46, height: 46, fontSize: 22, borderRadius: radius.md,
+    border: `1px solid ${color.border}`, background: color.bg, cursor: "pointer",
   },
-  avatarOn: { borderColor: "#7fa05a", background: "#2a3524" },
+  avatarOn: { borderColor: color.moss, background: color.mossSoft },
   bigAvatar: { fontSize: 64, textAlign: "center", marginBottom: 8 },
   topicGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   topicBtn: {
-    padding: "8px 14px", borderRadius: 20, fontSize: 13,
-    border: "1px solid #3a332b", background: "#1a1714",
-    color: "#c4b99a", cursor: "pointer",
+    padding: "8px 14px", borderRadius: radius.xl, fontSize: 13,
+    border: `1px solid ${color.border}`, background: color.bg,
+    color: color.sand, cursor: "pointer",
   },
-  topicOn: { borderColor: "#7fa05a", background: "#2a3524", color: "#f5f0e8" },
-  counter: { color: "#8b8378", fontSize: 12, textAlign: "center", margin: "0 0 20px" },
-  lista: { color: "#c4b99a", fontSize: 14, lineHeight: 2, paddingLeft: 20, margin: "0 0 16px" },
-  nota:  { color: "#8b8378", fontSize: 12, lineHeight: 1.6, margin: "0 0 20px" },
+  topicOn: { borderColor: color.moss, background: color.mossSoft, color: color.text },
+  counter: { color: color.textFaint, fontSize: 12, textAlign: "center", margin: "0 0 20px" },
+  lista: { color: color.sand, fontSize: 14, lineHeight: 2, paddingLeft: 20, margin: "0 0 16px" },
+  nota:  { color: color.textFaint, fontSize: 12, lineHeight: 1.6, margin: "0 0 20px" },
   row:   { display: "flex", gap: 10, marginTop: 8 },
   btn: {
-    flex: 1, padding: "12px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer",
+    flex: 1, padding: "12px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer",
     fontSize: 15, fontWeight: 600,
   },
   btnGhost: {
-    flex: "0 0 auto", padding: "12px 18px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "none",
-    color: "#8b8378", cursor: "pointer", fontSize: 14,
+    flex: "0 0 auto", padding: "12px 18px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: "none",
+    color: color.textFaint, cursor: "pointer", fontSize: 14,
   },
   error: {
-    background: "#3a2420", color: "#f0a090", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13,
+    background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13,
   },
 };

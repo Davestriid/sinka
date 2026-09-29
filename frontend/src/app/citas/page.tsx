@@ -19,6 +19,7 @@ import {
   type Topic,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 export default function CitasPage() {
   const router = useRouter();
@@ -277,7 +278,7 @@ export default function CitasPage() {
               </div>
               <span style={{
                 ...s.estado,
-                color: c.status === "confirmed" ? "#7fa05a" : "#c4a05a",
+                color: c.status === "confirmed" ? color.moss : color.sand,
               }}>
                 {c.status === "confirmed" ? "confirmada" : "pendiente"}
               </span>
@@ -303,51 +304,51 @@ export default function CitasPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
+  back:   { background: "none", border: "none", color: color.sand, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0, marginRight: "auto" },
-  quota:  { color: "#c4b99a", fontSize: 13 },
-  card:      { background: "#221e1a", borderRadius: 12, padding: 20, marginBottom: 16, maxWidth: 640 },
+  quota:  { color: color.sand, fontSize: 13 },
+  card:      { background: color.surface, borderRadius: radius.md, padding: 20, marginBottom: 16, maxWidth: 640 },
   cardTitle: { fontSize: 16, margin: "0 0 14px" },
-  label:  { color: "#c4b99a", fontSize: 13, margin: "14px 0 8px" },
+  label:  { color: color.sand, fontSize: 13, margin: "14px 0 8px" },
   input: {
-    width: "100%", padding: "10px 14px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "#1a1714",
-    color: "#f5f0e8", fontSize: 14,
+    width: "100%", padding: "10px 14px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: color.bg,
+    color: color.text, fontSize: 14,
   },
   dateRow: { display: "flex", gap: 12 },
   chips: { display: "flex", flexWrap: "wrap", gap: 8 },
   chip: {
-    padding: "7px 13px", borderRadius: 18, fontSize: 12,
-    border: "1px solid #3a332b", background: "#1a1714",
-    color: "#c4b99a", cursor: "pointer",
+    padding: "7px 13px", borderRadius: radius.lg, fontSize: 12,
+    border: `1px solid ${color.border}`, background: color.bg,
+    color: color.sand, cursor: "pointer",
   },
-  chipOn: { borderColor: "#7fa05a", background: "#2a3524", color: "#f5f0e8" },
+  chipOn: { borderColor: color.moss, background: color.mossSoft, color: color.text },
   apptRow: {
     display: "flex", alignItems: "center", gap: 12,
-    padding: "12px 0", borderBottom: "1px solid #2f2a24", flexWrap: "wrap",
+    padding: "12px 0", borderBottom: `1px solid ${color.border}`, flexWrap: "wrap",
   },
   apptInfo:    { display: "flex", flexDirection: "column", flex: 1, gap: 3, minWidth: 180 },
   apptActions: { display: "flex", gap: 8 },
   name:   { fontWeight: 600, fontSize: 14 },
-  muted:  { color: "#8b8378", fontSize: 12, lineHeight: 1.6 },
+  muted:  { color: color.textFaint, fontSize: 12, lineHeight: 1.6 },
   estado: { fontSize: 11, fontWeight: 600 },
-  empty:  { color: "#8b8378", fontSize: 13, lineHeight: 1.7, margin: 0 },
+  empty:  { color: color.textFaint, fontSize: 13, lineHeight: 1.7, margin: 0 },
   btn: {
-    padding: "10px 18px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 14,
+    padding: "10px 18px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 14,
   },
   btnSmall: {
-    padding: "6px 12px", borderRadius: 6, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 12,
+    padding: "6px 12px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 12,
   },
   btnSmallGhost: {
-    padding: "6px 12px", borderRadius: 6, border: "1px solid #3a332b",
-    background: "none", color: "#8b8378", cursor: "pointer", fontSize: 12,
+    padding: "6px 12px", borderRadius: radius.sm, border: `1px solid ${color.border}`,
+    background: "none", color: color.textFaint, cursor: "pointer", fontSize: 12,
   },
   error: {
-    background: "#3a2420", color: "#f0a090", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13, maxWidth: 640,
+    background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13, maxWidth: 640,
   },
 };

@@ -12,6 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { groupsApi, wsUrl, type Group, type LobbyState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 export default function SalaGrupoPage() {
   const router = useRouter();
@@ -95,7 +96,7 @@ export default function SalaGrupoPage() {
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/grupos")}>← A grupos</button>
         <h1 style={s.title}>{group?.name ?? "Sala"}</h1>
-        <span style={{ ...s.dot, background: conectado ? "#7fa05a" : "#8b5a4a" }} />
+        <span style={{ ...s.dot, background: conectado ? color.moss : color.accentDeep }} />
       </header>
 
       {error && <div style={s.error}>{error}</div>}
@@ -117,7 +118,7 @@ export default function SalaGrupoPage() {
         ) : (
           lobby!.present.map((p) => (
             <div key={p.user_id} style={s.row}>
-              <span style={{ ...s.estado, background: p.ready ? "#7fa05a" : "#4a4238" }} />
+              <span style={{ ...s.estado, background: p.ready ? color.moss : color.borderSoft }} />
               <span style={s.name}>
                 {p.username}
                 {p.is_owner && <span style={s.tag}>dueño</span>}
@@ -133,7 +134,7 @@ export default function SalaGrupoPage() {
 
       <div style={s.actions}>
         <button
-          style={{ ...s.btn, background: listo ? "#4a5d3a" : "#2f2a24" }}
+          style={{ ...s.btn, background: listo ? color.moss : color.surfaceRaised }}
           onClick={alternarListo}
         >
           {listo ? "✓ Estoy listo" : "Marcarme listo"}
@@ -141,7 +142,7 @@ export default function SalaGrupoPage() {
 
         {group?.requires_screen_share && (
           <button
-            style={{ ...s.btn, background: compartiendo ? "#4a5d3a" : "#2f2a24" }}
+            style={{ ...s.btn, background: compartiendo ? color.moss : color.surfaceRaised }}
             onClick={alternarPantalla}
           >
             {compartiendo ? "✓ Compartiendo pantalla" : "Compartir pantalla"}
@@ -176,43 +177,43 @@ export default function SalaGrupoPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 14, marginBottom: 20 },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
+  back:   { background: "none", border: "none", color: color.sand, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 24, margin: 0, marginRight: "auto" },
   dot:    { width: 9, height: 9, borderRadius: "50%" },
-  card:      { background: "#221e1a", borderRadius: 12, padding: 20, marginBottom: 16, maxWidth: 560 },
+  card:      { background: color.surface, borderRadius: radius.md, padding: 20, marginBottom: 16, maxWidth: 560 },
   cardTitle: { fontSize: 16, margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 },
-  count:  { background: "#2f2a24", borderRadius: 10, padding: "1px 8px", fontSize: 12 },
+  count:  { background: color.surfaceRaised, borderRadius: radius.sm, padding: "1px 8px", fontSize: 12 },
   row: {
     display: "flex", alignItems: "center", gap: 10,
-    padding: "9px 0", borderBottom: "1px solid #2f2a24",
+    padding: "9px 0", borderBottom: `1px solid ${color.border}`,
   },
   estado: { width: 8, height: 8, borderRadius: "50%", flexShrink: 0 },
   name:   { fontWeight: 600, fontSize: 14, flex: 1, display: "flex", alignItems: "center", gap: 6 },
   tag: {
-    fontSize: 10, padding: "2px 6px", borderRadius: 6,
-    background: "#2f2a24", color: "#8b8378", fontWeight: 400,
+    fontSize: 10, padding: "2px 6px", borderRadius: radius.sm,
+    background: color.surfaceRaised, color: color.textFaint, fontWeight: 400,
   },
-  muted:  { color: "#8b8378", fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" },
-  empty:  { color: "#8b8378", fontSize: 13, margin: 0 },
+  muted:  { color: color.textFaint, fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" },
+  empty:  { color: color.textFaint, fontSize: 13, margin: 0 },
   actions: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" },
   btn: {
-    padding: "11px 20px", borderRadius: 8, border: "1px solid #3a332b",
-    color: "#f5f0e8", cursor: "pointer", fontSize: 14,
+    padding: "11px 20px", borderRadius: radius.sm, border: `1px solid ${color.border}`,
+    color: color.text, cursor: "pointer", fontSize: 14,
   },
   btnPrimary: {
-    width: "100%", padding: "13px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer",
+    width: "100%", padding: "13px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer",
     fontSize: 15, fontWeight: 600,
   },
   aviso: {
-    background: "#2a2318", color: "#c4a05a", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13,
+    background: color.accentSoft, color: color.sand, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13,
     lineHeight: 1.6, maxWidth: 560,
   },
   error: {
-    background: "#3a2420", color: "#f0a090", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13, maxWidth: 560,
+    background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13, maxWidth: 560,
   },
 };

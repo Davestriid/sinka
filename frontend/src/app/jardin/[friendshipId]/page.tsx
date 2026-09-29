@@ -11,6 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 export default function PlantaPage() {
   const router = useRouter();
@@ -130,29 +131,29 @@ function Stat({ valor, etiqueta }: { valor: string; etiqueta: string }) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { marginBottom: 24 },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
+  back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   card: {
-    background: "#221e1a", borderRadius: 16, padding: 32,
+    background: color.surface, borderRadius: radius.lg, padding: 32,
     maxWidth: 520, margin: "0 auto", textAlign: "center",
   },
   emoji:  { fontSize: 72, lineHeight: 1 },
   title:  { fontSize: 22, margin: "12px 0 4px", cursor: "pointer" },
-  editHint: { color: "#5f574c", fontSize: 15 },
+  editHint: { color: color.textFaint, fontSize: 15 },
   editRow: { display: "flex", gap: 8, margin: "12px 0" },
   input: {
-    flex: 1, padding: "8px 12px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "#1a1714", color: "#f5f0e8", fontSize: 14,
+    flex: 1, padding: "8px 12px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: color.bg, color: color.text, fontSize: 14,
   },
-  phase:  { color: "#7fa05a", fontWeight: 600, margin: "0 0 16px" },
+  phase:  { color: color.moss, fontWeight: 600, margin: "0 0 16px" },
   barTrack: {
-    width: "100%", height: 10, background: "#2f2a24",
-    borderRadius: 5, overflow: "hidden", marginBottom: 8,
+    width: "100%", height: 10, background: color.borderSoft,
+    borderRadius: radius.sm, overflow: "hidden", marginBottom: 8,
   },
-  barFill: { height: "100%", background: "#7fa05a", borderRadius: 5 },
-  maxed: { color: "#c4a05a", fontSize: 13, lineHeight: 1.6 },
-  muted: { color: "#8b8378", fontSize: 12, lineHeight: 1.6 },
+  barFill: { height: "100%", background: color.moss, borderRadius: radius.sm },
+  maxed: { color: color.sand, fontSize: 13, lineHeight: 1.6 },
+  muted: { color: color.textFaint, fontSize: 12, lineHeight: 1.6 },
   stats: {
     display: "flex", justifyContent: "space-around",
     gap: 12, margin: "24px 0 12px",
@@ -160,11 +161,11 @@ const s: Record<string, React.CSSProperties> = {
   stat:      { display: "flex", flexDirection: "column", gap: 2 },
   statValue: { fontSize: 18, fontWeight: 700 },
   btn: {
-    padding: "10px 20px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 14,
+    padding: "10px 20px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 14,
   },
   btnSmall: {
-    padding: "8px 16px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 13,
+    padding: "8px 16px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 13,
   },
 };

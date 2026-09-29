@@ -158,7 +158,7 @@ export default function DashboardPage() {
               </div>
               <div style={styles.streakBadge}>
                 <span>🔥</span>
-                <span style={{ fontWeight: 700, color: stats.streak_current > 0 ? "#fb923c" : color.textFaint }}>
+                <span style={{ fontWeight: 700, color: stats.streak_current > 0 ? color.accent : color.textFaint }}>
                   {stats.streak_current}
                 </span>
                 <span style={{ fontSize: 10, color: color.textFaint }}>días</span>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
               <p style={{ color: color.textMuted, margin: "0 0 8px" }}>
                 {TOPICS.find(a => a.value === topic)?.label}
               </p>
-              <p style={{ color: "#c4b99a", fontSize: 14, margin: "0 0 24px", fontStyle: "italic" }}>
+              <p style={{ color: color.sand, fontSize: 14, margin: "0 0 24px", fontStyle: "italic" }}>
                 &ldquo;{taskTitle}&rdquo;
               </p>
               <button style={styles.btnGhost} onClick={cancelSearch}>Cancelar</button>
@@ -396,7 +396,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   label: {
     display:      "block",
-    color:        "#c4b99a",
+    color:        color.sand,
     fontSize:     13,
     fontWeight:   600,
     marginBottom: 10,
@@ -417,7 +417,7 @@ const styles: Record<string, React.CSSProperties> = {
     border:       `1px solid ${color.border}`,
     borderRadius: radius.md,
     padding:      "9px 12px",
-    color:        "#c4b99a",
+    color:        color.sand,
     cursor:       "pointer",
     fontSize:     13,
     textAlign:    "left",
@@ -465,8 +465,8 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop:  12,
   },
   btnPrimary: {
-    background:   `linear-gradient(180deg, ${color.accentDeep}, #6b4f30)`,
-    color:        "#fff",
+    background:   `linear-gradient(180deg, ${color.accentDeep}, ${color.clay})`,
+    color:        color.text,
     border:       "none",
     borderRadius: radius.pill,
     padding:      "13px 28px",
@@ -526,14 +526,14 @@ const styles: Record<string, React.CSSProperties> = {
   levelNum: {
     fontWeight:  800,
     fontSize:    14,
-    color:       "#f5d49a",
+    color:       color.sand,
     whiteSpace:  "nowrap" as const,
   },
   xpLabel: {
     display:        "flex",
     justifyContent: "space-between",
     fontSize:       11,
-    color:          "#c4b99a",
+    color:          color.sand,
     marginBottom:   4,
   },
   xpTrack: {

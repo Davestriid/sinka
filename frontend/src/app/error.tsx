@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { color, radius } from "@/lib/theme";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -43,18 +44,18 @@ export default function GlobalError({ error, reset }: ErrorPageProps) {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:      "100vh",
-    background:     "#0f0e0d",
+    background:     color.bg,
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
     padding:        "24px",
     fontFamily:     "system-ui, sans-serif",
-    color:          "#e8e0d5",
+    color:          color.text,
   },
   card: {
-    background:   "#1c1816",
-    border:       "1px solid #3b2f2a",
-    borderRadius: 16,
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.lg,
     padding:      "40px 32px",
     maxWidth:     420,
     width:        "100%",
@@ -65,15 +66,15 @@ const styles: Record<string, React.CSSProperties> = {
     gap:          16,
   },
   icon:    { fontSize: 48, lineHeight: 1 },
-  title:   { margin: 0, fontSize: 22, fontWeight: 700, color: "#e8e0d5" },
-  msg:     { margin: 0, fontSize: 14, color: "#a0998b", lineHeight: 1.6 },
-  digest:  { fontSize: 11, color: "#6b6358", fontFamily: "monospace" },
+  title:   { margin: 0, fontSize: 22, fontWeight: 700, color: color.text },
+  msg:     { margin: 0, fontSize: 14, color: color.textMuted, lineHeight: 1.6 },
+  digest:  { fontSize: 11, color: color.textFaint, fontFamily: "monospace" },
   actions: { display: "flex", gap: 12, flexWrap: "wrap" as const, justifyContent: "center" },
   btnPrimary: {
-    background:   "#854d0e",
+    background:   color.accentDeep,
     border:       "none",
-    borderRadius: 8,
-    color:        "#fef08a",
+    borderRadius: radius.sm,
+    color:        color.text,
     fontWeight:   700,
     fontSize:     14,
     padding:      "10px 24px",
@@ -81,9 +82,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btnSecondary: {
     background:   "none",
-    border:       "1px solid #2a2520",
-    borderRadius: 8,
-    color:        "#a0998b",
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.sm,
+    color:        color.textMuted,
     fontSize:     14,
     padding:      "10px 24px",
     cursor:       "pointer",

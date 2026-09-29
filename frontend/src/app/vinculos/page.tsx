@@ -17,6 +17,7 @@ import {
   type UserResponse,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { color, radius } from "@/lib/theme";
 
 export default function VinculosPage() {
   const router = useRouter();
@@ -220,65 +221,65 @@ function Avatar({ url, nombre }: { url: string | null; nombre: string }) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: "#1a1714", color: "#f5f0e8", padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
-  back:   { background: "none", border: "none", color: "#c4b99a", cursor: "pointer", fontSize: 14 },
+  back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },
   layout: { display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" },
   main:   { flex: "1 1 480px", minWidth: 320 },
   aside:  {
-    width: 280, flexShrink: 0, background: "#221e1a", borderRadius: 12,
+    width: 280, flexShrink: 0, background: color.surface, borderRadius: radius.md,
     padding: 16, position: "sticky", top: 24,
   },
-  card:      { background: "#221e1a", borderRadius: 12, padding: 20, marginBottom: 16 },
+  card:      { background: color.surface, borderRadius: radius.md, padding: 20, marginBottom: 16 },
   cardTitle: { fontSize: 16, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 },
-  count:     { background: "#2f2a24", borderRadius: 10, padding: "1px 8px", fontSize: 12 },
+  count:     { background: color.borderSoft, borderRadius: radius.sm, padding: "1px 8px", fontSize: 12 },
   searchBox: { marginBottom: 16 },
   input: {
-    width: "100%", padding: "10px 14px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "#1a1714", color: "#f5f0e8", fontSize: 14,
+    width: "100%", padding: "10px 14px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: color.bg, color: color.text, fontSize: 14,
   },
   row: {
     display: "flex", alignItems: "center", gap: 12,
-    padding: "10px 0", borderBottom: "1px solid #2f2a24",
+    padding: "10px 0", borderBottom: `1px solid ${color.border}`,
   },
   rowInfo: { display: "flex", flexDirection: "column", flex: 1 },
   rowActions: { display: "flex", gap: 8, marginLeft: "auto" },
   name:    { fontWeight: 600, fontSize: 14 },
-  muted:   { color: "#8b8378", fontSize: 12 },
-  empty:   { color: "#8b8378", fontSize: 13, lineHeight: 1.6, margin: 0 },
-  quota:   { color: "#c4b99a", fontSize: 12, margin: "0 0 12px" },
+  muted:   { color: color.textFaint, fontSize: 12 },
+  empty:   { color: color.textFaint, fontSize: 13, lineHeight: 1.6, margin: 0 },
+  quota:   { color: color.sand, fontSize: 12, margin: "0 0 12px" },
   reqCard: {
     display: "flex", flexDirection: "column", gap: 4,
-    padding: 12, background: "#1a1714", borderRadius: 8, marginBottom: 8,
+    padding: 12, background: color.bg, borderRadius: radius.sm, marginBottom: 8,
   },
   reqActions: { display: "flex", gap: 8, marginTop: 6 },
   btn: {
-    marginLeft: "auto", padding: "6px 14px", borderRadius: 8, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 13,
+    marginLeft: "auto", padding: "6px 14px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 13,
   },
   btnGhost: {
-    marginLeft: "auto", padding: "6px 14px", borderRadius: 8,
-    border: "1px solid #3a332b", background: "none", color: "#c4b99a",
+    marginLeft: "auto", padding: "6px 14px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: "none", color: color.sand,
     cursor: "pointer", fontSize: 13,
   },
   btnSmall: {
-    flex: 1, padding: "5px 10px", borderRadius: 6, border: "none",
-    background: "#4a5d3a", color: "#f5f0e8", cursor: "pointer", fontSize: 12,
+    flex: 1, padding: "5px 10px", borderRadius: radius.sm, border: "none",
+    background: color.moss, color: color.bg, cursor: "pointer", fontSize: 12,
   },
   btnSmallGhost: {
-    flex: 1, padding: "5px 10px", borderRadius: 6,
-    border: "1px solid #3a332b", background: "none", color: "#8b8378",
+    flex: 1, padding: "5px 10px", borderRadius: radius.sm,
+    border: `1px solid ${color.border}`, background: "none", color: color.textFaint,
     cursor: "pointer", fontSize: 12,
   },
   avatar: { width: 36, height: 36, borderRadius: "50%", objectFit: "cover" },
   avatarFallback: {
-    width: 36, height: 36, borderRadius: "50%", background: "#3a332b",
+    width: 36, height: 36, borderRadius: "50%", background: color.border,
     display: "flex", alignItems: "center", justifyContent: "center",
     fontWeight: 700, fontSize: 15,
   },
   error: {
-    background: "#3a2420", color: "#f0a090", padding: 12,
-    borderRadius: 8, marginBottom: 16, fontSize: 13,
+    background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13,
   },
 };

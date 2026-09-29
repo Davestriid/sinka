@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { color, radius } from "@/lib/theme";
 
 export default function NotFound() {
   return (
@@ -20,18 +21,18 @@ export default function NotFound() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:      "100vh",
-    background:     "#0f0e0d",
+    background:     color.bg,
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
     padding:        "24px",
     fontFamily:     "system-ui, sans-serif",
-    color:          "#e8e0d5",
+    color:          color.text,
   },
   card: {
-    background:    "#1c1816",
-    border:        "1px solid #2a2520",
-    borderRadius:  16,
+    background:    color.surface,
+    border:        `1px solid ${color.border}`,
+    borderRadius:  radius.lg,
     padding:       "48px 32px",
     maxWidth:      400,
     width:         "100%",
@@ -44,17 +45,17 @@ const styles: Record<string, React.CSSProperties> = {
   code: {
     fontSize:   72,
     fontWeight: 900,
-    color:      "#2a2520",
+    color:      color.surfaceRaised,
     lineHeight: 1,
   },
   title:  { margin: 0, fontSize: 22, fontWeight: 700 },
-  msg:    { margin: 0, fontSize: 14, color: "#a0998b", lineHeight: 1.6 },
+  msg:    { margin: 0, fontSize: 14, color: color.textMuted, lineHeight: 1.6 },
   btn: {
     marginTop:    8,
-    background:   "#1c1816",
-    border:       "1px solid #2a2520",
-    borderRadius: 8,
-    color:        "#a0998b",
+    background:   color.surface,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.sm,
+    color:        color.textMuted,
     fontSize:     14,
     padding:      "10px 24px",
     textDecoration:"none",
