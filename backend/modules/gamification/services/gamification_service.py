@@ -221,6 +221,22 @@ class GamificationService:
             except Exception:
                 logger.exception("No se pudo aplicar la penalizacion de confianza")
 
+    # ── Sesiones en solitario ─────────────────────────────────────────────────
+
+    async def award_solo_session(self, user_id: str, rounds_completed: int = 1) -> XPAwardResult:
+        """
+        Otorga XP y FocusCoins por un Pomodoro hecho en solitario (modo sin
+        pareja, ver modules/sessions_solo). Reutiliza el mismo cálculo de
+        racha/XP/FC que una sesión emparejada normal — la persona que se
+        enfoca sola merece exactamente el mismo progreso.
+
+        No hay "planta" en el modo solo, así que nunca se otorga el bonus
+        de planta majestic (plant_stage="").
+        """
+        async with AsyncSessionLocal() as db:
+            repo = GamificationRepository(db)
+            return await self._award_xp_and_fc(repo, user_id, rounds_completed, "")
+
     # ── Lógica de negocio ─────────────────────────────────────────────────────
 
     async def _award_xp_and_fc(

@@ -35,6 +35,16 @@ class XPAwardResult(BaseModel):
     focus_coins: int
 
 
+class SoloSessionCompleteRequest(BaseModel):
+    """Lo que manda el cliente al terminar un Pomodoro en modo solo."""
+    rounds_completed: int = 1
+
+
+class SoloSessionCompleteResult(XPAwardResult):
+    """XPAwardResult + los logros que se desbloquearon en el mismo golpe."""
+    unlocked_achievements: list[str] = []
+
+
 class LeaderboardEntry(BaseModel):
     rank: int
     user_id: str

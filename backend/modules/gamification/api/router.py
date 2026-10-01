@@ -11,7 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from modules.gamification.repositories.gamification_repository import GamificationRepository
-from modules.gamification.schemas.gamification import LeaderboardEntry, UserStatsResponse
+from modules.gamification.schemas.gamification import (
+    LeaderboardEntry,
+    SoloSessionCompleteRequest,
+    SoloSessionCompleteResult,
+    UserStatsResponse,
+)
 from modules.gamification.services.gamification_service import (
     compute_xp_progress,
     gamification_service,
@@ -32,6 +37,31 @@ async def get_my_stats(
     """Devuelve las estadísticas de gamificación del usuario autenticado."""
     data = await gamification_service.get_stats(current_user.id, current_user.username)
     return UserStatsResponse(**data)
+
+
+@router.post("/solo/complete", response_model=SoloSessionCompleteResult)
+async def complete_solo_session(
+    body: SoloSessionCompleteRequest,
+    current_user: UserResponse = Depends(get_current_user),
+) -> SoloSessionCompleteResult:
+    """
+    Otorga XP/FocusCoins por un Pomodoro terminado en modo solo (sin pareja,
+    sin match, sin WebRTC) y evalúa logros de racha/sesiones en el mismo
+    golpe. No pasa por FocusSession ni por el EventBus: el modo solo no
+    genera esas filas, así que se otorga directo.
+    """
+    from modules.achievements.services.achievements_service import achievements_service
+
+    resultado = await gamification_service.award_solo_session(
+        current_user.id, body.rounds_completed
+    )
+    nuevos = await achievements_service.evaluate_for_user(
+        current_user.id, metrics={"sessions_completed", "streak_max"}
+    )
+    return SoloSessionCompleteResult(
+        **resultado.model_dump(),
+        unlocked_achievements=nuevos,
+    )
 
 
 @router.get("/leaderboard", response_model=list[LeaderboardEntry])

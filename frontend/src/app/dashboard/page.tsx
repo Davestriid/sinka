@@ -247,6 +247,19 @@ export default function DashboardPage() {
               >
                 {t("dashboard.buscar_pareja")}
               </motion.button>
+
+              <button
+                style={styles.btnSolo}
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (taskTitle.trim()) params.set("tarea", taskTitle.trim());
+                  const qs = params.toString();
+                  router.push(qs ? `/session/solo?${qs}` : "/session/solo");
+                }}
+              >
+                {t("dashboard.modo_solo")}
+              </button>
+              <p style={styles.hintSolo}>{t("dashboard.hint_modo_solo")}</p>
             </motion.div>
           )}
 
@@ -486,6 +499,24 @@ const styles: Record<string, React.CSSProperties> = {
     padding:      "8px 18px",
     cursor:       "pointer",
     fontSize:     13,
+  },
+  btnSolo: {
+    background:   "transparent",
+    color:        color.text,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "12px 28px",
+    cursor:       "pointer",
+    fontWeight:   500,
+    fontSize:     14,
+    marginTop:    10,
+    width:        "100%",
+  },
+  hintSolo: {
+    color:      color.textFaint,
+    fontSize:   12,
+    textAlign:  "center",
+    marginTop:  8,
   },
   spinnerWrap: {
     width:        48,

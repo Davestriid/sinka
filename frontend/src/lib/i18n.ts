@@ -49,6 +49,11 @@ export const dict = {
     en: "🍅 You start with a 25-minute Pomodoro. At the break we ask you both if you want to continue — it only goes on if you both say yes.",
   },
   "dashboard.buscar_pareja": { es: "Buscar pareja →", en: "Find a partner →" },
+  "dashboard.modo_solo": { es: "Enfocarme en solitario", en: "Focus solo" },
+  "dashboard.hint_modo_solo": {
+    es: "Empieza un Pomodoro sin esperar pareja. Suma a tu racha y tus FocusCoins igual.",
+    en: "Start a Pomodoro without waiting for a partner. Still counts toward your streak and FocusCoins.",
+  },
   "dashboard.buscando_pareja": { es: "Buscando pareja...", en: "Finding a partner..." },
   "dashboard.cancelar": { es: "Cancelar", en: "Cancel" },
   "dashboard.pareja_encontrada": { es: "¡Pareja encontrada!", en: "Partner found!" },
@@ -57,6 +62,23 @@ export const dict = {
   "dashboard.pomodoros": { es: "pomodoros", en: "pomodoros" },
   "dashboard.sesiones": { es: "sesiones", en: "sessions" },
   "dashboard.racha_max": { es: "Racha máx.", en: "Best streak" },
+
+  // ── Modo solo (Pomodoro en solitario) ───────────────────────────────────
+  "solo.titulo":         { es: "Enfocarme en solitario", en: "Solo focus" },
+  "solo.label_tarea":    { es: "¿En qué vas a trabajar? (opcional)", en: "What will you work on? (optional)" },
+  "solo.placeholder_tarea": { es: 'Ej: "Leer el capítulo 3"', en: 'E.g: "Read chapter 3"' },
+  "solo.iniciar":        { es: "Iniciar Pomodoro", en: "Start Pomodoro" },
+  "solo.fase_trabajo":   { es: "Concentración", en: "Focus" },
+  "solo.fase_descanso":  { es: "Descanso", en: "Break" },
+  "solo.pausar":         { es: "Pausar", en: "Pause" },
+  "solo.reanudar":       { es: "Reanudar", en: "Resume" },
+  "solo.saltar_descanso": { es: "Saltar descanso →", en: "Skip break →" },
+  "solo.otro_pomodoro":  { es: "Otro Pomodoro", en: "Another Pomodoro" },
+  "solo.terminar":       { es: "Terminar", en: "Finish" },
+  "solo.ronda":          { es: "Ronda", en: "Round" },
+  "solo.pomodoro_listo": { es: "¡Pomodoro completado!", en: "Pomodoro complete!" },
+  "solo.logro_nuevo":    { es: "¡Nuevo logro desbloqueado!", en: "New achievement unlocked!" },
+  "solo.volver":         { es: "Volver al inicio", en: "Back to dashboard" },
 
   // ── Áreas de trabajo (TOPICS) ────────────────────────────────────────
   "topic.software":  { es: "Desarrollo de software", en: "Software development" },

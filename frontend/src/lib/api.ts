@@ -229,6 +229,21 @@ export interface LeaderboardEntry {
   streak_current: number;
 }
 
+export interface SoloSessionCompleteResult {
+  xp_earned:              number;
+  xp_total:               number;
+  level_before:           number;
+  level_after:            number;
+  leveled_up:             boolean;
+  streak_before:          number;
+  streak_after:           number;
+  streak_increased:       boolean;
+  streak_broken:          boolean;
+  fc_earned:              number;
+  focus_coins:            number;
+  unlocked_achievements:  string[];
+}
+
 export const gamificationApi = {
   getStats: (accessToken: string) =>
     request<UserStats>("/gamification/stats", {
@@ -237,6 +252,12 @@ export const gamificationApi = {
   getLeaderboard: (accessToken: string) =>
     request<LeaderboardEntry[]>("/gamification/leaderboard", {
       headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  completeSoloSession: (accessToken: string, roundsCompleted: number = 1) =>
+    request<SoloSessionCompleteResult>("/gamification/solo/complete", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ rounds_completed: roundsCompleted }),
     }),
 };
 
