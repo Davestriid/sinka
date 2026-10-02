@@ -24,6 +24,8 @@ export const dict = {
   "nav.tienda":    { es: "Tienda",    en: "Shop" },
   "nav.salir":     { es: "Salir",     en: "Log out" },
   "nav.perfil":    { es: "Perfil",    en: "Profile" },
+  "nav.ajustes":   { es: "Ajustes",   en: "Settings" },
+  "nav.cuenta_verificada": { es: "Cuenta verificada", en: "Verified account" },
 
   // ── Dashboard ────────────────────────────────────────────────────────
   "dashboard.titulo_config": {

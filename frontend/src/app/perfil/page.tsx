@@ -253,7 +253,7 @@ export default function PerfilPage() {
         <span style={s.muted}>{bio.length}/280</span>
       </section>
 
-      <section style={s.card}>
+      <section id="preferencias" style={s.card}>
         <h2 style={s.cardTitle}>Preferencias</h2>
 
         <p style={s.label}>Idioma</p>

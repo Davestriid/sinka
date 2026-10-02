@@ -10,15 +10,20 @@
  * En pantallas angostas los enlaces se envuelven en vez de desbordarse.
  */
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, type CSSProperties, type ComponentType } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy, type LucideProps } from "lucide-react";
+import {
+  Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy,
+  Flame, Sun, Moon, ChevronDown, UserCircle, Settings, LogOut,
+  type LucideProps,
+} from "lucide-react";
 
-import { authApi, gamificationApi, type UserStats } from "@/lib/api";
+import { authApi, gamificationApi, gardenApi, trustApi, type UserStats } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useTranslation } from "@/components/I18nProvider";
+import { useTheme } from "@/components/ThemeProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
-import { color, radius, fontSerif } from "@/lib/theme";
+import { color, radius, shadow, fontSerif } from "@/lib/theme";
 import { Notificaciones } from "./Notificaciones";
 
 interface Destino {
@@ -58,8 +63,39 @@ export function NavBar({ monedas }: NavBarProps) {
   const pathname = usePathname();
   const { accessToken: token, user, logout, setUser } = useAuthStore();
   const { t } = useTranslation();
+  const { tema, setTema } = useTheme();
 
   const [stats, setStats] = useState<UserStats | null>(null);
+
+  // Menú desplegable del avatar: confianza y total de plantas se piden
+  // recien al abrirlo la primera vez, no en cada carga de pantalla — el
+  // NavBar vive en casi todas las paginas y no vale la pena ese costo si
+  // la persona nunca llega a abrir el menu.
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [confianzaPct, setConfianzaPct] = useState<number | null>(null);
+  const [totalPlantas, setTotalPlantas] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuAbierto || !token || confianzaPct !== null) return;
+    trustApi.me(token)
+      .then(t => setConfianzaPct(Math.round((t.score / t.max_score) * 100)))
+      .catch(() => {});
+    gardenApi.list(token)
+      .then(g => setTotalPlantas(g.total))
+      .catch(() => {});
+  }, [menuAbierto, token, confianzaPct]);
+
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const cerrar = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false);
+      }
+    };
+    document.addEventListener("mousedown", cerrar);
+    return () => document.removeEventListener("mousedown", cerrar);
+  }, [menuAbierto]);
 
   // El token vive en almacenamiento del navegador, asi que en el primer
   // render del servidor no existe. Esperar a estar montado evita que el
@@ -138,12 +174,19 @@ export function NavBar({ monedas }: NavBarProps) {
       <div style={s.derecha}>
         <Notificaciones />
 
+        {stats && (
+          <span style={s.statBadge} title={t("dashboard.racha_max")}>
+            <Flame size={14} strokeWidth={2} color={color.accent} aria-hidden />
+            {stats.streak_current}
+          </span>
+        )}
+
         <button
-          style={{ ...s.enlace, ...(activo("/shop") ? s.enlaceActivo : {}) }}
+          style={s.statBadgeBtn}
           onClick={() => router.push("/shop")}
           title={t("nav.tienda")}
         >
-          <ShoppingBag size={15} strokeWidth={2} aria-hidden />
+          <ShoppingBag size={14} strokeWidth={2} aria-hidden />
           <AnimatePresence mode="popLayout">
             <motion.span
               key={fc ?? "sin-fc"}
@@ -158,25 +201,89 @@ export function NavBar({ monedas }: NavBarProps) {
         </button>
 
         <button
-          style={{ ...s.enlace, ...(activo("/perfil") ? s.enlaceActivo : {}) }}
-          onClick={() => router.push("/perfil")}
-          title="Tu perfil"
+          style={s.temaBtn}
+          onClick={() => setTema(tema === "dark" ? "light" : "dark")}
+          title={t("nav.ajustes")}
         >
-          {user?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatar_url} alt="" style={s.foto} />
-          ) : (
-            <span style={s.inicial}>{nombre.slice(0, 2).toUpperCase()}</span>
-          )}
-          <span style={s.etiqueta}>{nombre}</span>
+          {tema === "dark"
+            ? <Moon size={15} strokeWidth={2} aria-hidden />
+            : <Sun size={15} strokeWidth={2} aria-hidden />}
         </button>
 
-        <button
-          style={s.salir}
-          onClick={() => { logout(); router.push("/login"); }}
-        >
-          {t("nav.salir")}
-        </button>
+        <div style={s.menuWrap} ref={menuRef}>
+          <button style={s.avatarBtn} onClick={() => setMenuAbierto(o => !o)}>
+            {user?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatar_url} alt="" style={s.foto} />
+            ) : (
+              <span style={s.inicial}>{nombre.slice(0, 2).toUpperCase()}</span>
+            )}
+            <span style={s.etiqueta}>{nombre}</span>
+            <ChevronDown
+              size={14}
+              strokeWidth={2}
+              style={{ transform: menuAbierto ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }}
+            />
+          </button>
+
+          <AnimatePresence>
+            {menuAbierto && (
+              <motion.div
+                style={s.menuPanel}
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div style={s.menuCabecera}>
+                  {user?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatar_url} alt="" style={s.fotoGrande} />
+                  ) : (
+                    <span style={s.inicialGrande}>{nombre.slice(0, 2).toUpperCase()}</span>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={s.menuNombre}>{nombre}</div>
+                    <div style={s.menuSub}>
+                      {t("nav.cuenta_verificada")}
+                      {totalPlantas != null && ` · ${totalPlantas} ${t("nav.jardin").toLowerCase()}`}
+                    </div>
+                  </div>
+                  {confianzaPct != null && (
+                    <span style={s.confianzaBadge}>{confianzaPct}%</span>
+                  )}
+                </div>
+
+                <div style={s.menuDivider} />
+
+                <button
+                  style={s.menuItem}
+                  onClick={() => { setMenuAbierto(false); router.push("/perfil"); }}
+                >
+                  <UserCircle size={16} strokeWidth={2} />
+                  {t("nav.perfil")}
+                </button>
+                <button
+                  style={s.menuItem}
+                  onClick={() => { setMenuAbierto(false); router.push("/perfil#preferencias"); }}
+                >
+                  <Settings size={16} strokeWidth={2} />
+                  {t("nav.ajustes")}
+                </button>
+
+                <div style={s.menuDivider} />
+
+                <button
+                  style={{ ...s.menuItem, color: color.danger }}
+                  onClick={() => { setMenuAbierto(false); logout(); router.push("/login"); }}
+                >
+                  <LogOut size={16} strokeWidth={2} />
+                  {t("nav.salir")}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </header>
   );
@@ -280,6 +387,138 @@ const s: Record<string, CSSProperties> = {
     cursor:       "pointer",
     fontSize:     13,
     transition:   "border-color 0.15s ease, color 0.15s ease",
+  },
+  statBadge: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          5,
+    background:   color.surface,
+    color:        color.textMuted,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "7px 12px",
+    fontSize:     13,
+    whiteSpace:   "nowrap",
+  },
+  statBadgeBtn: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          5,
+    background:   color.surface,
+    color:        color.textMuted,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "7px 12px",
+    cursor:       "pointer",
+    fontSize:     13,
+    whiteSpace:   "nowrap",
+  },
+  temaBtn: {
+    display:        "inline-flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    width:          30,
+    height:         30,
+    background:     color.surface,
+    color:          color.textMuted,
+    border:         `1px solid ${color.border}`,
+    borderRadius:   radius.pill,
+    cursor:         "pointer",
+  },
+  menuWrap: { position: "relative" },
+  avatarBtn: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          6,
+    background:   color.surface,
+    color:        color.text,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "6px 10px 6px 6px",
+    cursor:       "pointer",
+    fontSize:     13,
+  },
+  menuPanel: {
+    position:     "absolute",
+    top:          "calc(100% + 8px)",
+    right:        0,
+    width:        260,
+    background:   color.surfaceRaised,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.lg,
+    boxShadow:    shadow.raised,
+    padding:      12,
+    zIndex:       60,
+  },
+  menuCabecera: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        10,
+    padding:    "2px 4px 10px",
+  },
+  fotoGrande: {
+    width:        36,
+    height:       36,
+    borderRadius: "50%",
+    objectFit:    "cover",
+    flexShrink:   0,
+    boxShadow:    `0 0 0 2px ${color.borderSoft}`,
+  },
+  inicialGrande: {
+    width:          36,
+    height:         36,
+    borderRadius:   "50%",
+    background:     color.accentSoft,
+    color:          color.text,
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    fontSize:       13,
+    fontWeight:     700,
+    flexShrink:     0,
+  },
+  menuNombre: {
+    fontSize:     14,
+    fontWeight:   600,
+    color:        color.text,
+    overflow:     "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace:   "nowrap",
+  },
+  menuSub: {
+    fontSize:     11,
+    color:        color.textFaint,
+    overflow:     "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace:   "nowrap",
+  },
+  confianzaBadge: {
+    fontSize:     11,
+    fontWeight:   600,
+    color:        color.moss,
+    background:   color.mossSoft,
+    borderRadius: radius.pill,
+    padding:      "3px 8px",
+    flexShrink:   0,
+  },
+  menuDivider: {
+    height:     1,
+    background: color.border,
+    margin:     "4px 0",
+  },
+  menuItem: {
+    display:      "flex",
+    alignItems:   "center",
+    gap:          9,
+    width:        "100%",
+    background:   "transparent",
+    border:       "none",
+    borderRadius: radius.md,
+    padding:      "9px 8px",
+    cursor:       "pointer",
+    fontSize:     13,
+    color:        color.text,
+    textAlign:    "left",
   },
 };
 
