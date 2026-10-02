@@ -19,7 +19,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, UserPlus, Handshake, CalendarDays, Clock, type LucideProps } from "lucide-react";
+import { Bell, UserPlus, Handshake, CalendarDays, Clock, MessageCircle, type LucideProps } from "lucide-react";
 
 import {
   appointmentsApi,
@@ -97,6 +97,7 @@ export function Notificaciones() {
   const [proximas,     setProximas]     = useState<Appointment[]>([]);
 
   const [abierto, setAbierto] = useState(false);
+  const [pestana, setPestana] = useState<"notificaciones" | "mensajes">("notificaciones");
   const [ocupada, setOcupada] = useState<string | null>(null);
   const [aviso,   setAviso]   = useState<string | null>(null);
   const [vistas,  setVistas]  = useState<Set<string>>(new Set());
@@ -258,55 +259,89 @@ export function Notificaciones() {
 
       {abierto && (
         <div style={s.panel}>
-          <div style={s.tituloPanel}>Notificaciones</div>
-
-          {avisos.length === 0 && (
-            <p style={s.vacio}>No tienes nada pendiente.</p>
-          )}
-
-          {avisos.map(a => (
-            <div
-              key={a.id}
-              style={{ ...s.fila, cursor: a.ir ? "pointer" : "default" }}
-              onClick={() => { if (a.ir) { setAbierto(false); router.push(a.ir); } }}
+          <div style={s.tabs}>
+            <button
+              style={{ ...s.tab, ...(pestana === "notificaciones" ? s.tabActiva : {}) }}
+              onClick={() => setPestana("notificaciones")}
             >
-              <div style={s.avatar}><a.icono size={16} strokeWidth={2} color={color.textMuted} /></div>
+              Notificaciones
+            </button>
+            <button
+              style={{ ...s.tab, ...(pestana === "mensajes" ? s.tabActiva : {}) }}
+              onClick={() => setPestana("mensajes")}
+            >
+              Mensajes
+            </button>
+          </div>
 
-              <div style={s.texto}>
-                <strong style={s.nombre}>{a.titulo}</strong>
-                <span style={s.detalle}>{a.detalle}</span>
-              </div>
+          {pestana === "notificaciones" && (
+            <>
+              {avisos.length === 0 && (
+                <p style={s.vacio}>No tienes nada pendiente.</p>
+              )}
 
-              {(a.aceptar || a.rechazar) && (
-                <div style={s.acciones}>
-                  {a.aceptar && (
-                    <button
-                      style={{ ...s.btn, ...s.btnAceptar }}
-                      disabled={ocupada === a.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void responder(a.id, a.aceptar!, "Listo");
-                      }}
-                    >
-                      Aceptar
-                    </button>
-                  )}
-                  {a.rechazar && (
-                    <button
-                      style={{ ...s.btn, ...s.btnRechazar }}
-                      disabled={ocupada === a.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void responder(a.id, a.rechazar!, "Rechazado");
-                      }}
-                    >
-                      Rechazar
-                    </button>
+              {avisos.map(a => (
+                <div
+                  key={a.id}
+                  style={{ ...s.fila, cursor: a.ir ? "pointer" : "default" }}
+                  onClick={() => { if (a.ir) { setAbierto(false); router.push(a.ir); } }}
+                >
+                  <div style={s.avatar}><a.icono size={16} strokeWidth={2} color={color.textMuted} /></div>
+
+                  <div style={s.texto}>
+                    <strong style={s.nombre}>{a.titulo}</strong>
+                    <span style={s.detalle}>{a.detalle}</span>
+                  </div>
+
+                  {(a.aceptar || a.rechazar) && (
+                    <div style={s.acciones}>
+                      {a.aceptar && (
+                        <button
+                          style={{ ...s.btn, ...s.btnAceptar }}
+                          disabled={ocupada === a.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void responder(a.id, a.aceptar!, "Listo");
+                          }}
+                        >
+                          Aceptar
+                        </button>
+                      )}
+                      {a.rechazar && (
+                        <button
+                          style={{ ...s.btn, ...s.btnRechazar }}
+                          disabled={ocupada === a.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void responder(a.id, a.rechazar!, "Rechazado");
+                          }}
+                        >
+                          Rechazar
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              ))}
+            </>
+          )}
+
+          {pestana === "mensajes" && (
+            <div style={s.mensajesVacio}>
+              <div style={s.mensajesIcono}><MessageCircle size={22} strokeWidth={2} color={color.moss} /></div>
+              <p style={s.mensajesTitulo}>No tienes mensajes</p>
+              <p style={s.mensajesDetalle}>
+                Por ahora el chat vive dentro de cada sesión. Agrega a alguien
+                en Vínculos para empezar a coincidir.
+              </p>
+              <button
+                style={s.mensajesBtn}
+                onClick={() => { setAbierto(false); router.push("/vinculos"); }}
+              >
+                Ir a vínculos
+              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -360,13 +395,67 @@ const s: Record<string, CSSProperties> = {
     padding:      10,
     zIndex:       100,
   },
-  tituloPanel: {
-    fontSize:      12,
-    fontWeight:    700,
-    color:         color.textMuted,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    padding:       "2px 4px 8px",
+  tabs: {
+    display:      "flex",
+    gap:          4,
+    borderBottom: `1px solid ${color.border}`,
+    marginBottom: 6,
+  },
+  tab: {
+    flex:         1,
+    background:   "transparent",
+    border:       "none",
+    borderBottom: "2px solid transparent",
+    color:        color.textMuted,
+    fontSize:     13,
+    fontWeight:   600,
+    padding:      "8px 4px 10px",
+    cursor:       "pointer",
+  },
+  tabActiva: {
+    color:        color.text,
+    borderBottom: `2px solid ${color.moss}`,
+  },
+  mensajesVacio: {
+    display:       "flex",
+    flexDirection: "column",
+    alignItems:    "center",
+    textAlign:     "center",
+    padding:       "22px 12px 14px",
+    gap:           4,
+  },
+  mensajesIcono: {
+    width:          44,
+    height:         44,
+    borderRadius:   "50%",
+    background:     color.mossSoft,
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    marginBottom:   8,
+  },
+  mensajesTitulo: {
+    color:      color.text,
+    fontSize:   14,
+    fontWeight: 700,
+    margin:     0,
+  },
+  mensajesDetalle: {
+    color:      color.textMuted,
+    fontSize:   12,
+    lineHeight: 1.5,
+    margin:     "2px 0 12px",
+    maxWidth:   260,
+  },
+  mensajesBtn: {
+    background:   "transparent",
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    color:        color.text,
+    fontSize:     12,
+    fontWeight:   600,
+    padding:      "8px 18px",
+    cursor:       "pointer",
   },
   vacio: { color: color.textFaint, fontSize: 13, textAlign: "center", padding: "18px 8px", margin: 0 },
   fila: {

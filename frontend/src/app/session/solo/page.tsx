@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipForward, Check, Sparkles, Flame } from "lucide-react";
+import { Play, Pause, SkipForward, Check, Sparkles, Flame, Volume2, VolumeX } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type SoloSessionCompleteResult } from "@/lib/api";
@@ -24,6 +24,26 @@ const WORK_SECONDS  = 25 * 60;
 const BREAK_SECONDS = 5 * 60;
 
 type Fase = "config" | "trabajo" | "descanso";
+
+/**
+ * Audio del modo solitario.
+ *
+ * Musica de fondo mientras se trabaja (se pausa en el descanso, no sigue
+ * sonando de fondo todo el tiempo) y un sonido corto distinto para cada
+ * evento: empezar, ronda terminada, descanso terminado y logro desbloqueado.
+ * Todo vive bajo /public/sounds — un <audio> reutilizado para la musica
+ * (loop) y un elemento nuevo por cada efecto corto, que es mas simple que
+ * reusar uno solo y evita que un sonido corte al anterior si se superponen.
+ */
+const SONIDOS = {
+  inicio:      "/sounds/inicio.mp3",
+  terminado:   "/sounds/terminado.mp3",
+  reanudado:   "/sounds/reanudado.mp3",
+  notificacion:"/sounds/notificacion.mp3",
+  fondo:       "/sounds/fondo-sakura.mp3",
+} as const;
+
+const SILENCIO_KEY = "sinka-sonido-silenciado";
 
 function fmt(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -44,8 +64,38 @@ function SoloSessionInner() {
   const [ronda, setRonda]       = useState(1);
   const [resultado, setResultado] = useState<SoloSessionCompleteResult | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [silenciado, setSilenciado] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fondoRef     = useRef<HTMLAudioElement | null>(null);
+  const silenciadoRef = useRef(silenciado); // los callbacks del timer no ven el state fresco
+
+  // Leer preferencia guardada (silencio pensado por sesion de navegador, no
+  // por cuenta: si molesta en una compu publica no deberia quedar guardado
+  // en el servidor).
+  useEffect(() => {
+    const guardado = typeof window !== "undefined" && localStorage.getItem(SILENCIO_KEY) === "1";
+    setSilenciado(guardado);
+    silenciadoRef.current = guardado;
+  }, []);
+
+  const alternarSilencio = () => {
+    setSilenciado(prev => {
+      const next = !prev;
+      silenciadoRef.current = next;
+      localStorage.setItem(SILENCIO_KEY, next ? "1" : "0");
+      if (next && fondoRef.current) fondoRef.current.pause();
+      else if (!next && fase === "trabajo" && fondoRef.current) fondoRef.current.play().catch(() => {});
+      return next;
+    });
+  };
+
+  const sonar = (src: string) => {
+    if (silenciadoRef.current) return;
+    const a = new Audio(src);
+    a.volume = 0.55;
+    a.play().catch(() => {}); // el navegador puede bloquear sin gesto previo; no es critico
+  };
 
   useEffect(() => {
     if (hidratado && !token) router.push("/login");
@@ -84,19 +134,34 @@ function SoloSessionInner() {
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
+  // Musica de fondo: solo suena durante la fase de trabajo, y se pausa (no
+  // se reinicia) en descanso/pausa para poder retomarla donde iba.
+  useEffect(() => {
+    const audio = fondoRef.current;
+    if (!audio) return;
+    if (fase === "trabajo" && !pausado && !silenciado) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [fase, pausado, silenciado]);
+
   const iniciar = () => {
     setFase("trabajo");
     setRestante(WORK_SECONDS);
     setPausado(false);
     setResultado(null);
+    sonar(SONIDOS.inicio);
   };
 
   const completarRonda = async () => {
     if (!token) return;
     setGuardando(true);
+    sonar(SONIDOS.terminado);
     try {
       const r = await gamificationApi.completeSoloSession(token, 1);
       setResultado(r);
+      if (r.unlocked_achievements.length > 0) sonar(SONIDOS.notificacion);
     } catch {
       // Si falla el guardado no se bloquea el descanso: la persona igual
       // merece su pausa, aunque el XP no se haya podido registrar esta vez.
@@ -114,6 +179,7 @@ function SoloSessionInner() {
     setRestante(WORK_SECONDS);
     setPausado(false);
     setResultado(null);
+    sonar(SONIDOS.reanudado);
   };
 
   const terminar = () => router.push("/dashboard");
@@ -123,7 +189,19 @@ function SoloSessionInner() {
 
   return (
     <main style={s.main}>
+      {/* Musica de fondo (loop, oculta) — se controla solo via fondoRef */}
+      <audio ref={fondoRef} src={SONIDOS.fondo} loop preload="none" />
+
       <div style={s.card}>
+        {fase !== "config" && (
+          <button
+            style={s.btnSilencio}
+            onClick={alternarSilencio}
+            title={silenciado ? t("solo.activar_sonido") : t("solo.silenciar")}
+          >
+            {silenciado ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+        )}
         <AnimatePresence mode="wait">
           {/* ── Configuración ── */}
           {fase === "config" && (
@@ -264,6 +342,7 @@ const s: Record<string, React.CSSProperties> = {
     padding: 24,
   },
   card: {
+    position: "relative",
     width: "100%",
     maxWidth: 460,
     background: color.surface,
@@ -272,6 +351,21 @@ const s: Record<string, React.CSSProperties> = {
     boxShadow: shadow.card,
     padding: "36px 32px",
     textAlign: "center",
+  },
+  btnSilencio: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    background: "transparent",
+    border: `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    color: color.textMuted,
+    cursor: "pointer",
   },
   titulo: {
     fontFamily: fontSerif,

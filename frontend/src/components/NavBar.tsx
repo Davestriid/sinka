@@ -143,8 +143,14 @@ export function NavBar({ monedas }: NavBarProps) {
         onClick={() => router.push("/dashboard")}
         title="Ir al inicio"
       >
-        <Sprout size={17} strokeWidth={2} color={color.accent} aria-hidden />
-        SINKA
+        {/* Logo propio en vez del icono+texto generico. Dos versiones (negro
+            para fondo claro, blanco para fondo oscuro) porque el isotipo no
+            tiene suficiente contraste contra su propio opuesto. */}
+        <img
+          src={tema === "light" ? "/img/sinka-logo-negro.png" : "/img/sinka-logo-blanco.png"}
+          alt="SINKA"
+          style={s.logoImg}
+        />
       </button>
 
       <nav style={s.nav}>
@@ -297,7 +303,11 @@ const s: Record<string, CSSProperties> = {
     flexWrap:     "wrap",
     gap:          8,
     padding:      "12px 22px",
-    background:   "rgba(29, 33, 42, 0.72)",
+    // Antes era un rgba(29,33,42,...) fijo: se veia bien en oscuro pero en
+    // claro quedaba un azul-negro turbio con el texto (oscuro, del tema
+    // claro) casi invisible encima. --c-navbar-rgb aporta el tono correcto
+    // por tema (ver globals.css), el efecto de vidrio es el mismo.
+    background:   "rgba(var(--c-navbar-rgb), 0.72)",
     backdropFilter: "blur(14px)",
     borderBottom: `1px solid ${color.border}`,
     position:     "sticky",
@@ -319,6 +329,7 @@ const s: Record<string, CSSProperties> = {
     padding:       0,
   },
   logoMark: { fontSize: 16 },
+  logoImg: { height: 28, width: "auto", display: "block" },
   nav: {
     display:   "flex",
     flexWrap:  "wrap",

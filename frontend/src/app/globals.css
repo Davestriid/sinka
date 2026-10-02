@@ -47,6 +47,12 @@
     --c-shadow:       0,0,0;
     --c-shadow-glow:  221,128,104;
 
+    /* Fondo "glass" del NavBar — antes era un rgba(29,33,42,...) fijo que
+       solo se veia bien en oscuro; en claro quedaba un azul-negro turbio
+       con texto oscuro encima, casi ilegible. Ahora cada tema aporta su
+       propio tono para el mismo efecto de vidrio esmerilado. */
+    --c-navbar-rgb: 32, 36, 45;
+
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 228 19% 9%;
     --foreground: 42 20% 88%;
@@ -108,6 +114,10 @@
        claro se ve como mugre, no como profundidad. */
     --c-shadow:       120,90,58;
     --c-shadow-glow:  189,83,64;
+
+    /* Mismo "glass" del NavBar pero en tono papel/crema, mas oscuro que el
+       fondo de la pagina para que siga leyendose como una barra aparte. */
+    --c-navbar-rgb: 236, 224, 201;
 
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 42 30% 91%;

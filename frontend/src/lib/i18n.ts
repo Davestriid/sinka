@@ -81,6 +81,8 @@ export const dict = {
   "solo.pomodoro_listo": { es: "¡Pomodoro completado!", en: "Pomodoro complete!" },
   "solo.logro_nuevo":    { es: "¡Nuevo logro desbloqueado!", en: "New achievement unlocked!" },
   "solo.volver":         { es: "Volver al inicio", en: "Back to dashboard" },
+  "solo.silenciar":      { es: "Silenciar sonido", en: "Mute sound" },
+  "solo.activar_sonido": { es: "Activar sonido", en: "Unmute sound" },
 
   // ── Áreas de trabajo (TOPICS) ────────────────────────────────────────
   "topic.software":  { es: "Desarrollo de software", en: "Software development" },
