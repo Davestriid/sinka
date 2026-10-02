@@ -175,12 +175,14 @@
 
   /* Placeholder de inputs: nunca se definio un color propio, asi que
      quedaba en el gris por defecto del navegador — sobre el fondo crema
-     de los inputs en modo claro, casi no se leia. textMuted tiene bastante
-     mas contraste y sigue leyendose como "texto de ejemplo", no como dato
-     real. opacity:1 evita que el navegador lo atenue todavia mas. */
+     de los inputs en modo claro, casi no se leia. Primero se probo con
+     text-muted pero seguia viendose muy claro, asi que usa directamente
+     el color de texto principal (--c-text) con un poco de transparencia:
+     suficiente contraste para leerse comodo y todavia distinguible de un
+     valor real. opacity:1 evita que el navegador lo atenue todavia mas. */
   ::placeholder {
-    color: var(--c-text-muted);
-    opacity: 1;
+    color: var(--c-text);
+    opacity: 0.62;
   }
 }
 
