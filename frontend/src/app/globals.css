@@ -95,7 +95,11 @@
 
     --c-text:        #2c2a24;
     --c-text-muted:  #5c5544;
-    --c-text-faint:  #8a816c;
+    /* Antes #8a816c — contra el fondo de los inputs (surface-sunken) el
+       contraste bajaba a ~2.5:1, muy por debajo del minimo legible (4.5:1).
+       Este tono mantiene la jerarquia (mas suave que text-muted) sin caer
+       en casi-invisible. */
+    --c-text-faint:  #726a57;
 
     --c-accent:      #bd5340;
     --c-accent-deep: #9c4433;
@@ -167,6 +171,16 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+  }
+
+  /* Placeholder de inputs: nunca se definio un color propio, asi que
+     quedaba en el gris por defecto del navegador — sobre el fondo crema
+     de los inputs en modo claro, casi no se leia. textMuted tiene bastante
+     mas contraste y sigue leyendose como "texto de ejemplo", no como dato
+     real. opacity:1 evita que el navegador lo atenue todavia mas. */
+  ::placeholder {
+    color: var(--c-text-muted);
+    opacity: 1;
   }
 }
 

@@ -435,7 +435,10 @@ const styles: Record<string, React.CSSProperties> = {
     border:       `1px solid ${color.border}`,
     borderRadius: radius.md,
     padding:      "9px 12px",
-    color:        color.sand,
+    // Antes usaba color.sand: en modo claro ese tono queda muy parecido al
+    // fondo del boton y casi no se lee. textMuted mantiene la jerarquia
+    // (mas suave que el activo) sin perder legibilidad.
+    color:        color.textMuted,
     cursor:       "pointer",
     fontSize:     13,
     textAlign:    "left",
