@@ -54,10 +54,17 @@ export const radius = {
   pill: 999,
 } as const;
 
+/*
+ * Las sombras usan --c-shadow (RGB sin paréntesis, ver globals.css) en vez
+ * de negro fijo: en modo oscuro sigue siendo negro, pero en modo claro es
+ * un café/tierra tenue — negro puro sobre papel claro se ve como mugre, no
+ * como profundidad. --c-shadow-glow hace lo mismo para el resplandor de
+ * acento (terracota en ambos temas, pero con su propio tono por variante).
+ */
 export const shadow = {
-  card:     "0 1px 2px rgba(0,0,0,0.25), 0 8px 24px -12px rgba(0,0,0,0.5)",
-  raised:   "0 4px 12px rgba(0,0,0,0.35), 0 16px 40px -16px rgba(0,0,0,0.6)",
-  glowSoft: "0 0 0 1px rgba(221,128,104,0.15), 0 8px 24px -8px rgba(221,128,104,0.25)",
+  card:     "0 1px 2px rgba(var(--c-shadow),0.18), 0 8px 24px -12px rgba(var(--c-shadow),0.35)",
+  raised:   "0 4px 12px rgba(var(--c-shadow),0.22), 0 16px 40px -16px rgba(var(--c-shadow),0.45)",
+  glowSoft: "0 0 0 1px rgba(var(--c-shadow-glow),0.15), 0 8px 24px -8px rgba(var(--c-shadow-glow),0.25)",
 } as const;
 
 /** Serif japonesa para titulares y números — ver frontend/src/app/layout.tsx. */
