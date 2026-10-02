@@ -17,8 +17,9 @@
  * Lo que ya viste se recuerda en el navegador, asi el globo rojo solo cuenta
  * lo que es nuevo para vos.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
+import { Bell, UserPlus, Handshake, CalendarDays, Clock, type LucideProps } from "lucide-react";
 
 import {
   appointmentsApi,
@@ -39,7 +40,7 @@ type Clase = "amistad" | "amistad-ok" | "cita" | "cita-pronto";
 interface Aviso {
   id:      string;
   clase:   Clase;
-  icono:   string;
+  icono:   ComponentType<LucideProps>;
   titulo:  string;
   detalle: string;
   cuando:  number;
@@ -173,7 +174,7 @@ export function Notificaciones() {
       lista.push({
         id:      `amistad:${s.friendship_id}`,
         clase:   "amistad",
-        icono:   "👋",
+        icono:   UserPlus,
         titulo:  nombre,
         detalle: `quiere ser tu amigo · ${cuandoTexto(s.created_at)}`,
         cuando:  s.created_at ? new Date(s.created_at).getTime() : Date.now(),
@@ -191,7 +192,7 @@ export function Notificaciones() {
       lista.push({
         id:      `amigo:${a.friendship_id}`,
         clase:   "amistad-ok",
-        icono:   "🤝",
+        icono:   Handshake,
         titulo:  a.user.alias || a.user.username,
         detalle: `ahora son amigos · ${cuandoTexto(a.since)}`,
         cuando:  t,
@@ -204,7 +205,7 @@ export function Notificaciones() {
       lista.push({
         id:      `cita:${c.id}`,
         clase:   "cita",
-        icono:   "📅",
+        icono:   CalendarDays,
         titulo:  quien,
         detalle: `te invitó a una sesión ${cuandoTexto(c.scheduled_for)}`,
         cuando:  c.created_at ? new Date(c.created_at).getTime() : Date.now(),
@@ -218,7 +219,7 @@ export function Notificaciones() {
       lista.push({
         id:      `pronto:${c.id}`,
         clase:   "cita-pronto",
-        icono:   "⏰",
+        icono:   Clock,
         titulo:  c.title || "Sesión agendada",
         detalle: `con ${quien} · empieza ${cuandoTexto(c.scheduled_for)}`,
         cuando:  new Date(c.scheduled_for).getTime(),
@@ -251,7 +252,7 @@ export function Notificaciones() {
         title={sinVer ? `${sinVer} novedad${sinVer > 1 ? "es" : ""}` : "Notificaciones"}
         aria-label="Notificaciones"
       >
-        🔔
+        <Bell size={16} strokeWidth={2} />
         {sinVer > 0 && <span style={s.globo}>{sinVer > 9 ? "9+" : sinVer}</span>}
       </button>
 
@@ -269,7 +270,7 @@ export function Notificaciones() {
               style={{ ...s.fila, cursor: a.ir ? "pointer" : "default" }}
               onClick={() => { if (a.ir) { setAbierto(false); router.push(a.ir); } }}
             >
-              <div style={s.avatar}>{a.icono}</div>
+              <div style={s.avatar}><a.icono size={16} strokeWidth={2} color={color.textMuted} /></div>
 
               <div style={s.texto}>
                 <strong style={s.nombre}>{a.titulo}</strong>
@@ -317,15 +318,16 @@ export function Notificaciones() {
 const s: Record<string, CSSProperties> = {
   contenedor: { position: "relative", display: "inline-flex" },
   campana: {
-    position:     "relative",
-    background:   "transparent",
-    color:        color.textMuted,
-    border:       "1px solid transparent",
-    borderRadius: radius.sm,
-    padding:      "7px 11px",
-    cursor:       "pointer",
-    fontSize:     16,
-    lineHeight:   1,
+    position:       "relative",
+    display:        "inline-flex",
+    alignItems:     "center",
+    justifyContent: "center",
+    background:     "transparent",
+    color:          color.textMuted,
+    border:         "1px solid transparent",
+    borderRadius:   radius.sm,
+    padding:        "7px 11px",
+    cursor:         "pointer",
   },
   globo: {
     position:     "absolute",

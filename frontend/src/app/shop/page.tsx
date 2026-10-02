@@ -2,16 +2,21 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ShoppingBag, Coins, Image as ImageIcon, Sprout, Wand2, Music,
+  CheckCircle2, XCircle, Check, type LucideProps,
+} from "lucide-react";
+import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { shopApi, gamificationApi, type ShopItem, type UserStats, ApiError } from "@/lib/api";
 import { SkeletonShopCard } from "@/components/Skeleton";
 import { color, radius } from "@/lib/theme";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  background:   "🖼️ Fondos",
-  plant_skin:   "🌿 Skins de Planta",
-  avatar_frame: "🪄 Marcos de Avatar",
-  music:        "🎵 Música",
+const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
+  background:   { texto: "Fondos",          Icono: ImageIcon },
+  plant_skin:   { texto: "Skins de Planta", Icono: Sprout },
+  avatar_frame: { texto: "Marcos de Avatar", Icono: Wand2 },
+  music:        { texto: "Música",          Icono: Music },
 };
 
 export default function ShopPage() {
@@ -94,17 +99,17 @@ export default function ShopPage() {
     <div style={styles.page}>
       {/* Toast */}
       {toast && (
-        <div style={{ ...styles.toast, background: toast.ok ? color.mossSoft : color.accentSoft, borderColor: toast.ok ? color.moss : color.accent }}>
-          {toast.ok ? "✅" : "❌"} {toast.msg}
+        <div style={{ ...styles.toast, background: toast.ok ? color.mossSoft : color.accentSoft, borderColor: toast.ok ? color.moss : color.accent, display: "flex", alignItems: "center", gap: 7 }}>
+          {toast.ok ? <CheckCircle2 size={15} strokeWidth={2} /> : <XCircle size={15} strokeWidth={2} />} {toast.msg}
         </div>
       )}
 
       {/* Header */}
       <div style={styles.header}>
         <button onClick={() => router.push("/dashboard")} style={styles.back}>← Dashboard</button>
-        <h1 style={styles.title}>🛍️ Tienda</h1>
+        <h1 style={styles.title}><ShoppingBag size={20} strokeWidth={2} /> Tienda</h1>
         <div style={styles.fcBadge}>
-          🪙 <strong>{stats?.focus_coins ?? 0}</strong> FC
+          <Coins size={14} strokeWidth={2} /> <strong>{stats?.focus_coins ?? 0}</strong> FC
         </div>
       </div>
 
@@ -113,9 +118,16 @@ export default function ShopPage() {
       </p>
 
       {/* Secciones por categoría */}
-      {Object.entries(byCategory).map(([cat, catItems]) => (
+      {Object.entries(byCategory).map(([cat, catItems]) => {
+        const catInfo = CATEGORY_LABELS[cat];
+        const CatIcono = catInfo?.Icono;
+        return (
         <div key={cat} style={styles.section}>
-          <h2 style={styles.catTitle}>{CATEGORY_LABELS[cat] ?? cat}</h2>
+          <h2 style={styles.catTitle}>
+            {catInfo && CatIcono
+              ? <><CatIcono size={16} strokeWidth={2} /> {catInfo.texto}</>
+              : cat}
+          </h2>
           <div style={styles.grid}>
             {catItems.map(item => (
               <div key={item.id} style={{ ...styles.card, ...(item.owned ? styles.cardOwned : {}) }}>
@@ -124,28 +136,32 @@ export default function ShopPage() {
                 <div style={styles.cardDesc}>{item.description}</div>
 
                 {item.owned ? (
-                  <div style={styles.ownedBadge}>✓ En tu inventario</div>
+                  <div style={styles.ownedBadge}><Check size={13} strokeWidth={2} /> En tu inventario</div>
                 ) : (
                   <button
                     style={{
                       ...styles.buyBtn,
                       opacity: (stats?.focus_coins ?? 0) < item.price_fc ? 0.45 : 1,
                       cursor:  buying === item.id ? "wait" : "pointer",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
                     }}
                     onClick={() => handleBuy(item)}
                     disabled={!!buying || (stats?.focus_coins ?? 0) < item.price_fc}
                   >
-                    {buying === item.id ? "…" : `🪙 ${item.price_fc} FC`}
+                    {buying === item.id ? "…" : <><Coins size={13} strokeWidth={2} /> {item.price_fc} FC</>}
                   </button>
                 )}
               </div>
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {items.length === 0 && (
-        <div style={styles.empty}>La tienda está vacía. Vuelve pronto 🌱</div>
+        <div style={{ ...styles.empty, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          La tienda está vacía. Vuelve pronto <Sprout size={14} strokeWidth={2} />
+        </div>
       )}
     </div>
   );
@@ -203,12 +219,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radius.sm,
   },
   title: {
-    flex:     1,
-    margin:   0,
-    fontSize: 22,
+    flex:       1,
+    display:    "inline-flex",
+    alignItems: "center",
+    gap:        8,
+    margin:     0,
+    fontSize:   22,
     fontWeight: 700,
   },
   fcBadge: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          6,
     background:   color.surface,
     border:       `1px solid ${color.border}`,
     borderRadius: radius.sm,
@@ -229,12 +251,16 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 600,
   },
   catTitle: {
-    margin:       "0 0 12px 0",
-    fontSize:     16,
-    fontWeight:   700,
-    color:        color.textMuted,
-    borderBottom: `1px solid ${color.border}`,
+    display:       "inline-flex",
+    alignItems:    "center",
+    gap:           7,
+    margin:        "0 0 12px 0",
+    fontSize:      16,
+    fontWeight:    700,
+    color:         color.textMuted,
+    borderBottom:  `1px solid ${color.border}`,
     paddingBottom: 6,
+    width:         "100%",
   },
   grid: {
     display:             "grid",
@@ -282,6 +308,9 @@ const styles: Record<string, React.CSSProperties> = {
     transition:   "opacity 0.2s",
   },
   ownedBadge: {
+    display:    "inline-flex",
+    alignItems: "center",
+    gap:        5,
     fontSize:   12,
     color:      color.success,
     fontWeight: 600,

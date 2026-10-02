@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Code, Smartphone, Globe, Palette, Clapperboard, Pencil, PenTool,
   Music, Megaphone, Camera, BarChart3, Languages, Sparkles,
+  Flame, Timer, CheckCircle2, Trophy,
   type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -161,7 +162,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={styles.streakBadge}>
-                <span>🔥</span>
+                <Flame size={14} strokeWidth={2} color={stats.streak_current > 0 ? color.accent : color.textFaint} />
                 <span style={{ fontWeight: 700, color: stats.streak_current > 0 ? color.accent : color.textFaint }}>
                   {stats.streak_current}
                 </span>
@@ -170,9 +171,9 @@ export default function DashboardPage() {
             </div>
             {/* Fila inferior: stats rápidas */}
             <div style={styles.statsMini}>
-              <span>🍅 {stats.pomodoros_completed} {t("dashboard.pomodoros")}</span>
-              <span>✅ {stats.sessions_completed} {t("dashboard.sesiones")}</span>
-              <span>🏆 {t("dashboard.racha_max")} {stats.streak_max}</span>
+              <span style={styles.statsMiniItem}><Timer size={13} strokeWidth={2} /> {stats.pomodoros_completed} {t("dashboard.pomodoros")}</span>
+              <span style={styles.statsMiniItem}><CheckCircle2 size={13} strokeWidth={2} /> {stats.sessions_completed} {t("dashboard.sesiones")}</span>
+              <span style={styles.statsMiniItem}><Trophy size={13} strokeWidth={2} /> {t("dashboard.racha_max")} {stats.streak_max}</span>
             </div>
           </div>
         )}
@@ -592,4 +593,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:      18,
   },
   statsMini: { display: "flex", gap: 16, fontSize: 12, color: color.textFaint, flexWrap: "wrap" as const },
+  statsMiniItem: { display: "inline-flex", alignItems: "center", gap: 5 },
 };

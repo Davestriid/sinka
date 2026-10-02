@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Trophy, Flame } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type LeaderboardEntry, type UserStats } from "@/lib/api";
 import { SkeletonLeaderboardRow } from "@/components/Skeleton";
@@ -50,7 +51,7 @@ export default function LeaderboardPage() {
     <div style={styles.page}>
       <div style={styles.header}>
         <button onClick={() => router.push("/dashboard")} style={styles.back}>← Dashboard</button>
-        <h1 style={styles.title}>🏆 Leaderboard</h1>
+        <h1 style={styles.title}><Trophy size={20} strokeWidth={2} /> Leaderboard</h1>
       </div>
       <div style={{ ...styles.table, gap: 8 }}>
         {Array.from({ length: 5 }).map((_, i) => (
@@ -65,7 +66,7 @@ export default function LeaderboardPage() {
       {/* Header */}
       <div style={styles.header}>
         <button onClick={() => router.push("/dashboard")} style={styles.back}>← Dashboard</button>
-        <h1 style={styles.title}>🏆 Leaderboard</h1>
+        <h1 style={styles.title}><Trophy size={20} strokeWidth={2} /> Leaderboard</h1>
         {lastUpdate && (
           <span style={styles.updated}>
             actualizado {lastUpdate.toLocaleTimeString()}
@@ -108,7 +109,9 @@ export default function LeaderboardPage() {
                   </span>
                   <span style={styles.sub}>
                     Nv. {entry.level}
-                    {entry.streak_current > 0 && ` · 🔥 ${entry.streak_current}d`}
+                    {entry.streak_current > 0 && (
+                      <> · <Flame size={11} strokeWidth={2} style={{ verticalAlign: -1 }} /> {entry.streak_current}d</>
+                    )}
                   </span>
                 </div>
 
@@ -187,9 +190,12 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radius.sm,
   },
   title: {
-    flex:     1,
-    margin:   0,
-    fontSize: 22,
+    flex:       1,
+    display:    "inline-flex",
+    alignItems: "center",
+    gap:        8,
+    margin:     0,
+    fontSize:   22,
     fontWeight: 700,
   },
   updated: {

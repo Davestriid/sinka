@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Video, VideoOff, MonitorUp, MonitorX, Maximize2, WifiOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, MonitorUp, MonitorX, Maximize2, WifiOff, TrendingUp, Flame, Timer, Coffee, Sprout } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { wsUrl } from "@/lib/api";
 import { focusDetector } from "@/lib/focus-detector";
@@ -590,13 +590,15 @@ export default function SessionPage() {
 
               {leveledUp && statsAfter && (
                 <div style={styles.levelUpBanner}>
-                  ⬆️ ¡Subiste al nivel {statsAfter.level}!
+                  <TrendingUp size={15} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 4 }} />
+                  ¡Subiste al nivel {statsAfter.level}!
                 </div>
               )}
 
               {streakUp && statsAfter && (
                 <div style={styles.streakUp}>
-                  🔥 Racha: {statsAfter.streak_current} días consecutivos
+                  <Flame size={15} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 4 }} />
+                  Racha: {statsAfter.streak_current} días consecutivos
                 </div>
               )}
 
@@ -716,7 +718,10 @@ export default function SessionPage() {
 
       {/* ── Aviso de que la sesión continúa ── */}
       {extensionNote && (
-        <div style={styles.extensionNote}>🌱 {extensionNote}</div>
+        <div style={styles.extensionNote}>
+          <Sprout size={14} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 5 }} />
+          {extensionNote}
+        </div>
       )}
 
       {/* ── Header ── */}
@@ -731,8 +736,8 @@ export default function SessionPage() {
             {wsReady && partnerConnected ? "● Sesión activa" : "● Esperando pareja..."}
           </span>
           {peerConnected && (
-            <span style={{ ...styles.pill, background: color.info, color: color.info }}>
-              🎥 Video conectado
+            <span style={{ ...styles.pill, background: color.info, color: color.info, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Video size={13} strokeWidth={2} /> Video conectado
             </span>
           )}
         </div>
@@ -749,7 +754,9 @@ export default function SessionPage() {
           {/* Pomodoro */}
           <section style={styles.card}>
             <div style={styles.timerPhaseLabel}>
-              {isBreak ? "☕ DESCANSO" : "🍅 ENFOQUE"}
+              {isBreak
+                ? <><Coffee size={14} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 5 }} />DESCANSO</>
+                : <><Timer size={14} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 5 }} />ENFOQUE</>}
               {timer && (
                 <span style={{ fontSize: 13, color: color.textMuted, marginLeft: 8 }}>
                   Ronda {timer.round}/{timer.max_rounds}
@@ -776,7 +783,11 @@ export default function SessionPage() {
                   <span style={styles.taskLabel}>{miNombre}</span>
                   <span style={styles.taskArea}>{AREA_LABELS[myTask.work_area] ?? myTask.work_area}</span>
                   <span style={styles.taskTitle}>"{myTask.task_title}"</span>
-                  <span style={styles.taskPoms}>{"🍅".repeat(myTask.target_pomodoros)}</span>
+                  <span style={styles.taskPoms}>
+                    {Array.from({ length: myTask.target_pomodoros }).map((_, i) => (
+                      <Timer key={i} size={12} strokeWidth={2} style={{ marginRight: 2 }} />
+                    ))}
+                  </span>
                 </div>
               )}
               {partnerTask && (
@@ -784,7 +795,11 @@ export default function SessionPage() {
                   <span style={styles.taskLabel}>{nombrePareja}</span>
                   <span style={styles.taskArea}>{AREA_LABELS[partnerTask.work_area] ?? partnerTask.work_area}</span>
                   <span style={styles.taskTitle}>"{partnerTask.task_title}"</span>
-                  <span style={styles.taskPoms}>{"🍅".repeat(partnerTask.target_pomodoros)}</span>
+                  <span style={styles.taskPoms}>
+                    {Array.from({ length: partnerTask.target_pomodoros }).map((_, i) => (
+                      <Timer key={i} size={12} strokeWidth={2} style={{ marginRight: 2 }} />
+                    ))}
+                  </span>
                 </div>
               )}
             </section>

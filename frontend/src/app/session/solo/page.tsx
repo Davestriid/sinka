@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipForward, Check, Sparkles } from "lucide-react";
+import { Play, Pause, SkipForward, Check, Sparkles, Flame } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type SoloSessionCompleteResult } from "@/lib/api";
@@ -205,7 +205,9 @@ function SoloSessionInner() {
                       </div>
                       <p style={s.resultadoLinea}>
                         +{resultado.xp_earned} XP &nbsp;·&nbsp; +{resultado.fc_earned} FC
-                        {resultado.streak_increased && <> &nbsp;·&nbsp; 🔥 {resultado.streak_after}</>}
+                        {resultado.streak_increased && (
+                          <> &nbsp;·&nbsp; <Flame size={13} strokeWidth={2} color={color.accent} style={{ verticalAlign: -2 }} /> {resultado.streak_after}</>
+                        )}
                       </p>
                       {resultado.unlocked_achievements.length > 0 && (
                         <p style={s.logroLinea}>
