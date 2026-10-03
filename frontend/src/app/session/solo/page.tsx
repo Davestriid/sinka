@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipForward, Check, Sparkles, Flame, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, SkipForward, Check, Sparkles, Flame, Volume2, VolumeX, X } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type SoloSessionCompleteResult } from "@/lib/api";
@@ -218,6 +218,14 @@ function SoloSessionInner() {
 
   const terminar = () => router.push("/dashboard");
 
+  // Antes no habia forma de salir durante la fase de trabajo (solo existia
+  // "Terminar" en el descanso) — confirma si hay una ronda en curso para no
+  // perderla sin querer con un click accidental.
+  const salir = () => {
+    if (fase === "trabajo" && !window.confirm(t("solo.confirmar_salir"))) return;
+    router.push("/dashboard");
+  };
+
   const total = fase === "trabajo" ? WORK_SECONDS : BREAK_SECONDS;
   const pct   = fase === "config" ? 0 : 1 - restante / total;
 
@@ -228,24 +236,30 @@ function SoloSessionInner() {
 
       <div style={s.card}>
         {fase !== "config" && (
-          <div style={s.audioControles}>
-            <select
-              style={s.selectPista}
-              value={pistaId}
-              onChange={e => cambiarPista(e.target.value)}
-              title={t("solo.musica_fondo")}
-            >
-              {PISTAS.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
-            <button
-              style={s.btnSilencio}
-              onClick={alternarSilencio}
-              title={silenciado ? t("solo.activar_sonido") : t("solo.silenciar")}
-            >
-              {silenciado ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          <div style={s.barraSuperior}>
+            <button style={s.btnSalir} onClick={salir} title={t("solo.salir")}>
+              <X size={15} strokeWidth={2} />
+              <span>{t("solo.salir")}</span>
             </button>
+            <div style={s.audioControles}>
+              <select
+                style={s.selectPista}
+                value={pistaId}
+                onChange={e => cambiarPista(e.target.value)}
+                title={t("solo.musica_fondo")}
+              >
+                {PISTAS.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
+              <button
+                style={s.btnSilencio}
+                onClick={alternarSilencio}
+                title={silenciado ? t("solo.activar_sonido") : t("solo.silenciar")}
+              >
+                {silenciado ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+            </div>
           </div>
         )}
         <AnimatePresence mode="wait">
@@ -290,15 +304,15 @@ function SoloSessionInner() {
               )}
 
               <div style={s.circuloWrap}>
-                <svg width="220" height="220" viewBox="0 0 220 220" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="110" cy="110" r="98" fill="none" stroke={color.border} strokeWidth="10" />
+                <svg width="260" height="260" viewBox="0 0 260 260" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="130" cy="130" r="116" fill="none" stroke={color.border} strokeWidth="11" />
                   <motion.circle
-                    cx="110" cy="110" r="98" fill="none"
+                    cx="130" cy="130" r="116" fill="none"
                     stroke={fase === "trabajo" ? color.accent : color.moss}
-                    strokeWidth="10"
+                    strokeWidth="11"
                     strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 98}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 98 * (1 - pct) }}
+                    strokeDasharray={2 * Math.PI * 116}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 116 * (1 - pct) }}
                     transition={{ duration: 0.5, ease: "linear" }}
                   />
                 </svg>
@@ -390,21 +404,40 @@ const s: Record<string, React.CSSProperties> = {
   card: {
     position: "relative",
     width: "100%",
-    maxWidth: 460,
+    maxWidth: 540,
     background: color.surface,
     border: `1px solid ${color.border}`,
     borderRadius: radius.xl,
     boxShadow: shadow.card,
-    padding: "36px 32px",
+    padding: "28px 40px 44px",
     textAlign: "center",
   },
+  // Antes el selector/mute estaban en position:absolute sobre el titulo
+  // centrado ("CONCENTRACIÓN — RONDA 1") y lo tapaban. Ahora es una fila
+  // normal arriba de todo, asi nunca se superpone con nada.
+  barraSuperior: {
+    display:        "flex",
+    alignItems:     "center",
+    justifyContent: "space-between",
+    gap:            8,
+    marginBottom:   18,
+  },
+  btnSalir: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          5,
+    background:   "transparent",
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    color:        color.textMuted,
+    fontSize:     12,
+    padding:      "6px 12px 6px 10px",
+    cursor:       "pointer",
+  },
   audioControles: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    display: "flex",
+    display:    "flex",
     alignItems: "center",
-    gap: 6,
+    gap:        6,
   },
   selectPista: {
     background: color.surfaceSunken,
@@ -511,8 +544,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   circuloWrap: {
     position: "relative",
-    width: 220,
-    height: 220,
+    width: 260,
+    height: 260,
     margin: "24px 0",
     display: "flex",
     alignItems: "center",
@@ -521,7 +554,7 @@ const s: Record<string, React.CSSProperties> = {
   tiempo: {
     position: "absolute",
     fontFamily: fontSerif,
-    fontSize: 40,
+    fontSize: 48,
     color: color.text,
   },
   controles: {

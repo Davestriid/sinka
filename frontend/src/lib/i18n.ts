@@ -84,6 +84,11 @@ export const dict = {
   "solo.silenciar":      { es: "Silenciar sonido", en: "Mute sound" },
   "solo.activar_sonido": { es: "Activar sonido", en: "Unmute sound" },
   "solo.musica_fondo":   { es: "Música de fondo", en: "Background music" },
+  "solo.salir":          { es: "Salir", en: "Exit" },
+  "solo.confirmar_salir": {
+    es: "Tienes una ronda en curso. ¿Seguro que quieres salir? Se perderá el progreso de esta ronda.",
+    en: "You have a round in progress. Are you sure you want to exit? This round's progress will be lost.",
+  },
 
   // ── Áreas de trabajo (TOPICS) ────────────────────────────────────────
   "topic.software":  { es: "Desarrollo de software", en: "Software development" },
