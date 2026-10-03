@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { authApi, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { tema } = useTheme();
   const { setTokens, setUser } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
   const [accountNotFound, setAccountNotFound] = useState(false);
@@ -68,7 +70,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-4">
+    <main
+      className="min-h-screen flex items-center justify-center bg-background px-4"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url(${
+          tema === "light" ? "/img/fondos/login-light.jpg" : "/img/fondos/login-dark.jpg"
+        })`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Iniciar sesión</CardTitle>

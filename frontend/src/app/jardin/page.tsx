@@ -97,7 +97,12 @@ export default function JardinPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
+  page: {
+    minHeight: "100vh",
+    background: `radial-gradient(circle at 15% 0%, ${color.mossSoft} 0%, transparent 45%), ${color.bg}`,
+    color: color.text,
+    padding: 24,
+  },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },
