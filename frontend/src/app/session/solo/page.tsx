@@ -40,10 +40,19 @@ const SONIDOS = {
   terminado:   "/sounds/terminado.mp3",
   reanudado:   "/sounds/reanudado.mp3",
   notificacion:"/sounds/notificacion.mp3",
-  fondo:       "/sounds/fondo-sakura.mp3",
 } as const;
 
+/** Varias pistas para elegir, no una sola fija. */
+const PISTAS = [
+  { id: "sakura", nombre: "Sakura",          src: "/sounds/fondo-sakura.mp3" },
+  { id: "bosque", nombre: "Bosque tranquilo",src: "/sounds/fondo-bosque.mp3" },
+  { id: "lluvia", nombre: "Lluvia",          src: "/sounds/fondo-lluvia.mp3" },
+  { id: "musica", nombre: "Música",          src: "/sounds/fondo-musica.mp3" },
+  { id: "pop",    nombre: "Música pop",      src: "/sounds/fondo-pop.mp3" },
+] as const;
+
 const SILENCIO_KEY = "sinka-sonido-silenciado";
+const PISTA_KEY     = "sinka-musica-pista";
 
 function fmt(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -65,19 +74,31 @@ function SoloSessionInner() {
   const [resultado, setResultado] = useState<SoloSessionCompleteResult | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [silenciado, setSilenciado] = useState(false);
+  const [pistaId, setPistaId] = useState<string>(PISTAS[0].id);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fondoRef     = useRef<HTMLAudioElement | null>(null);
   const silenciadoRef = useRef(silenciado); // los callbacks del timer no ven el state fresco
 
-  // Leer preferencia guardada (silencio pensado por sesion de navegador, no
-  // por cuenta: si molesta en una compu publica no deberia quedar guardado
-  // en el servidor).
+  const pista = PISTAS.find(p => p.id === pistaId) ?? PISTAS[0];
+
+  // Leer preferencias guardadas (silencio y pista pensados por sesion de
+  // navegador, no por cuenta: si molesta en una compu publica no deberia
+  // quedar guardado en el servidor).
   useEffect(() => {
-    const guardado = typeof window !== "undefined" && localStorage.getItem(SILENCIO_KEY) === "1";
+    if (typeof window === "undefined") return;
+    const guardado = localStorage.getItem(SILENCIO_KEY) === "1";
     setSilenciado(guardado);
     silenciadoRef.current = guardado;
+
+    const pistaGuardada = localStorage.getItem(PISTA_KEY);
+    if (pistaGuardada && PISTAS.some(p => p.id === pistaGuardada)) setPistaId(pistaGuardada);
   }, []);
+
+  const cambiarPista = (id: string) => {
+    setPistaId(id);
+    localStorage.setItem(PISTA_KEY, id);
+  };
 
   const alternarSilencio = () => {
     setSilenciado(prev => {
@@ -146,6 +167,19 @@ function SoloSessionInner() {
     }
   }, [fase, pausado, silenciado]);
 
+  // Cambio de pista: el <audio> no vuelve a cargar solo con que cambie el
+  // atributo src (el navegador no lo garantiza), asi que se fuerza con
+  // load() y, si correspondia estar sonando, se retoma desde el principio.
+  useEffect(() => {
+    const audio = fondoRef.current;
+    if (!audio) return;
+    audio.load();
+    if (fase === "trabajo" && !pausado && !silenciado) {
+      audio.play().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pistaId]);
+
   const iniciar = () => {
     setFase("trabajo");
     setRestante(WORK_SECONDS);
@@ -190,17 +224,29 @@ function SoloSessionInner() {
   return (
     <main style={s.main}>
       {/* Musica de fondo (loop, oculta) — se controla solo via fondoRef */}
-      <audio ref={fondoRef} src={SONIDOS.fondo} loop preload="none" />
+      <audio ref={fondoRef} src={pista.src} loop preload="none" />
 
       <div style={s.card}>
         {fase !== "config" && (
-          <button
-            style={s.btnSilencio}
-            onClick={alternarSilencio}
-            title={silenciado ? t("solo.activar_sonido") : t("solo.silenciar")}
-          >
-            {silenciado ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
+          <div style={s.audioControles}>
+            <select
+              style={s.selectPista}
+              value={pistaId}
+              onChange={e => cambiarPista(e.target.value)}
+              title={t("solo.musica_fondo")}
+            >
+              {PISTAS.map(p => (
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </select>
+            <button
+              style={s.btnSilencio}
+              onClick={alternarSilencio}
+              title={silenciado ? t("solo.activar_sonido") : t("solo.silenciar")}
+            >
+              {silenciado ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+          </div>
         )}
         <AnimatePresence mode="wait">
           {/* ── Configuración ── */}
@@ -352,15 +398,31 @@ const s: Record<string, React.CSSProperties> = {
     padding: "36px 32px",
     textAlign: "center",
   },
-  btnSilencio: {
+  audioControles: {
     position: "absolute",
     top: 14,
     right: 14,
     display: "flex",
     alignItems: "center",
+    gap: 6,
+  },
+  selectPista: {
+    background: color.surfaceSunken,
+    border: `1px solid ${color.border}`,
+    borderRadius: radius.sm,
+    color: color.textMuted,
+    fontSize: 11,
+    padding: "5px 6px",
+    cursor: "pointer",
+    maxWidth: 108,
+  },
+  btnSilencio: {
+    display: "flex",
+    alignItems: "center",
     justifyContent: "center",
     width: 32,
     height: 32,
+    flexShrink: 0,
     background: "transparent",
     border: `1px solid ${color.border}`,
     borderRadius: radius.pill,

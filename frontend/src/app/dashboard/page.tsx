@@ -229,8 +229,9 @@ export default function DashboardPage() {
               />
               <span style={styles.charCount}>{taskTitle.length}/80</span>
 
-              <p style={styles.pomNota}>
-                {t("dashboard.nota_pomodoro")}
+              <p style={{ ...styles.pomNota, display: "flex", alignItems: "flex-start", gap: 7 }}>
+                <Timer size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{t("dashboard.nota_pomodoro")}</span>
               </p>
 
               <motion.button

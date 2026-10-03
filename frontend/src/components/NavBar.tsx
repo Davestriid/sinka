@@ -143,14 +143,18 @@ export function NavBar({ monedas }: NavBarProps) {
         onClick={() => router.push("/dashboard")}
         title="Ir al inicio"
       >
-        {/* Logo propio en vez del icono+texto generico. Dos versiones (negro
-            para fondo claro, blanco para fondo oscuro) porque el isotipo no
-            tiene suficiente contraste contra su propio opuesto. */}
+        {/* Isotipo propio (sin texto) + el nombre en la misma tipografia de
+            siempre. Dos versiones del isotipo (negro para fondo claro,
+            blanco para fondo oscuro) porque no tiene contraste contra su
+            propio opuesto. Las imagenes venian con muchisimo margen
+            transparente alrededor del dibujo, asi que se recortaron al
+            contenido real — si no, "mas grande" solo agrandaba el aire. */}
         <img
           src={tema === "light" ? "/img/sinka-logo-negro.png" : "/img/sinka-logo-blanco.png"}
-          alt="SINKA"
+          alt=""
           style={s.logoImg}
         />
+        SINKA
       </button>
 
       <nav style={s.nav}>
@@ -329,7 +333,7 @@ const s: Record<string, CSSProperties> = {
     padding:       0,
   },
   logoMark: { fontSize: 16 },
-  logoImg: { height: 28, width: "auto", display: "block" },
+  logoImg: { height: 34, width: "auto", display: "block" },
   nav: {
     display:   "flex",
     flexWrap:  "wrap",

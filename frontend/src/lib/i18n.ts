@@ -47,8 +47,8 @@ export const dict = {
     en: 'E.g: "Implement JWT login"',
   },
   "dashboard.nota_pomodoro": {
-    es: "🍅 Empiezan con un Pomodoro de 25 minutos. Al llegar al descanso les preguntamos a los dos si quieren seguir con otro — solo continúa si ambos dicen que sí.",
-    en: "🍅 You start with a 25-minute Pomodoro. At the break we ask you both if you want to continue — it only goes on if you both say yes.",
+    es: "Empiezan con un Pomodoro de 25 minutos. Al llegar al descanso les preguntamos a los dos si quieren seguir con otro — solo continúa si ambos dicen que sí.",
+    en: "You start with a 25-minute Pomodoro. At the break we ask you both if you want to continue — it only goes on if you both say yes.",
   },
   "dashboard.buscar_pareja": { es: "Buscar pareja →", en: "Find a partner →" },
   "dashboard.modo_solo": { es: "Enfocarme en solitario", en: "Focus solo" },
@@ -83,6 +83,7 @@ export const dict = {
   "solo.volver":         { es: "Volver al inicio", en: "Back to dashboard" },
   "solo.silenciar":      { es: "Silenciar sonido", en: "Mute sound" },
   "solo.activar_sonido": { es: "Activar sonido", en: "Unmute sound" },
+  "solo.musica_fondo":   { es: "Música de fondo", en: "Background music" },
 
   // ── Áreas de trabajo (TOPICS) ────────────────────────────────────────
   "topic.software":  { es: "Desarrollo de software", en: "Software development" },
