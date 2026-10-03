@@ -365,7 +365,7 @@ export default function DashboardPage() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:   "100vh",
-    background:  `radial-gradient(circle at 15% 0%, ${color.surfaceRaised} 0%, ${color.bg} 55%)`,
+    background:  `radial-gradient(circle at 12% 0%, ${color.mossSoft} 0%, transparent 40%), radial-gradient(circle at 90% 10%, ${color.accentSoft} 0%, transparent 35%), ${color.bg}`,
     fontFamily:  "var(--font-sans), system-ui, sans-serif",
     display:     "flex",
     flexDirection: "column",

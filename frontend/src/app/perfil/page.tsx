@@ -166,6 +166,7 @@ export default function PerfilPage() {
 
   return (
     <div style={s.page}>
+      <div style={s.centro}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Perfil</h1>
@@ -357,12 +358,14 @@ export default function PerfilPage() {
           </button>
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
+  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24, display: "flex", justifyContent: "center" },
+  centro: { width: "100%", maxWidth: 560 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },

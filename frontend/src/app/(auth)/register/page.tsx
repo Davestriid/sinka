@@ -7,6 +7,8 @@ import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { Moon, Sun } from "lucide-react";
+
 import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/components/ThemeProvider";
@@ -36,7 +38,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { tema } = useTheme();
+  const { tema, setTema } = useTheme();
   const { setTokens, setUser } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -76,7 +78,19 @@ export default function RegisterPage() {
         backgroundPosition: "center",
       }}
     >
-      <Card className="w-full max-w-md">
+      <button
+        type="button"
+        onClick={() => setTema(tema === "dark" ? "light" : "dark")}
+        aria-label="Cambiar tema"
+        className="fixed top-4 right-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
+      >
+        {tema === "dark" ? <Moon size={16} /> : <Sun size={16} />}
+      </button>
+
+      <Card
+        className="w-full max-w-md backdrop-blur-md border-white/10 shadow-xl"
+        style={{ backgroundColor: "hsl(var(--card) / 0.72)" }}
+      >
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Crear cuenta</CardTitle>
           <CardDescription>Únete a SINKA y concentra tu potencial.</CardDescription>
