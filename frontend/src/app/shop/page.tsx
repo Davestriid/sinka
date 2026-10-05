@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShoppingBag, Coins, Image as ImageIcon, Sprout, Wand2, Music,
-  CheckCircle2, XCircle, Check, type LucideProps,
+  CheckCircle2, XCircle, Check, CreditCard, type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { shopApi, gamificationApi, type ShopItem, type UserStats, ApiError } from "@/lib/api";
+import {
+  shopApi, gamificationApi, paymentsApi,
+  type ShopItem, type UserStats, type CoinPack, ApiError,
+} from "@/lib/api";
 import { SkeletonShopCard } from "@/components/Skeleton";
 import { color, radius } from "@/lib/theme";
 
@@ -20,13 +23,24 @@ const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<Luci
 };
 
 export default function ShopPage() {
+  return (
+    <Suspense fallback={null}>
+      <ShopPageInner />
+    </Suspense>
+  );
+}
+
+function ShopPageInner() {
   const router                       = useRouter();
+  const searchParams                 = useSearchParams();
   const { accessToken: token, user, hidratado } = useAuthStore();
 
   const [items,   setItems]   = useState<ShopItem[]>([]);
   const [stats,   setStats]   = useState<UserStats | null>(null);
+  const [packs,   setPacks]   = useState<CoinPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying,  setBuying]  = useState<string | null>(null);
+  const [comprandoPack, setComprandoPack] = useState<string | null>(null);
   const [toast,   setToast]   = useState<{ msg: string; ok: boolean } | null>(null);
 
   const showToast = (msg: string, ok: boolean) => {
@@ -37,12 +51,14 @@ export default function ShopPage() {
   const fetchData = useCallback(async () => {
     if (!token) return;
     try {
-      const [shopItems, userStats] = await Promise.all([
+      const [shopItems, userStats, coinPacks] = await Promise.all([
         shopApi.getItems(token),
         gamificationApi.getStats(token),
+        paymentsApi.getPacks().catch((): CoinPack[] => []),
       ]);
       setItems(shopItems);
       setStats(userStats);
+      setPacks(coinPacks);
     } catch {
       // mantener estado anterior
     } finally {
@@ -55,6 +71,31 @@ export default function ShopPage() {
     if (!token) { router.push("/login"); return; }
     fetchData();
   }, [token, router, fetchData, hidratado]);
+
+  // Vuelta desde Stripe Checkout (exito o cancelado)
+  useEffect(() => {
+    const pago = searchParams.get("pago");
+    if (pago === "exito") {
+      showToast("¡Pago recibido! Tus FocusCoins se acreditan en cuanto Stripe confirme el cobro.", true);
+      fetchData();
+    } else if (pago === "cancelado") {
+      showToast("Compra cancelada. No se realizó ningún cobro.", false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleComprarCoins = async (pack: CoinPack) => {
+    if (!token || comprandoPack) return;
+    setComprandoPack(pack.id);
+    try {
+      const { checkout_url } = await paymentsApi.createCheckout(token, pack.id);
+      window.location.href = checkout_url;
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "No se pudo iniciar el pago.";
+      showToast(msg, false);
+      setComprandoPack(null);
+    }
+  };
 
   const handleBuy = async (item: ShopItem) => {
     if (!token || buying) return;
@@ -116,6 +157,37 @@ export default function ShopPage() {
       <p style={styles.hint}>
         Gana FocusCoins completando sesiones de enfoque. ¡Compra cosméticos para personalizar tu espacio!
       </p>
+
+      {/* Comprar FocusCoins con dinero real */}
+      {packs.length > 0 && (
+        <div style={styles.section}>
+          <h2 style={styles.catTitle}>
+            <CreditCard size={16} strokeWidth={2} /> Comprar FocusCoins
+          </h2>
+          <div style={styles.grid}>
+            {packs.map((pack) => (
+              <div key={pack.id} style={styles.card}>
+                <div style={styles.preview}><Coins size={30} strokeWidth={1.5} /></div>
+                <div style={styles.cardName}>{pack.nombre}</div>
+                <div style={styles.cardDesc}>{pack.coins} FocusCoins</div>
+                <button
+                  style={{
+                    ...styles.buyBtn,
+                    cursor: comprandoPack === pack.id ? "wait" : "pointer",
+                  }}
+                  disabled={!!comprandoPack}
+                  onClick={() => handleComprarCoins(pack)}
+                >
+                  {comprandoPack === pack.id ? "…" : `$${(pack.precio_centavos / 100).toFixed(2)}`}
+                </button>
+              </div>
+            ))}
+          </div>
+          <p style={{ ...styles.hint, marginTop: 8 }}>
+            Pago seguro procesado por Stripe. SINKA nunca ve ni guarda tu tarjeta.
+          </p>
+        </div>
+      )}
 
       {/* Secciones por categoría */}
       {Object.entries(byCategory).map(([cat, catItems]) => {

@@ -410,6 +410,24 @@ export const adminApi = {
     }),
 };
 
+// ── Pagos (compra de FocusCoins con dinero real) ───────────────────────────
+export interface CoinPack {
+  id: string;
+  nombre: string;
+  coins: number;
+  precio_centavos: number;
+}
+
+export const paymentsApi = {
+  getPacks: () => request<CoinPack[]>("/payments/packs"),
+  createCheckout: (accessToken: string, packId: string) =>
+    request<{ checkout_url: string }>("/payments/checkout", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ pack_id: packId }),
+    }),
+};
+
 // ── WebSocket URLs ────────────────────────────────────────────────────────────
 
 export type Topic = {
