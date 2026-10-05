@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ComponentType } f
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy,
-  Flame, Sun, Moon, ChevronDown, UserCircle, Settings, LogOut,
+  Flame, Sun, Moon, ChevronDown, UserCircle, Settings, LogOut, ShieldCheck,
   type LucideProps,
 } from "lucide-react";
 
@@ -280,6 +280,16 @@ export function NavBar({ monedas }: NavBarProps) {
                   <Settings size={16} strokeWidth={2} />
                   {t("nav.ajustes")}
                 </button>
+
+                {(user?.role === "admin" || user?.role === "superadmin") && (
+                  <button
+                    style={s.menuItem}
+                    onClick={() => { setMenuAbierto(false); router.push("/admin"); }}
+                  >
+                    <ShieldCheck size={16} strokeWidth={2} />
+                    Administración
+                  </button>
+                )}
 
                 <div style={s.menuDivider} />
 

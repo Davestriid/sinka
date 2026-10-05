@@ -13,6 +13,7 @@ from core.event_bus import EventBus
 from core.middleware import SecurityHeadersMiddleware
 from modules.achievements.api.router import router as achievements_router
 from modules.achievements.services.achievements_service import achievements_service
+from modules.admin.api.router import router as admin_router
 from modules.gamification.api.router import router as gamification_router
 from modules.gamification.api.shop_router import router as shop_router
 from modules.gamification.services.gamification_service import gamification_service
@@ -66,6 +67,7 @@ app.include_router(garden_router,       prefix="/api")
 app.include_router(groups_router,       prefix="/api")
 app.include_router(scheduling_router,   prefix="/api")
 app.include_router(achievements_router, prefix="/api")
+app.include_router(admin_router,        prefix="/api")
 
 
 async def _regar_jardin(payload: dict) -> None:

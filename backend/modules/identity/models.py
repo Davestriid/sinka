@@ -18,6 +18,12 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # --- Panel de administracion ------------------------------------------
+    # "usuario" | "admin" | "superadmin". Solo un superadmin puede otorgar
+    # o quitar el rol de admin a otra persona (ver modules/admin).
+    role:      Mapped[str]  = mapped_column(String(20), nullable=False, default="usuario")
+    is_banned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     # --- Perfil visible para otros usuarios -------------------------------
     # alias: nombre que se muestra en la sesion. Si esta vacio se usa username.
     alias:      Mapped[str | None] = mapped_column(String(50),  nullable=True)

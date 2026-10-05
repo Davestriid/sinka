@@ -44,6 +44,8 @@ class UserResponse(BaseModel):
     email: str
     username: str
     is_active: bool
+    role: str = "usuario"
+    is_banned: bool = False
 
     # Perfil
     alias:      str | None = None

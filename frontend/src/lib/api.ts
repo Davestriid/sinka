@@ -163,6 +163,8 @@ export interface UserResponse {
   email: string;
   username: string;
   is_active: boolean;
+  role:      "usuario" | "admin" | "superadmin";
+  is_banned: boolean;
 
   alias:      string | null;
   avatar_url: string | null;
@@ -323,6 +325,88 @@ export const shopApi = {
   getInventory: (accessToken: string) =>
     request<ShopItem[]>("/shop/inventory", {
       headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
+// ── Panel de administración ────────────────────────────────────────────────
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  username: string;
+  alias: string | null;
+  role: "usuario" | "admin" | "superadmin";
+  is_active: boolean;
+  is_banned: boolean;
+  created_at: string;
+}
+
+export interface AdminUserList {
+  items: AdminUserRow[];
+  total: number;
+  pagina: number;
+  por_pagina: number;
+}
+
+export interface AdminStats {
+  total_usuarios: number;
+  usuarios_banneados: number;
+  total_sesiones: number;
+  total_pomodoros: number;
+  focuscoins_en_circulacion: number;
+  items_en_tienda: number;
+}
+
+export interface AdminShopItemRow {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price_fc: number;
+  preview: string;
+  is_active: boolean;
+}
+
+export const adminApi = {
+  getStats: (accessToken: string) =>
+    request<AdminStats>("/admin/stats", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  getUsers: (accessToken: string, q: string, pagina: number) =>
+    request<AdminUserList>(
+      `/admin/users?pagina=${pagina}${q ? `&q=${encodeURIComponent(q)}` : ""}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    ),
+  banUser: (accessToken: string, userId: string) =>
+    request<AdminUserRow>(`/admin/users/${userId}/ban`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  unbanUser: (accessToken: string, userId: string) =>
+    request<AdminUserRow>(`/admin/users/${userId}/unban`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  changeRole: (accessToken: string, userId: string, role: string) =>
+    request<AdminUserRow>(`/admin/users/${userId}/role`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ role }),
+    }),
+  getShopItems: (accessToken: string) =>
+    request<AdminShopItemRow[]>("/admin/shop", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  editShopItem: (accessToken: string, itemId: string, cambios: Partial<AdminShopItemRow>) =>
+    request<AdminShopItemRow>(`/admin/shop/${itemId}`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify(cambios),
+    }),
+  sendAnnouncement: (accessToken: string, titulo: string, mensaje: string) =>
+    request<{ ok: boolean }>("/admin/announcements", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ titulo, mensaje }),
     }),
 };
 

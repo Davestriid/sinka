@@ -100,6 +100,11 @@ class IdentityService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Cuenta desactivada.",
             )
+        if user.is_banned:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Esta cuenta fue suspendida.",
+            )
         return await self._issue_tokens(user)
 
     async def get_current_user(self, token: str) -> UserResponse:
@@ -109,6 +114,8 @@ class IdentityService:
         user = await self.user_repo.get_by_id(payload["sub"])
         if not user or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado.")
+        if user.is_banned:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta cuenta fue suspendida.")
         return UserResponse.model_validate(user)
 
     # ------------------------------------------------------------------

@@ -43,6 +43,31 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
+    async def listar_admin(self, termino: str | None, pagina: int, por_pagina: int) -> tuple[list[User], int]:
+        """
+        Listado paginado para el panel de administracion: todos los usuarios
+        (activos o no, baneados o no), a diferencia de `search` que es para
+        encontrar gente con quien vincularse.
+        """
+        consulta = select(User)
+        conteo = select(func.count(User.id))
+        if termino:
+            patron = f"%{termino.strip().lower()}%"
+            filtro = func.lower(User.username).like(patron) | func.lower(User.email).like(patron)
+            consulta = consulta.where(filtro)
+            conteo = conteo.where(filtro)
+
+        total = (await self.db.execute(conteo)).scalar_one()
+        resultado = await self.db.execute(
+            consulta.order_by(User.created_at.desc())
+            .offset((pagina - 1) * por_pagina)
+            .limit(por_pagina)
+        )
+        return list(resultado.scalars().all()), total
+
+    async def contar_todos(self) -> int:
+        return (await self.db.execute(select(func.count(User.id)))).scalar_one()
+
     async def search(self, termino: str, excluir_id: str, limite: int = 20) -> list[User]:
         """Busca usuarios activos por username o alias. Usado por el modulo social."""
         patron = f"%{termino.strip().lower()}%"
