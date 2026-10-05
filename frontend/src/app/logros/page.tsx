@@ -15,7 +15,7 @@ import type { ComponentType } from "react";
 
 import { achievementsApi, type Achievement } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius, fontSerif } from "@/lib/theme";
+import { color, radius, fontSerif, pageBackground } from "@/lib/theme";
 
 const ICONOS: Record<string, ComponentType<LucideProps>> = {
   Target, UserCircle, Users, Flame, Handshake, Sprout, ShoppingBag,
@@ -131,7 +131,7 @@ function TarjetaLogro({ logro }: { logro: Achievement }) {
 const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: `radial-gradient(circle at 85% 0%, ${color.accentSoft} 0%, transparent 50%), ${color.bg}`,
+    background: pageBackground,
     color: color.text,
     padding: 24,
   },

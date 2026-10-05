@@ -46,6 +46,19 @@ export const color = {
   info:    "var(--c-info)",
 } as const;
 
+/**
+ * Fondo compartido para toda pantalla de app (dashboard, jardín, logros,
+ * vínculos, grupos, citas, tienda, perfil, admin...). Dos manchas de luz
+ * suaves sobre el fondo base, en vez de un color plano — el mismo recurso
+ * que ya usaban dashboard/jardín/logros, ahora centralizado para que
+ * cualquier pantalla nueva lo tenga con una sola línea y cambiarlo de
+ * intensidad se haga en un solo lugar (ver --c-bg-glow-1/2 en globals.css).
+ */
+export const pageBackground =
+  "radial-gradient(circle at 12% 0%, var(--c-bg-glow-1) 0%, transparent 45%), " +
+  "radial-gradient(circle at 90% 8%, var(--c-bg-glow-2) 0%, transparent 40%), " +
+  "var(--c-bg)";
+
 export const radius = {
   sm:   10,
   md:   13,

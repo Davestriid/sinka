@@ -53,6 +53,13 @@
        propio tono para el mismo efecto de vidrio esmerilado. */
     --c-navbar-rgb: 32, 36, 45;
 
+    /* Fondo de pantalla completa (ver pageBackground en theme.ts). Antes se
+       reusaba --c-moss-soft/--c-accent-soft (alpha 0.12-0.14, pensados para
+       resaltar un borde o chip) como fondo de pagina entera y quedaba
+       practicamente invisible. Estos dos son mas intensos a proposito. */
+    --c-bg-glow-1: rgba(157, 181, 160, 0.22);
+    --c-bg-glow-2: rgba(221, 128, 104, 0.18);
+
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 228 19% 9%;
     --foreground: 42 20% 88%;
@@ -122,6 +129,9 @@
     /* Mismo "glass" del NavBar pero en tono papel/crema, mas oscuro que el
        fondo de la pagina para que siga leyendose como una barra aparte. */
     --c-navbar-rgb: 236, 224, 201;
+
+    --c-bg-glow-1: rgba(61, 74, 58, 0.16);
+    --c-bg-glow-2: rgba(189, 83, 64, 0.14);
 
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 42 30% 91%;

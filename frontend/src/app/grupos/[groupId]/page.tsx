@@ -12,7 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { groupsApi, wsUrl, type Group, type LobbyState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius } from "@/lib/theme";
+import { color, radius, pageBackground } from "@/lib/theme";
 
 export default function SalaGrupoPage() {
   const router = useRouter();
@@ -177,7 +177,7 @@ export default function SalaGrupoPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
+  page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 14, marginBottom: 20 },
   back:   { background: "none", border: "none", color: color.sand, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 24, margin: 0, marginRight: "auto" },

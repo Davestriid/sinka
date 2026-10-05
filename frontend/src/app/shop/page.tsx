@@ -13,7 +13,7 @@ import {
   type ShopItem, type UserStats, type CoinPack, ApiError,
 } from "@/lib/api";
 import { SkeletonShopCard } from "@/components/Skeleton";
-import { color, radius } from "@/lib/theme";
+import { color, radius, pageBackground } from "@/lib/theme";
 
 const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
   background:   { texto: "Fondos",          Icono: ImageIcon },
@@ -244,7 +244,7 @@ function ShopPageInner() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:     "100vh",
-    background:    color.bg,
+    background:    pageBackground,
     color:         color.text,
     fontFamily:    "system-ui, sans-serif",
     padding:       "24px 16px",

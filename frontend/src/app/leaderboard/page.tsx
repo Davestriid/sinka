@@ -6,7 +6,7 @@ import { Trophy, Flame } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type LeaderboardEntry, type UserStats } from "@/lib/api";
 import { SkeletonLeaderboardRow } from "@/components/Skeleton";
-import { color, radius } from "@/lib/theme";
+import { color, radius, pageBackground } from "@/lib/theme";
 
 const REFRESH_INTERVAL_MS = 30_000; // actualizar cada 30 s
 
@@ -155,7 +155,7 @@ function rankBadgeStyle(rank: number): React.CSSProperties {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:       "100vh",
-    background:      color.bg,
+    background:      pageBackground,
     color:           color.text,
     fontFamily:      "system-ui, sans-serif",
     padding:         "24px 16px",

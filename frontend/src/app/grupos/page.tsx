@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { catalogApi, groupsApi, type Group, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius, fontSerif } from "@/lib/theme";
+import { color, radius, fontSerif, pageBackground } from "@/lib/theme";
 
 type Pestana = "explorar" | "mios";
 
@@ -277,7 +277,7 @@ export default function GruposPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
+  page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0, marginRight: "auto", fontFamily: fontSerif },

@@ -17,7 +17,7 @@ import {
   type UserResponse,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius } from "@/lib/theme";
+import { color, radius, pageBackground } from "@/lib/theme";
 
 export default function VinculosPage() {
   const router = useRouter();
@@ -221,7 +221,7 @@ function Avatar({ url, nombre }: { url: string | null; nombre: string }) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: color.bg, color: color.text, padding: 24 },
+  page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 24 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },

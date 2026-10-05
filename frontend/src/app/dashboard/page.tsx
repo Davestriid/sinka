@@ -14,7 +14,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { wsUrl, gamificationApi, type UserStats } from "@/lib/api";
 import { useTranslation } from "@/components/I18nProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
-import { color, radius, shadow, fontSerif, ease } from "@/lib/theme";
+import { color, radius, shadow, fontSerif, ease, pageBackground } from "@/lib/theme";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
 // Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
@@ -365,7 +365,7 @@ export default function DashboardPage() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight:   "100vh",
-    background:  `radial-gradient(circle at 12% 0%, ${color.mossSoft} 0%, transparent 40%), radial-gradient(circle at 90% 10%, ${color.accentSoft} 0%, transparent 35%), ${color.bg}`,
+    background:  pageBackground,
     fontFamily:  "var(--font-sans), system-ui, sans-serif",
     display:     "flex",
     flexDirection: "column",

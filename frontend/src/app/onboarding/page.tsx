@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 import { catalogApi, profileApi, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius } from "@/lib/theme";
+import { color, radius, pageBackground } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
 const MAX_INTERESES = 5;
@@ -203,7 +203,7 @@ export default function OnboardingPage() {
 
 const s: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: "100vh", background: color.bg, color: color.text,
+    minHeight: "100vh", background: pageBackground, color: color.text,
     display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
   },
   card: {
