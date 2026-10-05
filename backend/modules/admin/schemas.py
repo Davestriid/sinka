@@ -53,6 +53,25 @@ class AdminShopItemRow(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AdminPurchaseRow(BaseModel):
+    id: str
+    user_id: str
+    pack_id: str
+    coins: int
+    precio_centavos: int
+    estado: str
+    created_at: datetime
+    paid_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class AdminRevenue(BaseModel):
+    ingresos_centavos: int
+    compras_pagadas: int
+    compras: list[AdminPurchaseRow]
+
+
 class EditarItemTiendaRequest(BaseModel):
     """Todo opcional: solo se cambia lo que se envia."""
     name:        str | None = None

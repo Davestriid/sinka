@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.admin.schemas import (
+    AdminPurchaseRow,
+    AdminRevenue,
     AdminShopItemRow,
     AdminStats,
     AdminUserList,
@@ -18,6 +20,7 @@ from modules.admin.schemas import (
 from modules.gamification.models import ShopItem, UserStats
 from modules.identity.models import User
 from modules.identity.repositories.user_repository import UserRepository
+from modules.payments.models import CoinPurchase
 from modules.sessions.models import FocusSession
 
 ROLES_VALIDOS = ("usuario", "admin", "superadmin")
@@ -81,6 +84,25 @@ class AdminService:
         await self.db.commit()
         await self.db.refresh(item)
         return AdminShopItemRow.model_validate(item)
+
+    async def ingresos(self, limite: int = 50) -> AdminRevenue:
+        """Solo superadmin: dinero real cobrado via Stripe (ver router)."""
+        pagadas = (
+            await self.db.execute(select(CoinPurchase).where(CoinPurchase.estado == "pagado"))
+        ).scalars().all()
+        total_centavos = sum(c.precio_centavos for c in pagadas)
+
+        recientes = (
+            await self.db.execute(
+                select(CoinPurchase).order_by(CoinPurchase.created_at.desc()).limit(limite)
+            )
+        ).scalars().all()
+
+        return AdminRevenue(
+            ingresos_centavos=total_centavos,
+            compras_pagadas=len(pagadas),
+            compras=[AdminPurchaseRow.model_validate(c) for c in recientes],
+        )
 
     async def estadisticas(self) -> AdminStats:
         total_usuarios = await self.user_repo.contar_todos()

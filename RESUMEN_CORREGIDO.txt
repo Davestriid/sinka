@@ -1,0 +1,14 @@
+RESUMEN (Corrección Final - Listo para entregar)
+===============================================
+
+La gestión del tiempo se ha convertido en uno de los principales retos para quienes estudian o trabajan frente a una pantalla. Investigaciones internacionales muestran que la mayoría de estudiantes universitarios procrastina con frecuencia y que muy pocos cuentan con un sistema formal para organizar sus actividades (Garzón Umerenkova & Gil Flores, 2017; Svartdal et al., 2018). En Ecuador este fenómeno se relaciona directamente con el estrés académico y el bajo rendimiento, mientras que en la ciudad de Loja la investigación local sobre plataformas de concentración colaborativa y procrastinación digital es aún limitada. Esa realidad motivó el presente proyecto titulado "Desarrollo de una plataforma web de concentración colaborativa online con emparejamiento aleatorio para mejorar la productividad en las actividades digitales en la ciudad de Loja".
+
+El objetivo general consistió en desarrollar una plataforma web de concentración colaborativa con emparejamiento aleatorio que integre herramientas digitales orientadas a la gestión del tiempo. Para cumplirlo se revisó literatura científica sobre procrastinación y productividad, se aplicó una encuesta a personas que realizan actividades digitales en la ciudad y se construyó el software siguiendo una metodología híbrida que combina SCRUM con las prácticas técnicas de Extreme Programming organizadas en tres fases: Pre-Juego, Juego y Post-Juego.
+
+Como propuesta de acción se desarrolló SINKA, una plataforma que conecta de manera aleatoria a dos personas que desean concentrarse al mismo tiempo. Ambas comparten un temporizador Pomodoro sincronizado, pueden verse por cámara durante la sesión y pueden conversar en los descansos. El sistema premia la constancia con puntos de experiencia, monedas virtuales y rachas diarias que se reflejan en un ranking global. El producto quedó desplegado en producción con seis sprints completados y una cobertura de pruebas superior al ochenta por ciento en la capa de servicios.
+
+---
+
+REFERENCIAS UTILIZADAS EN EL RESUMEN:
+- Garzón Umerenkova, A., & Gil Flores, J. (2017). Gestión del tiempo y procrastinación en la educación superior. Universitas Psychologica, 16(3), 1-13.
+- Svartdal, F., Koppenborg, M., Hjelle, E., Lagesen, M. E., & Haave, M. (2018). Roles of impulsivity, motivation, and emotion regulation in procrastination. Frontiers in Psychology, 9, 876.

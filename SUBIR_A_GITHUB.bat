@@ -41,7 +41,7 @@ echo   Ningun archivo de secretos en el indice. Correcto. >> "%LOG%"
 echo. >> "%LOG%"
 
 echo ---- [4] Commit de lo que quede suelto ---- >> "%LOG%"
-git commit -m "fix: iconos SVG en lugar de emoji en NavBar y areas del dashboard, en linea con el texto" >> "%LOG%" 2>&1
+git commit -m "fix: prevenir recarga accidental de pagina durante sesion, reintentar WS si se desconecta" >> "%LOG%" 2>&1
 echo. >> "%LOG%"
 
 echo ---- [5] Push ---- >> "%LOG%"

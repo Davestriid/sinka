@@ -366,6 +366,23 @@ export interface AdminShopItemRow {
   is_active: boolean;
 }
 
+export interface AdminPurchaseRow {
+  id: string;
+  user_id: string;
+  pack_id: string;
+  coins: number;
+  precio_centavos: number;
+  estado: string;
+  created_at: string;
+  paid_at: string | null;
+}
+
+export interface AdminRevenue {
+  ingresos_centavos: number;
+  compras_pagadas: number;
+  compras: AdminPurchaseRow[];
+}
+
 export const adminApi = {
   getStats: (accessToken: string) =>
     request<AdminStats>("/admin/stats", {
@@ -407,6 +424,10 @@ export const adminApi = {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify({ titulo, mensaje }),
+    }),
+  getRevenue: (accessToken: string) =>
+    request<AdminRevenue>("/admin/revenue", {
+      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };
 

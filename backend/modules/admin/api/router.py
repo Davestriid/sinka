@@ -8,7 +8,8 @@ Todo bajo /api/admin y protegido por rol (ver dependencies.py):
   POST  /admin/users/{id}/unban          — reactivar                   (admin+)
   PATCH /admin/users/{id}/role           — otorgar/quitar admin        (superadmin)
   GET   /admin/shop                      — catalogo completo (incl. inactivos) (admin+)
-  PATCH /admin/shop/{item_id}            — precio, nombre, activo/no   (admin+)
+  PATCH /admin/shop/{item_id}            — precio, nombre, activo/no   (superadmin)
+  GET   /admin/revenue                   — ingresos reales y compras   (superadmin)
   POST  /admin/announcements             — anuncio a todos los usuarios (admin+)
 """
 from fastapi import APIRouter, Depends, Query
@@ -17,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from modules.admin.api.dependencies import require_admin, require_superadmin
 from modules.admin.schemas import (
+    AdminRevenue,
     AdminShopItemRow,
     AdminStats,
     AdminUserList,
@@ -94,10 +96,21 @@ async def listar_tienda(
 async def editar_item_tienda(
     item_id: str,
     body: EditarItemTiendaRequest,
-    _admin: UserResponse = Depends(require_admin),
+    # Solo superadmin: cambiar precios toca directamente los ingresos,
+    # a diferencia de solo mirar el catalogo (GET /shop arriba, nivel admin).
+    _admin: UserResponse = Depends(require_superadmin),
     service: AdminService = Depends(_service),
 ) -> AdminShopItemRow:
     return await service.editar_item_tienda(item_id, body.model_dump(exclude_unset=True))
+
+
+@router.get("/revenue", response_model=AdminRevenue)
+async def ingresos(
+    # Solo superadmin: dinero real cobrado y detalle de compras individuales.
+    _admin: UserResponse = Depends(require_superadmin),
+    service: AdminService = Depends(_service),
+) -> AdminRevenue:
+    return await service.ingresos()
 
 
 @router.post("/announcements")

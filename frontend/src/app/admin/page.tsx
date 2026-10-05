@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 
 import {
   adminApi,
+  type AdminRevenue,
   type AdminShopItemRow,
   type AdminStats,
   type AdminUserRow,
@@ -21,7 +22,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius } from "@/lib/theme";
 
-type Pestana = "usuarios" | "tienda" | "stats";
+type Pestana = "usuarios" | "tienda" | "stats" | "ingresos";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -67,11 +68,17 @@ export default function AdminPage() {
           <button style={{ ...s.tab, ...(pestana === "tienda" ? s.tabOn : {}) }} onClick={() => setPestana("tienda")}>
             Tienda
           </button>
+          {user?.role === "superadmin" && (
+            <button style={{ ...s.tab, ...(pestana === "ingresos" ? s.tabOn : {}) }} onClick={() => setPestana("ingresos")}>
+              Ingresos
+            </button>
+          )}
         </div>
 
         {pestana === "stats"    && <PanelStats token={token} />}
         {pestana === "usuarios" && <PanelUsuarios token={token} esSuperadmin={user?.role === "superadmin"} propioId={user?.id} />}
-        {pestana === "tienda"   && <PanelTienda token={token} />}
+        {pestana === "tienda"   && <PanelTienda token={token} esSuperadmin={user?.role === "superadmin"} />}
+        {pestana === "ingresos" && user?.role === "superadmin" && <PanelIngresos token={token} />}
       </div>
     </div>
   );
@@ -200,7 +207,7 @@ function PanelUsuarios({
 }
 
 // ── Tienda ───────────────────────────────────────────────────────────────
-function PanelTienda({ token }: { token: string | null }) {
+function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadmin: boolean }) {
   const [items, setItems] = useState<AdminShopItemRow[]>([]);
   const [error, setError] = useState("");
 
@@ -232,26 +239,85 @@ function PanelTienda({ token }: { token: string | null }) {
   if (error) return <p style={s.error}>{error}</p>;
 
   return (
-    <div style={s.tabla}>
-      {items.map((item) => (
-        <div key={item.id} style={s.fila}>
-          <span style={{ fontSize: 20 }}>{item.preview || "🎁"}</span>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <div style={{ fontWeight: 600 }}>{item.name}</div>
-            <div style={s.muted}>{item.category}</div>
+    <div>
+      {!esSuperadmin && (
+        <p style={s.muted}>Solo un superadmin puede editar precios o activar/desactivar ítems.</p>
+      )}
+      <div style={s.tabla}>
+        {items.map((item) => (
+          <div key={item.id} style={s.fila}>
+            <span style={{ fontSize: 20 }}>{item.preview || "🎁"}</span>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontWeight: 600 }}>{item.name}</div>
+              <div style={s.muted}>{item.category}</div>
+            </div>
+            <input
+              type="number"
+              style={s.inputPrecio}
+              defaultValue={item.price_fc}
+              disabled={!esSuperadmin}
+              onBlur={(e) => guardarPrecio(item, Number(e.target.value))}
+            />
+            <button
+              style={item.is_active ? s.btnGhost : s.btn}
+              disabled={!esSuperadmin}
+              onClick={() => alternarActivo(item)}
+            >
+              {item.is_active ? "Desactivar" : "Activar"}
+            </button>
           </div>
-          <input
-            type="number"
-            style={s.inputPrecio}
-            defaultValue={item.price_fc}
-            onBlur={(e) => guardarPrecio(item, Number(e.target.value))}
-          />
-          <button style={item.is_active ? s.btnGhost : s.btn} onClick={() => alternarActivo(item)}>
-            {item.is_active ? "Desactivar" : "Activar"}
-          </button>
+        ))}
+        {items.length === 0 && !error && <p style={s.muted}>Cargando…</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Ingresos (solo superadmin) ────────────────────────────────────────────
+function PanelIngresos({ token }: { token: string | null }) {
+  const [datos, setDatos] = useState<AdminRevenue | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    adminApi.getRevenue(token).then(setDatos).catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token]);
+
+  if (error) return <p style={s.error}>{error}</p>;
+  if (!datos) return <p style={s.muted}>Cargando…</p>;
+
+  return (
+    <div>
+      <div style={s.grid}>
+        <div style={s.card}>
+          <div style={s.cardValor}>${(datos.ingresos_centavos / 100).toFixed(2)}</div>
+          <div style={s.muted}>Ingresos totales (pagados)</div>
         </div>
-      ))}
-      {items.length === 0 && !error && <p style={s.muted}>Cargando…</p>}
+        <div style={s.card}>
+          <div style={s.cardValor}>{datos.compras_pagadas}</div>
+          <div style={s.muted}>Compras pagadas</div>
+        </div>
+      </div>
+
+      <h3 style={{ margin: "20px 0 10px", fontSize: 15 }}>Compras recientes</h3>
+      <div style={s.tabla}>
+        {datos.compras.map((c) => (
+          <div key={c.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <div style={{ fontWeight: 600 }}>{c.pack_id}</div>
+              <div style={s.muted}>{new Date(c.created_at).toLocaleString()}</div>
+            </div>
+            <span style={s.muted}>{c.coins} FC</span>
+            <span style={{ fontWeight: 600 }}>${(c.precio_centavos / 100).toFixed(2)}</span>
+            <span
+              style={c.estado === "pagado" ? s.rolBadge : c.estado === "fallido" ? s.banBadge : s.muted}
+            >
+              {c.estado}
+            </span>
+          </div>
+        ))}
+        {datos.compras.length === 0 && <p style={s.muted}>Todavía no hay compras.</p>}
+      </div>
     </div>
   );
 }
