@@ -41,6 +41,16 @@ class AnuncioRequest(BaseModel):
     mensaje: str
 
 
+class AdminAnnouncementRow(BaseModel):
+    id: str
+    titulo: str
+    mensaje: str
+    activo: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class AdminShopItemRow(BaseModel):
     id: str
     name: str
@@ -72,9 +82,64 @@ class AdminRevenue(BaseModel):
     compras: list[AdminPurchaseRow]
 
 
+class AdminReportRow(BaseModel):
+    id: str
+    reporter_id: str
+    reporter_username: str | None = None
+    reported_user_id: str | None = None
+    reported_username: str | None = None
+    tipo: str
+    reason: str
+    details: str | None = None
+    status: str
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ResolverReporteRequest(BaseModel):
+    status: str  # "revisado" | "descartado"
+
+
 class EditarItemTiendaRequest(BaseModel):
     """Todo opcional: solo se cambia lo que se envia."""
     name:        str | None = None
     description: str | None = None
     price_fc:    int | None = None
     is_active:   bool | None = None
+
+
+class AdminSettingRow(BaseModel):
+    id: str
+    code: str
+    name: str
+    value: dict
+    description: str | None = None
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ActualizarParametroRequest(BaseModel):
+    value: dict
+
+
+class CrearParametroRequest(BaseModel):
+    code: str
+    name: str
+    value: dict
+    description: str | None = None
+
+
+class AdminAuditRow(BaseModel):
+    id: str
+    admin_id: str
+    admin_username: str | None = None
+    accion: str
+    objetivo_tipo: str | None = None
+    objetivo_id: str | None = None
+    detalle: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

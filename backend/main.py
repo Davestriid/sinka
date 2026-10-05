@@ -14,6 +14,7 @@ from core.middleware import SecurityHeadersMiddleware
 from modules.achievements.api.router import router as achievements_router
 from modules.achievements.services.achievements_service import achievements_service
 from modules.admin.api.router import router as admin_router
+from modules.announcements.api.router import router as announcements_router
 from modules.gamification.api.router import router as gamification_router
 from modules.gamification.api.shop_router import router as shop_router
 from modules.gamification.services.gamification_service import gamification_service
@@ -22,6 +23,7 @@ from modules.identity.api.router import catalog_router
 from modules.identity.api.router import router as identity_router
 from modules.matchmaking.api.router import router as matchmaking_router
 from modules.payments.api.router import router as payments_router
+from modules.reports.api.router import router as reports_router
 from modules.scheduling.api.router import router as scheduling_router
 from modules.sessions.api.router import router as sessions_router
 from modules.social.api.router import garden_router
@@ -37,6 +39,9 @@ import modules.social.models        # noqa: F401
 import modules.groups.models        # noqa: F401
 import modules.scheduling.models    # noqa: F401
 import modules.payments.models      # noqa: F401
+import modules.reports.models       # noqa: F401
+import modules.announcements.models # noqa: F401
+import modules.admin.models         # noqa: F401
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -71,6 +76,8 @@ app.include_router(scheduling_router,   prefix="/api")
 app.include_router(achievements_router, prefix="/api")
 app.include_router(admin_router,        prefix="/api")
 app.include_router(payments_router,     prefix="/api")
+app.include_router(reports_router,      prefix="/api")
+app.include_router(announcements_router, prefix="/api")
 
 
 async def _regar_jardin(payload: dict) -> None:

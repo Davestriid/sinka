@@ -4,8 +4,13 @@
  * Panel de administracion.
  *
  * Solo entra gente con role "admin" o "superadmin" (ver backend/modules/admin).
- * Tres pestañas: usuarios (buscar, banear, cambiar rol), tienda (editar
- * precios/activo) y estadisticas (numeros generales de la app).
+ * Pestañas: estadisticas, usuarios (buscar, banear, cambiar rol), tienda
+ * (editar precios/activo), reportes (moderar), anuncios (banner del
+ * dashboard) e ingresos (solo superadmin).
+ *
+ * Toda accion que cambia algo (banear, cambiar rol, editar precio, resolver
+ * un reporte, enviar o desactivar un anuncio) pide confirmacion antes de
+ * ejecutarse — ver confirmar() mas abajo.
  *
  * Deliberadamente simple: tablas planas, sin librerias de grillas nuevas.
  */
@@ -14,7 +19,11 @@ import { useRouter } from "next/navigation";
 
 import {
   adminApi,
+  type AdminAnnouncementRow,
+  type AdminAuditRow,
+  type AdminReportRow,
   type AdminRevenue,
+  type AdminSettingRow,
   type AdminShopItemRow,
   type AdminStats,
   type AdminUserRow,
@@ -22,7 +31,22 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackground } from "@/lib/theme";
 
-type Pestana = "usuarios" | "tienda" | "stats" | "ingresos";
+type Pestana =
+  | "usuarios" | "tienda" | "stats" | "ingresos" | "buzon" | "anuncios"
+  | "parametros" | "auditoria";
+
+const TIPOS_BUZON: Record<string, string> = {
+  reporte_usuario: "Reporte de usuario",
+  queja:           "Queja",
+  sugerencia:      "Sugerencia",
+  otro:            "Otro",
+};
+
+/** Confirmacion simple antes de cualquier accion de administracion. */
+function confirmar(mensaje: string): boolean {
+  if (typeof window === "undefined") return true;
+  return window.confirm(mensaje);
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -68,6 +92,22 @@ export default function AdminPage() {
           <button style={{ ...s.tab, ...(pestana === "tienda" ? s.tabOn : {}) }} onClick={() => setPestana("tienda")}>
             Tienda
           </button>
+          <button style={{ ...s.tab, ...(pestana === "buzon" ? s.tabOn : {}) }} onClick={() => setPestana("buzon")}>
+            Buzón
+          </button>
+          <button style={{ ...s.tab, ...(pestana === "anuncios" ? s.tabOn : {}) }} onClick={() => setPestana("anuncios")}>
+            Anuncios
+          </button>
+          {user?.role === "superadmin" && (
+            <button style={{ ...s.tab, ...(pestana === "parametros" ? s.tabOn : {}) }} onClick={() => setPestana("parametros")}>
+              Parámetros
+            </button>
+          )}
+          {user?.role === "superadmin" && (
+            <button style={{ ...s.tab, ...(pestana === "auditoria" ? s.tabOn : {}) }} onClick={() => setPestana("auditoria")}>
+              Auditoría
+            </button>
+          )}
           {user?.role === "superadmin" && (
             <button style={{ ...s.tab, ...(pestana === "ingresos" ? s.tabOn : {}) }} onClick={() => setPestana("ingresos")}>
               Ingresos
@@ -75,10 +115,14 @@ export default function AdminPage() {
           )}
         </div>
 
-        {pestana === "stats"    && <PanelStats token={token} />}
-        {pestana === "usuarios" && <PanelUsuarios token={token} esSuperadmin={user?.role === "superadmin"} propioId={user?.id} />}
-        {pestana === "tienda"   && <PanelTienda token={token} esSuperadmin={user?.role === "superadmin"} />}
-        {pestana === "ingresos" && user?.role === "superadmin" && <PanelIngresos token={token} />}
+        {pestana === "stats"      && <PanelStats token={token} />}
+        {pestana === "usuarios"   && <PanelUsuarios token={token} esSuperadmin={user?.role === "superadmin"} propioId={user?.id} />}
+        {pestana === "tienda"     && <PanelTienda token={token} esSuperadmin={user?.role === "superadmin"} />}
+        {pestana === "buzon"      && <PanelBuzon token={token} />}
+        {pestana === "anuncios"   && <PanelAnuncios token={token} />}
+        {pestana === "parametros" && user?.role === "superadmin" && <PanelParametros token={token} />}
+        {pestana === "auditoria"  && user?.role === "superadmin" && <PanelAuditoria token={token} />}
+        {pestana === "ingresos"   && user?.role === "superadmin" && <PanelIngresos token={token} />}
       </div>
     </div>
   );
@@ -123,7 +167,10 @@ function PanelUsuarios({
   token, esSuperadmin, propioId,
 }: { token: string | null; esSuperadmin: boolean; propioId?: string }) {
   const [q, setQ] = useState("");
+  const [rolFiltro, setRolFiltro] = useState("");
+  const [bannedFiltro, setBannedFiltro] = useState<"" | "true" | "false">("");
   const [lista, setLista] = useState<AdminUserRow[]>([]);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
 
@@ -131,14 +178,18 @@ function PanelUsuarios({
     if (!token) return;
     setCargando(true);
     try {
-      const res = await adminApi.getUsers(token, q, 1);
+      const res = await adminApi.getUsers(token, q, 1, {
+        role: rolFiltro || undefined,
+        banned: bannedFiltro === "" ? undefined : bannedFiltro === "true",
+      });
       setLista(res.items);
+      setSeleccion(new Set());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
       setCargando(false);
     }
-  }, [token, q]);
+  }, [token, q, rolFiltro, bannedFiltro]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -151,14 +202,83 @@ function PanelUsuarios({
     }
   };
 
+  const alternarSeleccion = (id: string) => {
+    setSeleccion((s) => {
+      const copia = new Set(s);
+      if (copia.has(id)) copia.delete(id); else copia.add(id);
+      return copia;
+    });
+  };
+
+  const seleccionables = lista.filter((u) => u.id !== propioId);
+  const todoSeleccionado = seleccionables.length > 0 && seleccionables.every((u) => seleccion.has(u.id));
+
+  const accionEnLote = async (banear: boolean) => {
+    if (!token || seleccion.size === 0) return;
+    const verbo = banear ? "suspender" : "reactivar";
+    if (!confirmar(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} a ${seleccion.size} usuario(s) seleccionado(s)?`)) return;
+    try {
+      const actualizados = await adminApi.banUsersLote(token, Array.from(seleccion), banear);
+      const mapa = new Map(actualizados.map((u) => [u.id, u]));
+      setLista((l) => l.map((u) => mapa.get(u.id) ?? u));
+      setSeleccion(new Set());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo aplicar la acción en lote.");
+    }
+  };
+
   return (
     <div>
-      <input
-        style={s.input}
-        placeholder="Buscar por usuario o correo…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <input
+          style={{ ...s.input, flex: 2, minWidth: 180, marginBottom: 0 }}
+          placeholder="Buscar por usuario o correo…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <select
+          style={{ ...s.selectRol, flex: 1 }}
+          value={rolFiltro}
+          onChange={(e) => setRolFiltro(e.target.value)}
+        >
+          <option value="">Todos los roles</option>
+          <option value="usuario">usuario</option>
+          <option value="admin">admin</option>
+          <option value="superadmin">superadmin</option>
+        </select>
+        <select
+          style={{ ...s.selectRol, flex: 1 }}
+          value={bannedFiltro}
+          onChange={(e) => setBannedFiltro(e.target.value as "" | "true" | "false")}
+        >
+          <option value="">Suspendidos y activos</option>
+          <option value="true">Solo suspendidos</option>
+          <option value="false">Solo activos</option>
+        </select>
+      </div>
+
+      {seleccionables.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <label style={{ ...s.muted, display: "flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="checkbox"
+              checked={todoSeleccionado}
+              onChange={() =>
+                setSeleccion(todoSeleccionado ? new Set() : new Set(seleccionables.map((u) => u.id)))
+              }
+            />
+            Seleccionar todos
+          </label>
+          {seleccion.size > 0 && (
+            <>
+              <span style={s.muted}>{seleccion.size} seleccionado(s)</span>
+              <button style={s.btnDanger} onClick={() => accionEnLote(true)}>Suspender selección</button>
+              <button style={s.btnGhost} onClick={() => accionEnLote(false)}>Reactivar selección</button>
+            </>
+          )}
+        </div>
+      )}
+
       {error && <p style={s.error}>{error}</p>}
       {cargando ? (
         <p style={s.muted}>Cargando…</p>
@@ -166,6 +286,13 @@ function PanelUsuarios({
         <div style={s.tabla}>
           {lista.map((u) => (
             <div key={u.id} style={s.fila}>
+              {u.id !== propioId && (
+                <input
+                  type="checkbox"
+                  checked={seleccion.has(u.id)}
+                  onChange={() => alternarSeleccion(u.id)}
+                />
+              )}
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontWeight: 600 }}>{u.alias || u.username}</div>
                 <div style={s.muted}>{u.email}</div>
@@ -177,7 +304,11 @@ function PanelUsuarios({
                 <select
                   style={s.selectRol}
                   value={u.role}
-                  onChange={(e) => act(() => token ? adminApi.changeRole(token, u.id, e.target.value) : Promise.reject())}
+                  onChange={(e) => {
+                    const nuevoRol = e.target.value;
+                    if (!confirmar(`¿Cambiar el rol de ${u.alias || u.username} a "${nuevoRol}"?`)) return;
+                    act(() => token ? adminApi.changeRole(token, u.id, nuevoRol) : Promise.reject());
+                  }}
                 >
                   <option value="usuario">usuario</option>
                   <option value="admin">admin</option>
@@ -188,11 +319,14 @@ function PanelUsuarios({
               {u.id !== propioId && (
                 <button
                   style={u.is_banned ? s.btnGhost : s.btnDanger}
-                  onClick={() => act(() =>
-                    token
-                      ? (u.is_banned ? adminApi.unbanUser(token, u.id) : adminApi.banUser(token, u.id))
-                      : Promise.reject())
-                  }
+                  onClick={() => {
+                    const accion = u.is_banned ? "reactivar" : "suspender";
+                    if (!confirmar(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} a ${u.alias || u.username}?`)) return;
+                    act(() =>
+                      token
+                        ? (u.is_banned ? adminApi.unbanUser(token, u.id) : adminApi.banUser(token, u.id))
+                        : Promise.reject());
+                  }}
                 >
                   {u.is_banned ? "Reactivar" : "Suspender"}
                 </button>
@@ -218,6 +352,8 @@ function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadm
 
   const guardarPrecio = async (item: AdminShopItemRow, precio: number) => {
     if (!token) return;
+    if (precio === item.price_fc) return;   // sin cambio real, no molestar con confirmacion
+    if (!confirmar(`¿Cambiar el precio de "${item.name}" a ${precio} FocusCoins?`)) return;
     try {
       const actualizado = await adminApi.editShopItem(token, item.id, { price_fc: precio });
       setItems((l) => l.map((i) => (i.id === item.id ? actualizado : i)));
@@ -228,6 +364,8 @@ function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadm
 
   const alternarActivo = async (item: AdminShopItemRow) => {
     if (!token) return;
+    const accion = item.is_active ? "desactivar" : "activar";
+    if (!confirmar(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${item.name}" en la tienda?`)) return;
     try {
       const actualizado = await adminApi.editShopItem(token, item.id, { is_active: !item.is_active });
       setItems((l) => l.map((i) => (i.id === item.id ? actualizado : i)));
@@ -268,6 +406,275 @@ function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadm
           </div>
         ))}
         {items.length === 0 && !error && <p style={s.muted}>Cargando…</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Buzón (reportes + quejas/sugerencias/comentarios) ────────────────────
+function PanelBuzon({ token }: { token: string | null }) {
+  const [lista, setLista] = useState<AdminReportRow[]>([]);
+  const [error, setError] = useState("");
+  const [soloPendientes, setSoloPendientes] = useState(true);
+  const [tipoFiltro, setTipoFiltro] = useState("");
+
+  const cargar = useCallback(() => {
+    if (!token) return;
+    adminApi.getReports(token, soloPendientes ? "pendiente" : undefined, tipoFiltro || undefined)
+      .then(setLista)
+      .catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token, soloPendientes, tipoFiltro]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const resolver = async (r: AdminReportRow, nuevoEstado: "revisado" | "descartado") => {
+    if (!token) return;
+    const verbo = nuevoEstado === "revisado" ? "marcar como revisado" : "descartar";
+    const objetivo = r.reported_username || r.reported_user_id || "este mensaje";
+    if (!confirmar(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} ${r.tipo === "reporte_usuario" ? `el reporte contra ${objetivo}` : objetivo}?`)) return;
+    try {
+      await adminApi.resolveReport(token, r.id, nuevoEstado);
+      cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo actualizar.");
+    }
+  };
+
+  if (error) return <p style={s.error}>{error}</p>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+        <label style={{ ...s.muted, display: "flex", alignItems: "center", gap: 6 }}>
+          <input type="checkbox" checked={soloPendientes} onChange={(e) => setSoloPendientes(e.target.checked)} />
+          Solo pendientes
+        </label>
+        <select style={s.selectRol} value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          <option value="reporte_usuario">Reportes de usuario</option>
+          <option value="queja">Quejas</option>
+          <option value="sugerencia">Sugerencias</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div style={s.tabla}>
+        {lista.map((r) => (
+          <div key={r.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontWeight: 600 }}>
+                {r.tipo === "reporte_usuario"
+                  ? `${r.reporter_username || r.reporter_id} → ${r.reported_username || r.reported_user_id}`
+                  : r.reporter_username || r.reporter_id}
+              </div>
+              <div style={s.muted}>
+                <span style={s.tipoBadge}>{TIPOS_BUZON[r.tipo] ?? r.tipo}</span>
+                {" "}{r.reason !== r.tipo ? r.reason : ""} {r.details ? `— ${r.details}` : ""}
+              </div>
+              <div style={s.muted}>{new Date(r.created_at).toLocaleString()}</div>
+            </div>
+            <span style={r.status === "pendiente" ? s.banBadge : s.rolBadge}>{r.status}</span>
+            {r.status === "pendiente" && (
+              <>
+                <button style={s.btn} onClick={() => resolver(r, "revisado")}>Marcar revisado</button>
+                <button style={s.btnGhost} onClick={() => resolver(r, "descartado")}>Descartar</button>
+              </>
+            )}
+          </div>
+        ))}
+        {lista.length === 0 && <p style={s.muted}>No hay nada{soloPendientes ? " pendiente" : ""} en el buzón.</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Anuncios (banner del dashboard) ──────────────────────────────────────
+function PanelAnuncios({ token }: { token: string | null }) {
+  const [lista, setLista] = useState<AdminAnnouncementRow[]>([]);
+  const [error, setError] = useState("");
+  const [titulo, setTitulo] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  const cargar = useCallback(() => {
+    if (!token) return;
+    adminApi.getAnnouncements(token).then(setLista).catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const enviar = async () => {
+    if (!token || !titulo.trim() || !mensaje.trim()) return;
+    if (!confirmar(`¿Enviar el anuncio "${titulo}" a todos los usuarios? Aparecerá como banner en su panel de inicio.`)) return;
+    setEnviando(true);
+    try {
+      await adminApi.sendAnnouncement(token, titulo.trim(), mensaje.trim());
+      setTitulo("");
+      setMensaje("");
+      cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar el anuncio.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const desactivar = async (a: AdminAnnouncementRow) => {
+    if (!token) return;
+    if (!confirmar(`¿Ocultar el anuncio "${a.titulo}"? Dejará de verse en el dashboard.`)) return;
+    try {
+      await adminApi.deactivateAnnouncement(token, a.id);
+      cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo desactivar.");
+    }
+  };
+
+  if (error) return <p style={s.error}>{error}</p>;
+
+  return (
+    <div>
+      <div style={{ ...s.card, marginBottom: 16 }}>
+        <input
+          style={s.input}
+          placeholder="Título"
+          value={titulo}
+          maxLength={120}
+          onChange={(e) => setTitulo(e.target.value)}
+        />
+        <textarea
+          style={{ ...s.input, minHeight: 70, resize: "vertical" }}
+          placeholder="Mensaje"
+          value={mensaje}
+          onChange={(e) => setMensaje(e.target.value)}
+        />
+        <button
+          style={{ ...s.btn, opacity: enviando || !titulo.trim() || !mensaje.trim() ? 0.6 : 1 }}
+          disabled={enviando || !titulo.trim() || !mensaje.trim()}
+          onClick={enviar}
+        >
+          {enviando ? "Enviando…" : "Enviar anuncio"}
+        </button>
+      </div>
+
+      <div style={s.tabla}>
+        {lista.map((a) => (
+          <div key={a.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontWeight: 600 }}>{a.titulo}</div>
+              <div style={s.muted}>{a.mensaje}</div>
+              <div style={s.muted}>{new Date(a.created_at).toLocaleString()}</div>
+            </div>
+            <span style={a.activo ? s.rolBadge : s.muted}>{a.activo ? "activo" : "oculto"}</span>
+            {a.activo && (
+              <button style={s.btnGhost} onClick={() => desactivar(a)}>Desactivar</button>
+            )}
+          </div>
+        ))}
+        {lista.length === 0 && <p style={s.muted}>Todavía no has enviado anuncios.</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Parámetros configurables (solo superadmin) ───────────────────────────
+function PanelParametros({ token }: { token: string | null }) {
+  const [lista, setLista] = useState<AdminSettingRow[]>([]);
+  const [error, setError] = useState("");
+  const [valores, setValores] = useState<Record<string, string>>({});
+
+  const cargar = useCallback(() => {
+    if (!token) return;
+    adminApi.getSettings(token)
+      .then((res) => {
+        setLista(res);
+        setValores(Object.fromEntries(res.map((s2) => [s2.id, JSON.stringify(s2.value)])));
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const guardar = async (setting: AdminSettingRow) => {
+    if (!token) return;
+    let nuevo: Record<string, unknown>;
+    try {
+      nuevo = JSON.parse(valores[setting.id]);
+    } catch {
+      setError(`El valor de "${setting.name}" no es un JSON válido.`);
+      return;
+    }
+    if (JSON.stringify(nuevo) === JSON.stringify(setting.value)) return;
+    if (!confirmar(`¿Actualizar el parámetro "${setting.name}"? Esto puede cambiar el comportamiento de la app para todos los usuarios.`)) return;
+    try {
+      const actualizado = await adminApi.updateSetting(token, setting.id, nuevo);
+      setLista((l) => l.map((s2) => (s2.id === actualizado.id ? actualizado : s2)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar el parámetro.");
+    }
+  };
+
+  if (error) return <p style={s.error}>{error}</p>;
+
+  return (
+    <div>
+      <p style={{ ...s.muted, marginBottom: 14 }}>
+        Valores en formato JSON (ej: {`{"amount": 15}`}). Cambiar esto afecta a toda la aplicación de inmediato.
+      </p>
+      <div style={s.tabla}>
+        {lista.map((setting) => (
+          <div key={setting.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontWeight: 600 }}>{setting.name}</div>
+              <div style={s.muted}>{setting.code}</div>
+              {setting.description && <div style={s.muted}>{setting.description}</div>}
+            </div>
+            <input
+              style={{ ...s.inputPrecio, width: 160 }}
+              value={valores[setting.id] ?? ""}
+              onChange={(e) => setValores((v) => ({ ...v, [setting.id]: e.target.value }))}
+              onBlur={() => guardar(setting)}
+            />
+          </div>
+        ))}
+        {lista.length === 0 && !error && <p style={s.muted}>Todavía no hay parámetros configurados.</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Auditoría (solo superadmin) ───────────────────────────────────────────
+function PanelAuditoria({ token }: { token: string | null }) {
+  const [lista, setLista] = useState<AdminAuditRow[]>([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    adminApi.getAudit(token).then(setLista).catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token]);
+
+  if (error) return <p style={s.error}>{error}</p>;
+
+  return (
+    <div>
+      <p style={{ ...s.muted, marginBottom: 14 }}>
+        Quién hizo qué, cuándo. Registro de solo lectura — no se puede editar ni borrar desde aquí.
+      </p>
+      <div style={s.tabla}>
+        {lista.map((l) => (
+          <div key={l.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontWeight: 600 }}>
+                {l.admin_username || l.admin_id} — {l.accion}
+              </div>
+              <div style={s.muted}>
+                {l.objetivo_tipo ? `${l.objetivo_tipo}${l.objetivo_id ? ` (${l.objetivo_id})` : ""}` : ""}
+                {l.detalle ? ` — ${l.detalle}` : ""}
+              </div>
+              <div style={s.muted}>{new Date(l.created_at).toLocaleString()}</div>
+            </div>
+          </div>
+        ))}
+        {lista.length === 0 && !error && <p style={s.muted}>Todavía no hay acciones registradas.</p>}
       </div>
     </div>
   );
@@ -359,6 +766,11 @@ const s: Record<string, React.CSSProperties> = {
   banBadge: {
     fontSize: 11, padding: "3px 10px", borderRadius: radius.pill,
     background: color.accentSoft, color: color.accent,
+  },
+  tipoBadge: {
+    fontSize: 10, padding: "2px 8px", borderRadius: radius.pill,
+    background: color.surface, border: `1px solid ${color.border}`, color: color.textMuted,
+    marginRight: 6, display: "inline-block",
   },
   selectRol: {
     padding: "6px 10px", borderRadius: radius.sm, border: `1px solid ${color.border}`,

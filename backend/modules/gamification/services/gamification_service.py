@@ -22,7 +22,10 @@ import logging
 from datetime import date
 from typing import Any
 
+from sqlalchemy import select
+
 from core.database import AsyncSessionLocal
+from modules.admin.models import Setting
 from modules.gamification.models import SessionPenalty
 from modules.gamification.services import trust_service
 from modules.gamification.repositories.gamification_repository import GamificationRepository
@@ -101,18 +104,28 @@ def compute_streak(
         return 1, True, True
 
 
-def compute_xp_earned(pomodoros: int, streak: int) -> int:
+def compute_xp_earned(pomodoros: int, streak: int, xp_per_pomodoro: int = XP_PER_POMODORO) -> int:
+    """
+    xp_per_pomodoro es configurable desde el panel de administracion
+    (parametro "xp_per_pomodoro"); por defecto usa la constante de este
+    modulo, asi que los tests que llaman esta funcion sin ese argumento
+    siguen funcionando igual.
+    """
     bonus      = min(STREAK_BONUS_RATE * (streak - 1), STREAK_BONUS_CAP)
     multiplier = 1.0 + bonus
-    return int(XP_PER_POMODORO * pomodoros * multiplier)
+    return int(xp_per_pomodoro * pomodoros * multiplier)
 
 
 def compute_fc_earned(
     is_first_session_today: bool,
     plant_stage: str,
+    fc_session_complete: int = FC_SESSION_COMPLETE,
 ) -> int:
-    """Calcula los FocusCoins a otorgar por una sesión completada."""
-    fc = FC_SESSION_COMPLETE
+    """
+    Calcula los FocusCoins a otorgar por una sesión completada.
+    fc_session_complete es configurable desde el panel ("fc_session_complete").
+    """
+    fc = fc_session_complete
     if plant_stage == "majestic":
         fc += FC_MAJESTIC_PLANT
     if is_first_session_today:
@@ -239,6 +252,23 @@ class GamificationService:
 
     # ── Lógica de negocio ─────────────────────────────────────────────────────
 
+    async def _leer_parametro(self, db, code: str, default: int) -> int:
+        """
+        Lee un Setting configurable por codigo (ver modules/admin). Si no
+        existe todavia o el valor no trae "amount", usa el default de este
+        modulo — nunca se rompe el otorgamiento de XP/FC por un parametro
+        mal configurado o ausente.
+        """
+        try:
+            setting = (
+                await db.execute(select(Setting).where(Setting.code == code))
+            ).scalar_one_or_none()
+            if setting and isinstance(setting.value, dict) and "amount" in setting.value:
+                return int(setting.value["amount"])
+        except Exception:
+            logger.exception("No se pudo leer el parametro '%s', usando default", code)
+        return default
+
     async def _award_xp_and_fc(
         self,
         repo: GamificationRepository,
@@ -257,14 +287,18 @@ class GamificationService:
             stats.last_session_date, stats.streak_current, today
         )
 
-        # XP
-        xp_earned = compute_xp_earned(rounds_completed, new_streak)
+        # XP — xp_per_pomodoro es configurable desde el panel de admin
+        xp_per_pomodoro = await self._leer_parametro(repo.db, "xp_per_pomodoro", XP_PER_POMODORO)
+        xp_earned = compute_xp_earned(rounds_completed, new_streak, xp_per_pomodoro)
         new_xp    = stats.xp_total + xp_earned
         new_level = resolve_level(new_xp)
 
-        # FocusCoins
+        # FocusCoins — fc_session_complete tambien es configurable
+        fc_session_complete = await self._leer_parametro(
+            repo.db, "fc_session_complete", FC_SESSION_COMPLETE
+        )
         is_first_today = (stats.last_session_date != today)
-        fc_earned = compute_fc_earned(is_first_today, plant_stage)
+        fc_earned = compute_fc_earned(is_first_today, plant_stage, fc_session_complete)
 
         # Persistir
         stats.xp_total            = new_xp

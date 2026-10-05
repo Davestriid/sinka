@@ -43,11 +43,19 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
-    async def listar_admin(self, termino: str | None, pagina: int, por_pagina: int) -> tuple[list[User], int]:
+    async def listar_admin(
+        self,
+        termino: str | None,
+        pagina: int,
+        por_pagina: int,
+        role: str | None = None,
+        banned: bool | None = None,
+    ) -> tuple[list[User], int]:
         """
         Listado paginado para el panel de administracion: todos los usuarios
         (activos o no, baneados o no), a diferencia de `search` que es para
-        encontrar gente con quien vincularse.
+        encontrar gente con quien vincularse. `role` y `banned` filtran
+        ademas de la busqueda por texto, no en su lugar.
         """
         consulta = select(User)
         conteo = select(func.count(User.id))
@@ -56,6 +64,12 @@ class UserRepository:
             filtro = func.lower(User.username).like(patron) | func.lower(User.email).like(patron)
             consulta = consulta.where(filtro)
             conteo = conteo.where(filtro)
+        if role:
+            consulta = consulta.where(User.role == role)
+            conteo = conteo.where(User.role == role)
+        if banned is not None:
+            consulta = consulta.where(User.is_banned.is_(banned))
+            conteo = conteo.where(User.is_banned.is_(banned))
 
         total = (await self.db.execute(conteo)).scalar_one()
         resultado = await self.db.execute(

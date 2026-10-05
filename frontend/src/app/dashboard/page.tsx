@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { wsUrl, gamificationApi, type UserStats } from "@/lib/api";
+import { wsUrl, gamificationApi, announcementsApi, type UserStats, type ActiveAnnouncement } from "@/lib/api";
+import { Megaphone as MegaphoneIcon, X as XIcon } from "lucide-react";
 import { useTranslation } from "@/components/I18nProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, shadow, fontSerif, ease, pageBackground } from "@/lib/theme";
@@ -59,6 +60,26 @@ export default function DashboardPage() {
     if (!token) return;
     gamificationApi.getStats(token).then(setStats).catch(() => {});
   }, [token]);
+
+  // Anuncio del admin (banner). Se guarda el id ya cerrado en localStorage
+  // para no repetirlo en cada visita mientras siga siendo el mismo.
+  const [anuncio, setAnuncio] = useState<ActiveAnnouncement | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    announcementsApi.getActive(token).then((a) => {
+      if (!a) return;
+      const cerrado = typeof window !== "undefined" && localStorage.getItem("sinka_anuncio_cerrado");
+      if (cerrado === a.id) return;
+      setAnuncio(a);
+    }).catch(() => {});
+  }, [token]);
+
+  const cerrarAnuncio = () => {
+    if (anuncio && typeof window !== "undefined") {
+      localStorage.setItem("sinka_anuncio_cerrado", anuncio.id);
+    }
+    setAnuncio(null);
+  };
 
   // Limpiar WS al desmontar
   useEffect(() => {
@@ -130,6 +151,24 @@ export default function DashboardPage() {
       <main style={styles.main}>
 
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
+
+        {/* ── Anuncio del admin ── */}
+        {anuncio && (
+          <div style={styles.anuncio} className="sinka-fade-up">
+            <MegaphoneIcon size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{anuncio.titulo}</div>
+              <div style={{ color: color.textMuted, fontSize: 13 }}>{anuncio.mensaje}</div>
+            </div>
+            <button
+              onClick={cerrarAnuncio}
+              aria-label="Cerrar anuncio"
+              style={{ background: "none", border: "none", cursor: "pointer", color: color.textMuted, flexShrink: 0 }}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+        )}
 
         {/* ── Saludo ── */}
         <div className="sinka-fade-up">
@@ -541,6 +580,17 @@ const styles: Record<string, React.CSSProperties> = {
     animation:    "spin 0.9s linear infinite",
   },
   // Gamification widget
+  anuncio: {
+    display:      "flex",
+    alignItems:   "flex-start",
+    gap:          10,
+    background:   color.accentSoft,
+    border:       `1px solid ${color.accent}`,
+    borderRadius: radius.lg,
+    padding:      "12px 14px",
+    color:        color.text,
+    fontSize:     14,
+  },
   statsCard: {
     background:   color.surface,
     border:       `1px solid ${color.border}`,

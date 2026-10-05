@@ -8,10 +8,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { authApi, profileApi, trustApi, type TrustState } from "@/lib/api";
+import { authApi, feedbackApi, profileApi, trustApi, TIPOS_FEEDBACK, type TrustState } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/components/ThemeProvider";
-import { useTranslation } from "@/components/I18nProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
@@ -65,7 +64,6 @@ export default function PerfilPage() {
   const router = useRouter();
   const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
   const { setTema: aplicarTemaGlobal } = useTheme();
-  const { setIdioma: aplicarIdiomaGlobal } = useTranslation();
 
   const [alias,  setAlias]  = useState("");
   const [bio,    setBio]    = useState("");
@@ -80,6 +78,11 @@ export default function PerfilPage() {
 
   const [procesandoFoto, setProcesandoFoto] = useState(false);
   const archivoRef = useRef<HTMLInputElement>(null);
+
+  const [tipoFeedback, setTipoFeedback] = useState<string>(TIPOS_FEEDBACK[0].value);
+  const [textoFeedback, setTextoFeedback] = useState("");
+  const [enviandoFeedback, setEnviandoFeedback] = useState(false);
+  const [feedbackOk, setFeedbackOk] = useState("");
 
   /** Una foto se distingue de un símbolo porque es una imagen incrustada. */
   const esImagen = avatar.startsWith("data:image") || avatar.startsWith("http");
@@ -163,6 +166,21 @@ export default function PerfilPage() {
       setGuardando(false);
     }
   }, [token, alias, bio, avatar, idioma, tema, setUser]);
+
+  const enviarFeedback = useCallback(async () => {
+    if (!token || textoFeedback.trim().length < 3) return;
+    setEnviandoFeedback(true);
+    setFeedbackOk("");
+    try {
+      await feedbackApi.enviar(token, tipoFeedback, textoFeedback.trim());
+      setTextoFeedback("");
+      setFeedbackOk("Gracias, lo recibimos.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar.");
+    } finally {
+      setEnviandoFeedback(false);
+    }
+  }, [token, tipoFeedback, textoFeedback]);
 
   return (
     <div style={s.page}>
@@ -257,23 +275,6 @@ export default function PerfilPage() {
       <section id="preferencias" style={s.card}>
         <h2 style={s.cardTitle}>Preferencias</h2>
 
-        <p style={s.label}>Idioma</p>
-        <div style={s.chips}>
-          <button
-            style={{ ...s.chip, ...(idioma === "es" ? s.chipOn : {}) }}
-            onClick={() => { setIdioma("es"); aplicarIdiomaGlobal("es"); }}
-          >
-            Español
-          </button>
-          <button
-            style={{ ...s.chip, ...(idioma === "en" ? s.chipOn : {}) }}
-            onClick={() => { setIdioma("en"); aplicarIdiomaGlobal("en"); }}
-          >
-            English
-          </button>
-        </div>
-        <span style={s.muted}>Se aplica al instante en el menú y el panel de inicio.</span>
-
         <p style={s.label}>Tema</p>
         <div style={s.chips}>
           <button
@@ -324,6 +325,52 @@ export default function PerfilPage() {
           )}
         </section>
       )}
+
+      <section style={s.card}>
+        <h2 style={s.cardTitle}>Buzón de sugerencias</h2>
+        <p style={s.muted}>
+          ¿Algo no funciona bien, o se te ocurre una mejora? Cuéntanos — lo revisa el equipo de administración.
+        </p>
+
+        <p style={s.label}>Tipo</p>
+        <div style={s.chips}>
+          {TIPOS_FEEDBACK.map((t) => (
+            <button
+              key={t.value}
+              style={{ ...s.chip, ...(tipoFeedback === t.value ? s.chipOn : {}) }}
+              onClick={() => setTipoFeedback(t.value)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <p style={s.label}>Mensaje</p>
+        <textarea
+          style={{ ...s.input, minHeight: 80, resize: "vertical" }}
+          value={textoFeedback}
+          maxLength={1000}
+          placeholder="Cuéntanos qué pasó o qué te gustaría ver…"
+          onChange={(e) => { setTextoFeedback(e.target.value); setFeedbackOk(""); }}
+        />
+        <span style={s.muted}>{textoFeedback.length}/1000</span>
+
+        {feedbackOk && <div style={{ ...s.ok, marginTop: 10 }}>{feedbackOk}</div>}
+
+        <div style={{ marginTop: 12 }}>
+          <button
+            style={{
+              ...s.btnFoto,
+              opacity: enviandoFeedback || textoFeedback.trim().length < 3 ? 0.55 : 1,
+              cursor:  enviandoFeedback || textoFeedback.trim().length < 3 ? "not-allowed" : "pointer",
+            }}
+            disabled={enviandoFeedback || textoFeedback.trim().length < 3}
+            onClick={enviarFeedback}
+          >
+            {enviandoFeedback ? "Enviando…" : "Enviar"}
+          </button>
+        </div>
+      </section>
 
       {/* Espacio para que la barra anclada no tape el ultimo contenido */}
       <div style={{ height: 84 }} />

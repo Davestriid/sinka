@@ -383,16 +383,67 @@ export interface AdminRevenue {
   compras: AdminPurchaseRow[];
 }
 
+export interface AdminReportRow {
+  id: string;
+  reporter_id: string;
+  reporter_username: string | null;
+  reported_user_id: string | null;
+  reported_username: string | null;
+  tipo: "reporte_usuario" | "queja" | "sugerencia" | "otro";
+  reason: string;
+  details: string | null;
+  status: "pendiente" | "revisado" | "descartado";
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface AdminAnnouncementRow {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  activo: boolean;
+  created_at: string;
+}
+
+export interface AdminSettingRow {
+  id: string;
+  code: string;
+  name: string;
+  value: Record<string, unknown>;
+  description: string | null;
+  updated_at: string;
+}
+
+export interface AdminAuditRow {
+  id: string;
+  admin_id: string;
+  admin_username: string | null;
+  accion: string;
+  objetivo_tipo: string | null;
+  objetivo_id: string | null;
+  detalle: string | null;
+  created_at: string;
+}
+
 export const adminApi = {
   getStats: (accessToken: string) =>
     request<AdminStats>("/admin/stats", {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
-  getUsers: (accessToken: string, q: string, pagina: number) =>
-    request<AdminUserList>(
-      `/admin/users?pagina=${pagina}${q ? `&q=${encodeURIComponent(q)}` : ""}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    ),
+  getUsers: (
+    accessToken: string,
+    q: string,
+    pagina: number,
+    filtros?: { role?: string; banned?: boolean },
+  ) => {
+    const params = new URLSearchParams({ pagina: String(pagina) });
+    if (q) params.set("q", q);
+    if (filtros?.role) params.set("role", filtros.role);
+    if (filtros?.banned !== undefined) params.set("banned", String(filtros.banned));
+    return request<AdminUserList>(`/admin/users?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
   banUser: (accessToken: string, userId: string) =>
     request<AdminUserRow>(`/admin/users/${userId}/ban`, {
       method:  "POST",
@@ -402,6 +453,12 @@ export const adminApi = {
     request<AdminUserRow>(`/admin/users/${userId}/unban`, {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  banUsersLote: (accessToken: string, userIds: string[], banear: boolean) =>
+    request<AdminUserRow[]>("/admin/users/ban-lote", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ user_ids: userIds, banear }),
     }),
   changeRole: (accessToken: string, userId: string, role: string) =>
     request<AdminUserRow>(`/admin/users/${userId}/role`, {
@@ -420,13 +477,109 @@ export const adminApi = {
       body:    JSON.stringify(cambios),
     }),
   sendAnnouncement: (accessToken: string, titulo: string, mensaje: string) =>
-    request<{ ok: boolean }>("/admin/announcements", {
+    request<AdminAnnouncementRow>("/admin/announcements", {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify({ titulo, mensaje }),
     }),
+  getAnnouncements: (accessToken: string) =>
+    request<AdminAnnouncementRow[]>("/admin/announcements", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  deactivateAnnouncement: (accessToken: string, id: string) =>
+    request<AdminAnnouncementRow>(`/admin/announcements/${id}/desactivar`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
   getRevenue: (accessToken: string) =>
     request<AdminRevenue>("/admin/revenue", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  getReports: (accessToken: string, estado?: string, tipo?: string) => {
+    const params = new URLSearchParams();
+    if (estado) params.set("estado", estado);
+    if (tipo) params.set("tipo", tipo);
+    const qs = params.toString();
+    return request<AdminReportRow[]>(`/admin/reports${qs ? `?${qs}` : ""}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+  resolveReport: (accessToken: string, id: string, status: "revisado" | "descartado") =>
+    request<AdminReportRow>(`/admin/reports/${id}`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ status }),
+    }),
+  getSettings: (accessToken: string) =>
+    request<AdminSettingRow[]>("/admin/settings", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  createSetting: (
+    accessToken: string,
+    datos: { code: string; name: string; value: Record<string, unknown>; description?: string },
+  ) =>
+    request<AdminSettingRow>("/admin/settings", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify(datos),
+    }),
+  updateSetting: (accessToken: string, id: string, value: Record<string, unknown>) =>
+    request<AdminSettingRow>(`/admin/settings/${id}`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ value }),
+    }),
+  getAudit: (accessToken: string, limite = 100) =>
+    request<AdminAuditRow[]>(`/admin/audit?limite=${limite}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+};
+
+// ── Reportes (usuario reporta a otro usuario) ──────────────────────────────
+export const RAZONES_REPORTE = [
+  { value: "comportamiento_inapropiado", label: "Comportamiento inapropiado" },
+  { value: "acoso",                      label: "Acoso" },
+  { value: "abandono_reiterado",         label: "Abandona sesiones seguido" },
+  { value: "spam",                       label: "Spam" },
+  { value: "otro",                       label: "Otro" },
+] as const;
+
+export const reportsApi = {
+  crear: (accessToken: string, reportedUserId: string, reason: string, details?: string) =>
+    request<{ id: string }>("/reports", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ reported_user_id: reportedUserId, reason, details: details || null }),
+    }),
+};
+
+// ── Buzon general (queja, sugerencia, comentario — sin usuario reportado) ──
+export const TIPOS_FEEDBACK = [
+  { value: "queja",      label: "Queja" },
+  { value: "sugerencia", label: "Sugerencia" },
+  { value: "otro",       label: "Otro comentario" },
+] as const;
+
+export const feedbackApi = {
+  enviar: (accessToken: string, tipo: string, mensaje: string) =>
+    request<{ id: string }>("/feedback", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ tipo, mensaje }),
+    }),
+};
+
+// ── Anuncios (banner del admin, visible para todos) ────────────────────────
+export interface ActiveAnnouncement {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  created_at: string;
+}
+
+export const announcementsApi = {
+  getActive: (accessToken: string) =>
+    request<ActiveAnnouncement | null>("/announcements/active", {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };

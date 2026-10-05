@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import {
   friendsApi,
   profileApi,
+  reportsApi,
   type Friend,
   type RequestsPayload,
   type UserResponse,
@@ -70,6 +71,30 @@ export default function VinculosPage() {
     catch (e) { setError(e instanceof Error ? e.message : "Algo salió mal."); }
   };
 
+  const [mensaje, setMensaje] = useState("");
+
+  /**
+   * Reportar a un amigo: texto libre en vez de un formulario aparte — para
+   * algo que se usa poco, un prompt() es mas simple que montar un modal.
+   * La razon queda como "otro" y el texto del usuario va en `details`; quien
+   * modera lo lee igual en el panel de administracion.
+   */
+  const reportar = async (u: { id: string; alias?: string | null; username: string }) => {
+    if (!token) return;
+    const motivo = window.prompt(
+      `¿Por qué quieres reportar a ${u.alias || u.username}? Describe brevemente qué pasó.`
+    );
+    if (!motivo || !motivo.trim()) return;
+    if (!window.confirm(`¿Enviar este reporte sobre ${u.alias || u.username} al equipo de moderación?`)) return;
+    try {
+      await reportsApi.crear(token, u.id, "otro", motivo.trim());
+      setMensaje("Reporte enviado. Gracias por avisarnos.");
+      setTimeout(() => setMensaje(""), 4000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar el reporte.");
+    }
+  };
+
   if (loading) {
     return <div style={s.page}><p style={s.muted}>Cargando tus vínculos…</p></div>;
   }
@@ -84,6 +109,7 @@ export default function VinculosPage() {
       </header>
 
       {error && <div style={s.error}>{error}</div>}
+      {mensaje && <div style={s.ok}>{mensaje}</div>}
 
       <div style={s.layout}>
         {/* ── Columna principal: amigos ── */}
@@ -151,6 +177,12 @@ export default function VinculosPage() {
                       onClick={() => router.push(`/jardin/${f.friendship_id}`)}
                     >
                       Ver planta
+                    </button>
+                    <button
+                      style={{ ...s.btnGhost, marginLeft: 0, color: color.accent }}
+                      onClick={() => reportar(f.user)}
+                    >
+                      Reportar
                     </button>
                   </div>
                 </div>
@@ -280,6 +312,10 @@ const s: Record<string, React.CSSProperties> = {
   },
   error: {
     background: color.accentSoft, color: color.accent, padding: 12,
+    borderRadius: radius.sm, marginBottom: 16, fontSize: 13,
+  },
+  ok: {
+    background: color.mossSoft, color: color.moss, padding: 12,
     borderRadius: radius.sm, marginBottom: 16, fontSize: 13,
   },
 };
