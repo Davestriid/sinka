@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius, pageBackground } from "@/lib/theme";
+import { color, radius, pageBackgroundJardin } from "@/lib/theme";
 
 export default function JardinPage() {
   const router = useRouter();
@@ -99,7 +99,7 @@ export default function JardinPage() {
 const s: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: pageBackground,
+    background: pageBackgroundJardin,
     color: color.text,
     padding: 24,
   },

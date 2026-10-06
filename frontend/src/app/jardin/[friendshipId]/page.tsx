@@ -11,7 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { color, radius, pageBackground } from "@/lib/theme";
+import { color, radius, pageBackgroundJardin } from "@/lib/theme";
 
 export default function PlantaPage() {
   const router = useRouter();
@@ -131,7 +131,7 @@ function Stat({ valor, etiqueta }: { valor: string; etiqueta: string }) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
+  page:   { minHeight: "100vh", background: pageBackgroundJardin, color: color.text, padding: 24 },
   header: { marginBottom: 24 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   card: {

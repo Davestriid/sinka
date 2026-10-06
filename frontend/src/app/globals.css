@@ -60,6 +60,13 @@
     --c-bg-glow-1: rgba(157, 181, 160, 0.22);
     --c-bg-glow-2: rgba(221, 128, 104, 0.18);
 
+    /* Ilustraciones de fondo por pantalla (ver pageBackgroundJardin/Logros y
+       el fondo de login/registro en theme.ts). SVG propio, no una foto —
+       así nunca depende de un archivo externo que se pueda corromper. */
+    --c-img-login:  url('/img/fondos/login-dark.svg');
+    --c-img-jardin: url('/img/fondos/jardin-dark.svg');
+    --c-img-logros: url('/img/fondos/logros-dark.svg');
+
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 228 19% 9%;
     --foreground: 42 20% 88%;
@@ -132,6 +139,10 @@
 
     --c-bg-glow-1: rgba(61, 74, 58, 0.16);
     --c-bg-glow-2: rgba(189, 83, 64, 0.14);
+
+    --c-img-login:  url('/img/fondos/login-light.svg');
+    --c-img-jardin: url('/img/fondos/jardin-light.svg');
+    --c-img-logros: url('/img/fondos/logros-light.svg');
 
     /* — mismos colores, en HSL, para shadcn/ui — */
     --background: 42 30% 91%;

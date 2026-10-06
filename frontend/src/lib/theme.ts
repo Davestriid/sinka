@@ -59,6 +59,26 @@ export const pageBackground =
   "radial-gradient(circle at 90% 8%, var(--c-bg-glow-2) 0%, transparent 40%), " +
   "var(--c-bg)";
 
+/**
+ * Fondo ilustrado por pantalla — jardín y logros, cada uno con su propio
+ * SVG hecho a medida (ver globals.css --c-img-jardin/--c-img-logros y
+ * public/img/fondos). Una capa de tinte tenue sobre la ilustración, con el
+ * mismo tono que ya usan las sombras del tema (--c-shadow: negro en modo
+ * oscuro, café tierra en modo claro) para que el texto encima no pierda
+ * contraste. SVG propio en vez de foto: no depende de un archivo externo
+ * que se pueda corromper y escala nítido a cualquier tamaño de pantalla.
+ */
+function pageBackgroundImage(varName: string): string {
+  return (
+    `linear-gradient(rgba(var(--c-shadow),0.32), rgba(var(--c-shadow),0.32)), ` +
+    `var(${varName}) center/cover no-repeat, ` +
+    "var(--c-bg)"
+  );
+}
+
+export const pageBackgroundJardin = pageBackgroundImage("--c-img-jardin");
+export const pageBackgroundLogros = pageBackgroundImage("--c-img-logros");
+
 export const radius = {
   sm:   10,
   md:   13,

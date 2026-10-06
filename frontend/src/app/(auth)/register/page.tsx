@@ -71,8 +71,8 @@ export default function RegisterPage() {
     <main
       className="min-h-screen flex items-center justify-center bg-background px-4"
       style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url(${
-          tema === "light" ? "/img/fondos/login-light.jpg" : "/img/fondos/login-dark.jpg"
+        backgroundImage: `linear-gradient(hsl(var(--background) / 0.4), hsl(var(--background) / 0.4)), url(${
+          tema === "light" ? "/img/fondos/login-light.svg" : "/img/fondos/login-dark.svg"
         })`,
         backgroundSize: "cover",
         backgroundPosition: "center",
