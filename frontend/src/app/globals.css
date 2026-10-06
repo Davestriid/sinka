@@ -4,23 +4,29 @@
 
 @layer base {
   /*
-   * Paleta nueva (pedida por el usuario, octubre 2026) — "tinta roja" de
-   * noche, "pastel rosa" de día. Reemplaza la paleta wabi-sabi terracota/
-   * musgo anterior. Los valores base (fondo, panel, texto, rojo de acento,
-   * gris interactivo, bordes) son los exactos que se especificaron; musgo/
-   * arena/arcilla (acento secundario para éxito, logros y detalles cálidos)
-   * no venían en la especificación — son una extrapolación propia, pensada
-   * para no compartir el mismo matiz que "peligro" (que sí es rojo). Si no
-   * convencen, son los únicos tres tokens inventados.
+   * Segunda pasada de paleta (misma sesión, minutos después de la primera):
+   * la primera versión usaba el rojo exacto que pidió el usuario, pero los
+   * grises "neutros" (texto secundario, bordes, gris interactivo) se habían
+   * derivado sin tinte — matemáticamente neutros, pero con el matiz que les
+   * tocó (alrededor de 250-260°) cayendo del lado violeta-azulado de la
+   * rueda de color. A simple vista un gris casi sin saturación no debería
+   * notarse, pero contra un fondo rojo/negro SÍ se nota: el ojo lo lee como
+   * "azul" por contraste con todo lo demás siendo cálido. Por eso la queja
+   * de "toda la interfaz sigue con tonos azules" después de aplicar la
+   * paleta roja.
    *
-   * En oscuro, el rojo primario (#5C0009) es casi negro: perfecto como
-   * fondo de botón solido con texto claro encima, pero con contraste ~1:1
-   * contra el fondo general (#1A1A1C) si se usa como trazo de ícono o texto
-   * fino — practicamente invisible. Por eso --c-accent (uso general: íconos,
-   * barra de progreso, texto de acento) es una variante más clara del mismo
-   * rojo, y el tono casi-negro de la especificación vive en --c-accent-deep
-   * (fondos de botón, hover). En claro ambos coinciden con la especificación
-   * porque ahí el contraste ya funciona bien.
+   * Esta versión corrige eso: todo gris/neutro (texto secundario, bordes,
+   * superficies, sombras) tiene el mismo tinte cálido que el rojo de acento
+   * (matiz ~350°, vino/ladrillo) en vez de ser neutro o frío. Identidad
+   * pedida: oscuro = negro + rojo vino, letras casi blancas; claro = crema
+   * + rojo vino pastel, letras oscuras. El NavBar (fondo "glass", ver
+   * --c-navbar-rgb) ahora es notablemente rojo oscuro en vez de gris.
+   *
+   * Musgo/arena/arcilla (acento secundario para éxito y detalles) no vienen
+   * de ninguna especificación — son la única extrapolación propia, pensada
+   * para que "éxito" no comparta el matiz de "peligro" (ambos rojos se
+   * confundirían). El verde está deliberadamente apagado para no competir
+   * con la identidad vino/negro.
    *
    * src/lib/theme.ts referencia estas custom properties con var(--c-x), así
    * que cambiar [data-theme] en el <html> (ver ThemeProvider.tsx) repinta
@@ -31,47 +37,47 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --c-bg:             #1a1a1c;
-    --c-bg-alt:         #141415;
-    --c-surface:        #26262a;
-    --c-surface-raised: #2e2e33;
-    --c-surface-sunken: #202023;
-    --c-border:         #393845;
-    --c-border-soft:    #46445a;
+    --c-bg:             #140c0d;
+    --c-bg-alt:         #0e0708;
+    --c-surface:        #241416;
+    --c-surface-raised: #2d191c;
+    --c-surface-sunken: #1c1012;
+    --c-border:         #3d2226;
+    --c-border-soft:    #4c2a2f;
 
-    --c-text:        #d0bcc0;
-    --c-text-muted:  #9b96a3;
-    --c-text-faint:  #6f6b78;
+    --c-text:        #f7f1f0;
+    --c-text-muted:  #c7a7ac;
+    --c-text-faint:  #9a7c80;
 
-    /* Gris interactivo de la especificación: hover de botones secundarios y
-       selectores vacíos. */
-    --c-interactive: #5c5b63;
+    /* Gris interactivo, pero con el mismo tinte vino que el resto — hover
+       de botones secundarios y selectores vacíos. */
+    --c-interactive: #5a3338;
 
-    --c-accent:      #b23b4a;  /* rojo general — ver nota de contraste arriba */
-    --c-accent-deep: #5c0009;  /* rojo primario exacto de la especificación */
-    --c-accent-soft: rgba(178, 59, 74, 0.16);
+    --c-accent:      #c23c4f;  /* rojo vino vivo — íconos, barra de progreso, texto de acento */
+    --c-accent-deep: #6e0f1c;  /* rojo vino oscuro — fondos de botón, hover/press */
+    --c-accent-soft: rgba(194, 60, 79, 0.18);
 
     --c-moss:      #8fa08c;
-    --c-moss-soft: rgba(143, 160, 140, 0.14);
-    --c-sand:      #b99ba0;
-    --c-clay:      #8c5a63;
+    --c-moss-soft: rgba(143, 160, 140, 0.13);
+    --c-sand:      #b08a8e;
+    --c-clay:      #7a4347;
 
     --c-success: #8fa08c;
-    --c-danger:  #b23b4a;
-    --c-info:    #7d8aa0;
+    --c-danger:  #c23c4f;
+    --c-info:    #a3858a;
 
     /* Sombras con tinte, no negro puro — en modo oscuro el negro ya
        funciona bien, pero se define aca tambien para que theme.ts lea
        siempre de la variable en vez de un valor fijo. */
     --c-shadow:       0,0,0;
-    --c-shadow-glow:  178,59,74;
+    --c-shadow-glow:  194,60,79;
 
-    /* Fondo "glass" del NavBar. */
-    --c-navbar-rgb: 38, 38, 42;
+    /* Fondo "glass" del NavBar — rojo oscuro de verdad, no gris. */
+    --c-navbar-rgb: 58, 15, 20;
 
     /* Fondo de pantalla completa (ver pageBackground en theme.ts). */
-    --c-bg-glow-1: rgba(143, 160, 140, 0.18);
-    --c-bg-glow-2: rgba(178, 59, 74, 0.16);
+    --c-bg-glow-1: rgba(143, 160, 140, 0.10);
+    --c-bg-glow-2: rgba(194, 60, 79, 0.20);
 
     /* Ilustraciones de fondo por pantalla (ver pageBackgroundJardin/Logros y
        el fondo de login/registro en theme.ts). SVG propio, no una foto —
@@ -81,93 +87,92 @@
     --c-img-logros: url('/img/fondos/logros-dark.svg');
 
     /* — mismos colores, en HSL, para shadcn/ui — */
-    --background: 240 4% 11%;
-    --foreground: 348 18% 78%;
-    --card: 240 5% 16%;
-    --card-foreground: 348 18% 78%;
-    --popover: 240 5% 16%;
-    --popover-foreground: 348 18% 78%;
-    --primary: 352 50% 46%;
-    --primary-foreground: 348 18% 90%;
-    --secondary: 240 4% 13%;
-    --secondary-foreground: 348 18% 78%;
-    --muted: 240 4% 13%;
-    --muted-foreground: 263 7% 61%;
-    --accent: 240 4% 13%;
-    --accent-foreground: 348 18% 78%;
-    --destructive: 352 50% 46%;
-    --destructive-foreground: 348 18% 90%;
-    --border: 245 10% 25%;
-    --input: 245 14% 31%;
-    --ring: 352 50% 46%;
+    --background: 352 25% 6%;
+    --foreground: 9 30% 95%;
+    --card: 352 29% 11%;
+    --card-foreground: 9 30% 95%;
+    --popover: 352 29% 11%;
+    --popover-foreground: 9 30% 95%;
+    --primary: 351 61% 40%;
+    --primary-foreground: 9 30% 95%;
+    --secondary: 350 27% 9%;
+    --secondary-foreground: 9 30% 95%;
+    --muted: 350 27% 9%;
+    --muted-foreground: 351 22% 72%;
+    --accent: 350 27% 9%;
+    --accent-foreground: 9 30% 95%;
+    --destructive: 351 61% 40%;
+    --destructive-foreground: 9 30% 95%;
+    --border: 351 28% 19%;
+    --input: 351 29% 23%;
+    --ring: 351 61% 40%;
     --radius: 0.8rem;
   }
 
   [data-theme="light"] {
     color-scheme: light;
 
-    --c-bg:             #f5f1f3;
-    --c-bg-alt:         #ece6e9;
-    --c-surface:        #ffffff;
+    --c-bg:             #f6ede3;
+    --c-bg-alt:         #eedfcf;
+    --c-surface:        #fffbf6;
     --c-surface-raised: #ffffff;
-    --c-surface-sunken: #ebeaf0;
-    --c-border:         #f0eff4;
-    --c-border-soft:    #e4e1ea;
+    --c-surface-sunken: #efe0d2;
+    --c-border:         #e6d2c2;
+    --c-border-soft:    #d8bfac;
 
-    --c-text:        #2a282d;
-    --c-text-muted:  #5c5b63;
-    --c-text-faint:  #86838c;
+    --c-text:        #2b2022;
+    --c-text-muted:  #6e5650;
+    --c-text-faint:  #8f756e;
 
-    --c-interactive: #ebeaf0;
+    --c-interactive: #efe0d2;
 
-    --c-accent:      #c25b6c;
-    --c-accent-deep: #a8485a;
-    --c-accent-soft: #ebdde3;
+    --c-accent:      #b14a58;  /* rojo vino pastel */
+    --c-accent-deep: #8c2e3b;
+    --c-accent-soft: #f0d9dc;
 
     --c-moss:      #5b6b57;
     --c-moss-soft: rgba(91, 107, 87, 0.12);
-    --c-sand:      #9c7a82;
-    --c-clay:      #8f5a62;
+    --c-sand:      #ad8c83;
+    --c-clay:      #8f5a52;
 
     --c-success: #5b6b57;
-    --c-danger:  #c25b6c;
-    --c-info:    #5f7084;
+    --c-danger:  #b14a58;
+    --c-info:    #8a6f6a;
 
-    /* Sombra con tinte rosado/tierra, acorde a la nueva paleta pastel — el
-       negro puro sobre un fondo tan claro se ve como mugre, no profundidad. */
-    --c-shadow:       120,70,75;
-    --c-shadow-glow:  194,91,108;
+    /* Sombra con tinte vino/tierra — negro puro sobre crema se ve sucio. */
+    --c-shadow:       110,55,45;
+    --c-shadow-glow:  177,74,88;
 
-    /* Mismo "glass" del NavBar, en el tono bg-alt de este tema. */
-    --c-navbar-rgb: 236, 230, 233;
+    /* Fondo "glass" del NavBar — rojo vino pastel, no gris. */
+    --c-navbar-rgb: 230, 205, 203;
 
-    --c-bg-glow-1: rgba(91, 107, 87, 0.12);
-    --c-bg-glow-2: rgba(194, 91, 108, 0.12);
+    --c-bg-glow-1: rgba(91, 107, 87, 0.10);
+    --c-bg-glow-2: rgba(177, 74, 88, 0.14);
 
     --c-img-login:  url('/img/fondos/login-light.svg');
     --c-img-jardin: url('/img/fondos/jardin-light.svg');
     --c-img-logros: url('/img/fondos/logros-light.svg');
 
     /* — mismos colores, en HSL, para shadcn/ui — */
-    --background: 330 17% 95%;
-    --foreground: 264 6% 17%;
-    --card: 0 0% 100%;
-    --card-foreground: 264 6% 17%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 264 6% 17%;
-    --primary: 350 46% 56%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 250 17% 93%;
-    --secondary-foreground: 264 6% 17%;
-    --muted: 250 17% 93%;
-    --muted-foreground: 248 4% 37%;
-    --accent: 250 17% 93%;
-    --accent-foreground: 264 6% 17%;
-    --destructive: 350 46% 56%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 252 19% 95%;
-    --input: 260 18% 90%;
-    --ring: 350 46% 56%;
+    --background: 32 51% 93%;
+    --foreground: 349 15% 15%;
+    --card: 33 100% 98%;
+    --card-foreground: 349 15% 15%;
+    --popover: 33 100% 98%;
+    --popover-foreground: 349 15% 15%;
+    --primary: 352 41% 49%;
+    --primary-foreground: 33 100% 98%;
+    --secondary: 29 48% 88%;
+    --secondary-foreground: 349 15% 15%;
+    --muted: 29 48% 88%;
+    --muted-foreground: 12 16% 37%;
+    --accent: 29 48% 88%;
+    --accent-foreground: 349 15% 15%;
+    --destructive: 352 41% 49%;
+    --destructive-foreground: 33 100% 98%;
+    --border: 27 42% 83%;
+    --input: 26 36% 76%;
+    --ring: 352 41% 49%;
   }
 
   * {

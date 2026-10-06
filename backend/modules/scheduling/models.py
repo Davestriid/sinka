@@ -80,6 +80,14 @@ class Appointment(Base):
     # Id de la sesion real que nacio de esta cita, si llego a ocurrir
     session_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
+    # Cuando se creo esa sesion (primer "Unirse" de cualquiera de los dos).
+    # Desde ahi corre la ventana de VENTANA_SALA_ESPERA en el service: si
+    # pasa ese margen sin que la segunda persona tambien se una, la cita
+    # expira en vez de seguir entregando un session_id muerto.
+    session_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     @property
     def is_group(self) -> bool:
         return self.group_id is not None

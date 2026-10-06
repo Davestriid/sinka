@@ -117,6 +117,7 @@ class AppointmentRepository:
 
     async def set_session_id(self, cita: Appointment, session_id: str) -> Appointment:
         cita.session_id = session_id
+        cita.session_started_at = datetime.now(cita.scheduled_for.tzinfo)
         await self.db.commit()
         await self.db.refresh(cita)
         return cita

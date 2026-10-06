@@ -562,6 +562,9 @@ export default function SessionPage() {
       plant_died:      "La planta murió 🍂",
       timer_completed: "¡Sesión completada! 🎉",
       user_left:       "Sesión terminada",
+      // La otra persona nunca llegó a conectarse (ver ESPERA_INICIAL_SECONDS
+      // en session_service.py) — típico de una cita donde nadie más se unió.
+      no_partner:      "Nadie más se unió a tiempo",
     };
     const completed  = endReason === "timer_completed";
     const xpEarned   = statsAfter && statsBefore

@@ -18,6 +18,7 @@ from modules.scheduling.models import (
     CANCELLED,
     CONFIRMED,
     DECLINED,
+    EXPIRED,
     PENDING,
     Appointment,
 )
@@ -37,8 +38,14 @@ HORIZONTE_MAXIMO = timedelta(days=30)
 
 DURACIONES_VALIDAS = (25, 50, 90)
 
-# Desde cuanto antes de la hora agendada se puede tocar "Unirse"
-VENTANA_UNIRSE_ANTES = timedelta(minutes=10)
+# Antes, "Unirse" se habilitaba recien 10 minutos antes de la hora agendada.
+# Ahora no hay limite inferior: se puede tocar "Unirse" en cualquier momento
+# una vez que la cita esta confirmada. Lo que si existe es un limite despues
+# de que la primera persona entra: la sala (session_id) que se crea en ese
+# momento solo queda viva VENTANA_SALA_ESPERA — si la segunda persona no
+# alcanza a unirse en ese margen, la cita se da por vencida en vez de seguir
+# entregando un session_id de una sala que ya nadie va a completar.
+VENTANA_SALA_ESPERA = timedelta(minutes=15)
 
 
 class SchedulingService:
@@ -188,12 +195,21 @@ class SchedulingService:
             raise HTTPException(409, "Esa cita todavia no esta confirmada.")
 
         ahora = datetime.now(timezone.utc)
-        if ahora < cita.scheduled_for - VENTANA_UNIRSE_ANTES:
-            raise HTTPException(
-                400, "Todavia es muy pronto. Podras unirte 10 minutos antes de la hora."
-            )
 
         if cita.session_id:
+            # Ya habia alguien adentro esperando. Si paso demasiado tiempo
+            # desde que esa sala se creo y la segunda persona no alcanzo a
+            # llegar, la cita se da por vencida en vez de reenviar a una
+            # sala que el SessionService ya cerro por su cuenta (ver
+            # ESPERA_INICIAL_SECONDS en session_service.py — mismo margen).
+            inicio = cita.session_started_at or cita.scheduled_for
+            if ahora - inicio > VENTANA_SALA_ESPERA:
+                await self.appts.set_status(cita, EXPIRED)
+                raise HTTPException(
+                    410,
+                    "Esta cita vencio: pasaron mas de 15 minutos sin que las "
+                    "dos personas se unieran a la reunion.",
+                )
             return {"session_id": cita.session_id}
 
         session_id = str(uuid.uuid4())

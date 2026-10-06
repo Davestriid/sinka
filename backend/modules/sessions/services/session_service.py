@@ -44,6 +44,14 @@ EXTENSION_VOTE_TIMEOUT = 60
 # tiempo (ver _pending_abandono).
 RECONNECT_GRACE_SECONDS = 12
 
+# Cuanto se espera, desde que se crea la sesion, a que las DOS personas se
+# conecten al menos una vez (game-loop arrancado). Antes no habia limite: si
+# alguien entraba primero y la otra persona nunca aparecia (por ejemplo, una
+# cita que nadie mas abre), quien si entro se quedaba viendo "esperando a tu
+# pareja" para siempre. Pasado este margen sin que ambas lados se hayan
+# conectado, la sesion se cierra sola — ver _expirar_si_nadie_completa.
+ESPERA_INICIAL_SECONDS = 15 * 60
+
 
 @dataclass
 class _SessionConnection:
@@ -75,6 +83,10 @@ class SessionService:
         # Cuenta regresiva de abandono pendiente, una por sesion (ver
         # RECONNECT_GRACE_SECONDS). Se cancela si la persona reconecta a tiempo.
         self._pending_abandono: dict[str, asyncio.Task]    = {}
+        # Cuenta regresiva de "nadie mas se unio", una por sesion recien
+        # creada (ver ESPERA_INICIAL_SECONDS). Se cancela en cuanto el
+        # game-loop arranca de verdad (ambas personas conectadas).
+        self._espera_inicial:   dict[str, asyncio.Task]    = {}
 
     # ── EventBus handler ────────────────────────────────────────────────────
 
@@ -107,6 +119,14 @@ class SessionService:
             json.dumps(state),
         )
         logger.info("SessionService: sesion %s inicializada", session_id)
+
+        # Arranca la cuenta regresiva de "nadie mas se unio" desde el
+        # instante en que la sesion existe (no desde que alguien conecta) —
+        # asi cubre tambien el caso de que la primera persona tarde en abrir
+        # la pestaña. connect() la cancela en cuanto el game-loop arranca.
+        self._espera_inicial[session_id] = asyncio.create_task(
+            self._expirar_si_nadie_completa(session_id)
+        )
 
     # ── Gestion de conexiones WS ────────────────────────────────────────────
 
@@ -178,6 +198,12 @@ class SessionService:
 
         # Si ambos conectados, iniciar game-loop
         if conn.ws_a and conn.ws_b and session_id not in self._loops:
+            # Ya se unieron las dos personas: cancelar la cuenta regresiva de
+            # "nadie mas se unio", si seguia pendiente.
+            tarea_espera = self._espera_inicial.pop(session_id, None)
+            if tarea_espera and not tarea_espera.done():
+                tarea_espera.cancel()
+
             self._timers[session_id]  = PomodoroTimer()
             self._gardens[session_id] = garden_service.initial_plant()
             task = asyncio.create_task(self._run_loop(session_id))
@@ -263,6 +289,43 @@ class SessionService:
 
         self._pending_abandono.pop(session_id, None)
         await self._end_session_por_abandono(session_id, conn, quien_salio)
+
+    async def _expirar_si_nadie_completa(self, session_id: str) -> None:
+        """
+        Da ESPERA_INICIAL_SECONDS desde que la sesion se creo para que las
+        dos personas se conecten al menos una vez. Cubre tanto "nadie entro
+        nunca" como "una persona entro y la otra jamas aparecio" (por
+        ejemplo, una cita donde la otra persona no se presenta). Si para
+        entonces el game-loop ya arranco, connect() ya cancelo esta tarea y
+        no se llega hasta aca.
+        """
+        try:
+            await asyncio.sleep(ESPERA_INICIAL_SECONDS)
+        except asyncio.CancelledError:
+            return  # las dos personas se conectaron a tiempo — ver connect()
+
+        self._espera_inicial.pop(session_id, None)
+
+        # Si el game-loop ya esta corriendo, no hay nada que expirar (esto
+        # es defensivo: connect() deberia haber cancelado la tarea antes).
+        if session_id in self._loops:
+            return
+
+        conn = self._sessions.get(session_id)
+        if conn is None:
+            return
+
+        logger.info(
+            "SessionService: sesion %s expiro — nadie se unio a tiempo", session_id
+        )
+
+        await self._broadcast(session_id, {
+            "type":    "SESSION_ENDED",
+            "payload": {"reason": "no_partner", "plant": {}},
+        })
+
+        self._sessions.pop(session_id, None)
+        self._focus.pop(session_id, None)
 
     async def _end_session_por_abandono(
         self,
@@ -508,6 +571,9 @@ class SessionService:
             tarea_abandono = self._pending_abandono.pop(session_id, None)
             if tarea_abandono and not tarea_abandono.done():
                 tarea_abandono.cancel()
+            tarea_espera = self._espera_inicial.pop(session_id, None)
+            if tarea_espera and not tarea_espera.done():
+                tarea_espera.cancel()
 
     def _cancel_loop(self, session_id: str) -> None:
         task = self._loops.pop(session_id, None)
