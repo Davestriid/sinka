@@ -195,6 +195,8 @@ export default function SessionPage() {
     remoteVideoRef,
     remoteScreenRef,
     remoteStream,
+    screenStream,
+    remoteScreen,
     micEnabled,
     camEnabled,
     isScreenSharing,
@@ -232,6 +234,24 @@ export default function SessionPage() {
   // nada. Por eso la pareja avisa por su cuenta, con un mensaje aparte,
   // cuando de verdad empieza o deja de compartir.
   const [partnerSharingSignal, setPartnerSharingSignal] = useState(false);
+
+  // El <video> grande de "pantalla compartida" es uno solo y se reutiliza
+  // para mostrar la propia pantalla o la de la pareja, cambiando su `ref`
+  // entre localScreenRef/remoteScreenRef segun quien este compartiendo (ver
+  // mas abajo, junto a "Escenario principal"). El hook usePeerConnection ya
+  // asigna el stream a cada ref por su cuenta, pero solo cuando el stream
+  // CAMBIA — y ese elemento de video a veces no existe todavia en el DOM en
+  // ese momento (aparece recien cuando partnerSharingSignal se pone en true
+  // un instante despues, al llegar el aviso por WebSocket). Si el stream ya
+  // habia llegado antes de que el elemento existiera, el efecto del hook no
+  // vuelve a dispararse y el video se queda sin srcObject: se ve el recuadro
+  // pero en negro. Este efecto re-sincroniza cada vez que cambia quien esta
+  // compartiendo, que es cuando el elemento (re)aparece o cambia de ref.
+  useEffect(() => {
+    const el     = partnerSharingSignal ? remoteScreenRef.current : localScreenRef.current;
+    const stream = partnerSharingSignal ? remoteScreen : screenStream;
+    if (el && el.srcObject !== (stream ?? null)) el.srcObject = stream ?? null;
+  }, [partnerSharingSignal, remoteScreen, screenStream, remoteScreenRef, localScreenRef]);
 
   /** Resumen corto del estado de las pistas remotas, para diagnosticar a ojo. */
   const diagnosticoPistas = remoteStream

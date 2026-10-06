@@ -36,6 +36,14 @@ SESSION_STATE_TTL = 60 * 35  # 35 minutos
 # dejaria la pantalla colgada si alguien ya se levanto del escritorio.
 EXTENSION_VOTE_TIMEOUT = 60
 
+# Cuanto se espera, tras perder la conexion de uno de los dos, antes de dar
+# la sesion por abandonada de verdad. Una recarga de pagina (F5, o el celular
+# que se duerme y reconecta) cierra el socket viejo igual que un abandono
+# real — sin este margen, cualquier recarga accidental terminaba la sesion
+# para los dos. connect() cancela la cuenta regresiva si la persona vuelve a
+# tiempo (ver _pending_abandono).
+RECONNECT_GRACE_SECONDS = 12
+
 
 @dataclass
 class _SessionConnection:
@@ -64,6 +72,9 @@ class SessionService:
         # Sincronizacion de la votacion para continuar
         self._voto_listo:    dict[str, asyncio.Event]      = {}
         self._voto_resultado: dict[str, str]               = {}
+        # Cuenta regresiva de abandono pendiente, una por sesion (ver
+        # RECONNECT_GRACE_SECONDS). Se cancela si la persona reconecta a tiempo.
+        self._pending_abandono: dict[str, asyncio.Task]    = {}
 
     # ── EventBus handler ────────────────────────────────────────────────────
 
@@ -130,6 +141,14 @@ class SessionService:
         else:
             conn.ws_b = websocket
 
+        # Si habia una cuenta regresiva de abandono corriendo para esta
+        # sesion (porque alguien se desconecto hace poco), esta reconexion la
+        # cancela — sea la misma persona que volvio tras una recarga, o la
+        # otra, da igual: ya hay alguien de vuelta.
+        tarea_pendiente = self._pending_abandono.pop(session_id, None)
+        if tarea_pendiente and not tarea_pendiente.done():
+            tarea_pendiente.cancel()
+
         logger.info("SessionService: %s conecto a sesion %s", user_id, session_id)
 
         # Avisar a la pareja que esta persona acaba de entrar
@@ -195,14 +214,55 @@ class SessionService:
         sesion_en_curso = session_id in self._loops
 
         if partner_sigue and sesion_en_curso:
-            # Alguien se fue a media sesion. No tiene sentido dejar al otro
-            # esperando indefinidamente con "esperando pareja": se cierra la
-            # sesion ya mismo para los dos, y quien abandono pierde puntaje
-            # de confianza (ver GamificationService._penalizar_abandono).
-            await self._end_session_por_abandono(session_id, conn, user_id)
+            # No cerrar de inmediato: puede ser una recarga de pagina (F5),
+            # que cierra el socket viejo antes de abrir uno nuevo. Se espera
+            # un margen breve a que la persona reconecte (ver connect(), que
+            # cancela esta cuenta regresiva) antes de dar la sesion por
+            # abandonada de verdad y penalizar la confianza de quien se fue.
+            tarea_previa = self._pending_abandono.pop(session_id, None)
+            if tarea_previa and not tarea_previa.done():
+                tarea_previa.cancel()
+            self._pending_abandono[session_id] = asyncio.create_task(
+                self._abandonar_tras_espera(session_id, user_id)
+            )
         elif conn.ws_a is None and conn.ws_b is None:
             # Ninguno sigue conectado: no queda a quien avisar, solo limpiar.
             self._cancel_loop(session_id)
+
+    async def _abandonar_tras_espera(self, session_id: str, quien_salio: str) -> None:
+        """
+        Da el margen de RECONNECT_GRACE_SECONDS para que quien se desconecto
+        vuelva (recarga de pagina, celular que se durmio, wifi que parpadeo)
+        antes de cerrar la sesion por abandono real.
+        """
+        try:
+            await asyncio.sleep(RECONNECT_GRACE_SECONDS)
+        except asyncio.CancelledError:
+            return  # reconecto a tiempo — ver connect()
+
+        conn = self._sessions.get(session_id)
+        if conn is None:
+            return
+
+        # Si la sesion ya termino por su cuenta mientras se esperaba (por
+        # ejemplo, el Pomodoro se completo justo en ese margen), no hay nada
+        # que abandonar: el game-loop ya hizo su propio cierre y limpieza.
+        if session_id not in self._loops:
+            return
+
+        # Puede haber reconectado con el mismo websocket que disparo esta
+        # espera ya reemplazado por una conexion mas nueva sin pasar por
+        # connect() a tiempo de cancelar — se revisa el estado actual, no se
+        # asume que sigue como estaba al programar la espera.
+        sigue_fuera = (
+            (quien_salio == conn.user_a_id and conn.ws_a is None) or
+            (quien_salio == conn.user_b_id and conn.ws_b is None)
+        )
+        if not sigue_fuera:
+            return
+
+        self._pending_abandono.pop(session_id, None)
+        await self._end_session_por_abandono(session_id, conn, quien_salio)
 
     async def _end_session_por_abandono(
         self,
@@ -445,6 +505,9 @@ class SessionService:
             self._voto_listo.pop(session_id, None)
             self._voto_resultado.pop(session_id, None)
             extension_service.limpiar(session_id)
+            tarea_abandono = self._pending_abandono.pop(session_id, None)
+            if tarea_abandono and not tarea_abandono.done():
+                tarea_abandono.cancel()
 
     def _cancel_loop(self, session_id: str) -> None:
         task = self._loops.pop(session_id, None)
