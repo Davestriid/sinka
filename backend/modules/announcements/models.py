@@ -28,3 +28,10 @@ class Announcement(Base):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # Programacion opcional. Si son null, el anuncio se comporta como antes:
+    # visible de inmediato y hasta que alguien lo desactive a mano. Si se
+    # ponen, se suman como restriccion extra sobre `activo` (no lo
+    # reemplazan) — ver AnnouncementsService.activo().
+    starts_at:  Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

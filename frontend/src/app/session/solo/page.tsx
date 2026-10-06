@@ -589,7 +589,10 @@ function SoloSessionInner() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        style={s.filaTarea}
+                        style={{
+                          ...s.filaTarea,
+                          ...(ta.id === tareaActualId && !ta.hecha ? s.filaTareaActual : {}),
+                        }}
                         onClick={() => setTareaActualId(ta.id)}
                       >
                         <button
@@ -601,10 +604,12 @@ function SoloSessionInner() {
                         <span style={{
                           ...s.textoTarea,
                           ...(ta.hecha ? s.textoTareaHecha : {}),
-                          ...(ta.id === tareaActualId && !ta.hecha ? s.textoTareaActual : {}),
                         }}>
                           {ta.texto}
                         </span>
+                        {ta.id === tareaActualId && !ta.hecha && (
+                          <span style={s.badgeActual}>{t("solo.badge_actual")}</span>
+                        )}
                         <button
                           style={s.btnEliminarTarea}
                           onClick={e => { e.stopPropagation(); eliminarTarea(ta.id); }}
@@ -937,7 +942,21 @@ const s: Record<string, React.CSSProperties> = {
   filaTarea: {
     display: "flex", alignItems: "center", gap: 10,
     background: color.surfaceSunken, border: `1px solid ${color.border}`,
+    borderLeft: `3px solid transparent`,
     borderRadius: radius.sm, padding: "8px 10px", cursor: "pointer", overflow: "hidden",
+  },
+  // La tarea "actual" (la que se muestra durante el Pomodoro) se marca con
+  // un borde lateral + una etiqueta chiquita — antes era solo texto en
+  // color.accent, que con la paleta roja se leia igual que un error.
+  filaTareaActual: {
+    borderLeftColor: color.accent,
+    background: color.accentSoft,
+  },
+  badgeActual: {
+    flexShrink: 0, fontSize: 10, fontWeight: 700, letterSpacing: "0.03em",
+    textTransform: "uppercase", color: color.accent,
+    background: color.surface, border: `1px solid ${color.accent}`,
+    borderRadius: radius.pill, padding: "2px 7px",
   },
   checkTarea: {
     width: 18, height: 18, flexShrink: 0, borderRadius: "50%",
@@ -948,7 +967,6 @@ const s: Record<string, React.CSSProperties> = {
   checkTareaHecha: { background: color.moss, borderColor: color.moss, color: color.bg },
   textoTarea: { flex: 1, fontSize: 13.5, color: color.text, textAlign: "left" },
   textoTareaHecha: { color: color.textFaint, textDecoration: "line-through" },
-  textoTareaActual: { color: color.accent, fontWeight: 600 },
   btnEliminarTarea: {
     display: "flex", alignItems: "center", justifyContent: "center",
     background: "transparent", border: "none", color: color.textFaint, cursor: "pointer", padding: 2,

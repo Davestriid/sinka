@@ -311,8 +311,18 @@ class AdminService:
     # ------------------------------------------------------------------ #
     # Anuncios                                                          #
     # ------------------------------------------------------------------ #
-    async def crear_anuncio(self, titulo: str, mensaje: str, admin_id: str) -> AdminAnnouncementRow:
-        anuncio = Announcement(titulo=titulo, mensaje=mensaje, creado_por_id=admin_id)
+    async def crear_anuncio(
+        self,
+        titulo: str,
+        mensaje: str,
+        admin_id: str,
+        starts_at: datetime | None = None,
+        expires_at: datetime | None = None,
+    ) -> AdminAnnouncementRow:
+        anuncio = Announcement(
+            titulo=titulo, mensaje=mensaje, creado_por_id=admin_id,
+            starts_at=starts_at, expires_at=expires_at,
+        )
         self.db.add(anuncio)
         await self.db.commit()
         await self.db.refresh(anuncio)

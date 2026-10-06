@@ -493,6 +493,10 @@ function PanelAnuncios({ token }: { token: string | null }) {
   const [error, setError] = useState("");
   const [titulo, setTitulo] = useState("");
   const [mensaje, setMensaje] = useState("");
+  // Programacion opcional — si se dejan vacios, el anuncio se comporta como
+  // siempre (visible de inmediato, hasta desactivarlo a mano).
+  const [mostrarDesde, setMostrarDesde] = useState("");
+  const [ocultarEn, setOcultarEn] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const cargar = useCallback(() => {
@@ -507,9 +511,15 @@ function PanelAnuncios({ token }: { token: string | null }) {
     if (!confirmar(`¿Enviar el anuncio "${titulo}" a todos los usuarios? Aparecerá como banner en su panel de inicio.`)) return;
     setEnviando(true);
     try {
-      await adminApi.sendAnnouncement(token, titulo.trim(), mensaje.trim());
+      await adminApi.sendAnnouncement(
+        token, titulo.trim(), mensaje.trim(),
+        mostrarDesde ? new Date(mostrarDesde).toISOString() : null,
+        ocultarEn ? new Date(ocultarEn).toISOString() : null,
+      );
       setTitulo("");
       setMensaje("");
+      setMostrarDesde("");
+      setOcultarEn("");
       cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar el anuncio.");
@@ -547,6 +557,30 @@ function PanelAnuncios({ token }: { token: string | null }) {
           value={mensaje}
           onChange={(e) => setMensaje(e.target.value)}
         />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <label style={{ flex: 1, minWidth: 180 }}>
+            <span style={{ ...s.muted, display: "block", marginBottom: 4 }}>
+              Mostrar desde (opcional)
+            </span>
+            <input
+              style={s.input}
+              type="datetime-local"
+              value={mostrarDesde}
+              onChange={(e) => setMostrarDesde(e.target.value)}
+            />
+          </label>
+          <label style={{ flex: 1, minWidth: 180 }}>
+            <span style={{ ...s.muted, display: "block", marginBottom: 4 }}>
+              Ocultar automáticamente en (opcional)
+            </span>
+            <input
+              style={s.input}
+              type="datetime-local"
+              value={ocultarEn}
+              onChange={(e) => setOcultarEn(e.target.value)}
+            />
+          </label>
+        </div>
         <button
           style={{ ...s.btn, opacity: enviando || !titulo.trim() || !mensaje.trim() ? 0.6 : 1 }}
           disabled={enviando || !titulo.trim() || !mensaje.trim()}
@@ -563,6 +597,12 @@ function PanelAnuncios({ token }: { token: string | null }) {
               <div style={{ fontWeight: 600 }}>{a.titulo}</div>
               <div style={s.muted}>{a.mensaje}</div>
               <div style={s.muted}>{new Date(a.created_at).toLocaleString()}</div>
+              {a.starts_at && (
+                <div style={s.muted}>Desde: {new Date(a.starts_at).toLocaleString()}</div>
+              )}
+              {a.expires_at && (
+                <div style={s.muted}>Hasta: {new Date(a.expires_at).toLocaleString()}</div>
+              )}
             </div>
             <span style={a.activo ? s.rolBadge : s.muted}>{a.activo ? "activo" : "oculto"}</span>
             {a.activo && (

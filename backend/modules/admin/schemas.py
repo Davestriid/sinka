@@ -39,6 +39,10 @@ class AdminStats(BaseModel):
 class AnuncioRequest(BaseModel):
     titulo: str
     mensaje: str
+    # Programacion opcional: si no se mandan, el anuncio se comporta como
+    # siempre (visible de inmediato, hasta desactivarlo a mano).
+    starts_at:  datetime | None = None
+    expires_at: datetime | None = None
 
 
 class AdminAnnouncementRow(BaseModel):
@@ -47,6 +51,8 @@ class AdminAnnouncementRow(BaseModel):
     mensaje: str
     activo: bool
     created_at: datetime
+    starts_at:  datetime | None = None
+    expires_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

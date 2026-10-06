@@ -61,25 +61,20 @@ export default function DashboardPage() {
     gamificationApi.getStats(token).then(setStats).catch(() => {});
   }, [token]);
 
-  // Anuncio del admin (banner). Se guarda el id ya cerrado en localStorage
-  // para no repetirlo en cada visita mientras siga siendo el mismo.
+  // Anuncio del admin (banner). Antes se guardaba el id ya cerrado en
+  // localStorage para no repetirlo nunca mas — pero eso significaba que un
+  // anuncio importante desaparecia para siempre con un solo click sin
+  // querer. Ahora "cerrar" solo oculta el banner en esta visita: al
+  // recargar vuelve a aparecer mientras siga activo (y, si se programo,
+  // dentro de su ventana de fechas) en el servidor. La unica forma real de
+  // que deje de aparecer es que un admin lo desactive o que expire.
   const [anuncio, setAnuncio] = useState<ActiveAnnouncement | null>(null);
   useEffect(() => {
     if (!token) return;
-    announcementsApi.getActive(token).then((a) => {
-      if (!a) return;
-      const cerrado = typeof window !== "undefined" && localStorage.getItem("sinka_anuncio_cerrado");
-      if (cerrado === a.id) return;
-      setAnuncio(a);
-    }).catch(() => {});
+    announcementsApi.getActive(token).then((a) => setAnuncio(a)).catch(() => {});
   }, [token]);
 
-  const cerrarAnuncio = () => {
-    if (anuncio && typeof window !== "undefined") {
-      localStorage.setItem("sinka_anuncio_cerrado", anuncio.id);
-    }
-    setAnuncio(null);
-  };
+  const cerrarAnuncio = () => setAnuncio(null);
 
   // Limpiar WS al desmontar
   useEffect(() => {

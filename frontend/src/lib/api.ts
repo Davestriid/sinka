@@ -403,6 +403,8 @@ export interface AdminAnnouncementRow {
   mensaje: string;
   activo: boolean;
   created_at: string;
+  starts_at: string | null;
+  expires_at: string | null;
 }
 
 export interface AdminSettingRow {
@@ -476,11 +478,21 @@ export const adminApi = {
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify(cambios),
     }),
-  sendAnnouncement: (accessToken: string, titulo: string, mensaje: string) =>
+  sendAnnouncement: (
+    accessToken: string,
+    titulo: string,
+    mensaje: string,
+    startsAt?: string | null,
+    expiresAt?: string | null,
+  ) =>
     request<AdminAnnouncementRow>("/admin/announcements", {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
-      body:    JSON.stringify({ titulo, mensaje }),
+      body:    JSON.stringify({
+        titulo, mensaje,
+        starts_at:  startsAt || null,
+        expires_at: expiresAt || null,
+      }),
     }),
   getAnnouncements: (accessToken: string) =>
     request<AdminAnnouncementRow[]>("/admin/announcements", {

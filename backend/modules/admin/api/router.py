@@ -175,8 +175,12 @@ async def enviar_anuncio(
     service: AdminService = Depends(_service),
 ) -> AdminAnnouncementRow:
     # Se persiste y queda "activo": el dashboard de todos lo muestra como
-    # banner hasta que un admin lo desactive. No hay email/push todavia.
-    return await service.crear_anuncio(body.titulo, body.mensaje, admin.id)
+    # banner hasta que un admin lo desactive (o, si se programo, hasta que
+    # expires_at pase). No hay email/push todavia.
+    return await service.crear_anuncio(
+        body.titulo, body.mensaje, admin.id,
+        starts_at=body.starts_at, expires_at=body.expires_at,
+    )
 
 
 @router.get("/announcements", response_model=list[AdminAnnouncementRow])
