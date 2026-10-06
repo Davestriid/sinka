@@ -27,6 +27,7 @@ export const color = {
   surfaceSunken: "var(--c-surface-sunken)",
   border:        "var(--c-border)",
   borderSoft:    "var(--c-border-soft)",
+  interactive:   "var(--c-interactive)",  /* gris interactivo — hover de botones secundarios */
 
   text:       "var(--c-text)",
   textMuted:  "var(--c-text-muted)",

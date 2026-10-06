@@ -435,7 +435,7 @@ const s: Record<string, React.CSSProperties> = {
     gap:            12,
     flexWrap:       "wrap",
     padding:        "12px 24px",
-    background:     "rgba(29, 33, 42, 0.92)",
+    background:     "rgba(var(--c-navbar-rgb), 0.92)",
     borderTop:      `1px solid ${color.border}`,
     backdropFilter: "blur(6px)",
     zIndex:         40,

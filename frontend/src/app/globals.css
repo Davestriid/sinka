@@ -4,61 +4,74 @@
 
 @layer base {
   /*
-   * Paleta wabi-sabi, en dos variantes — "noche de tinta" (oscuro) y "washi"
-   * (claro) — como custom properties. src/lib/theme.ts las referencia con
-   * var(--c-x) en vez de valores fijos, así que cambiar [data-theme] en el
-   * <html> (ver ThemeProvider.tsx) repinta toda la app sin tocar cada
-   * pantalla. Debajo, el mismo par de paletas repetido en HSL para los
-   * componentes shadcn/ui (Button, Card, Input...), que leen otro juego de
-   * variables por convención propia de la librería.
+   * Paleta nueva (pedida por el usuario, octubre 2026) — "tinta roja" de
+   * noche, "pastel rosa" de día. Reemplaza la paleta wabi-sabi terracota/
+   * musgo anterior. Los valores base (fondo, panel, texto, rojo de acento,
+   * gris interactivo, bordes) son los exactos que se especificaron; musgo/
+   * arena/arcilla (acento secundario para éxito, logros y detalles cálidos)
+   * no venían en la especificación — son una extrapolación propia, pensada
+   * para no compartir el mismo matiz que "peligro" (que sí es rojo). Si no
+   * convencen, son los únicos tres tokens inventados.
+   *
+   * En oscuro, el rojo primario (#5C0009) es casi negro: perfecto como
+   * fondo de botón solido con texto claro encima, pero con contraste ~1:1
+   * contra el fondo general (#1A1A1C) si se usa como trazo de ícono o texto
+   * fino — practicamente invisible. Por eso --c-accent (uso general: íconos,
+   * barra de progreso, texto de acento) es una variante más clara del mismo
+   * rojo, y el tono casi-negro de la especificación vive en --c-accent-deep
+   * (fondos de botón, hover). En claro ambos coinciden con la especificación
+   * porque ahí el contraste ya funciona bien.
+   *
+   * src/lib/theme.ts referencia estas custom properties con var(--c-x), así
+   * que cambiar [data-theme] en el <html> (ver ThemeProvider.tsx) repinta
+   * toda la app sin tocar cada pantalla. Debajo, el mismo par de paletas en
+   * HSL para los componentes shadcn/ui.
    */
   :root,
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --c-bg:             #15171d;
-    --c-bg-alt:         #111319;
-    --c-surface:        #1d212a;
-    --c-surface-raised: #20242d;
-    --c-surface-sunken: #1b1e26;
-    --c-border:         rgba(233, 229, 220, 0.10);
-    --c-border-soft:    rgba(233, 229, 220, 0.16);
+    --c-bg:             #1a1a1c;
+    --c-bg-alt:         #141415;
+    --c-surface:        #26262a;
+    --c-surface-raised: #2e2e33;
+    --c-surface-sunken: #202023;
+    --c-border:         #393845;
+    --c-border-soft:    #46445a;
 
-    --c-text:        #e9e5dc;
-    --c-text-muted:  #aab0bd;
-    --c-text-faint:  #6f7585;
+    --c-text:        #d0bcc0;
+    --c-text-muted:  #9b96a3;
+    --c-text-faint:  #6f6b78;
 
-    --c-accent:      #dd8068;
-    --c-accent-deep: #c9684f;
-    --c-accent-soft: rgba(221, 128, 104, 0.14);
+    /* Gris interactivo de la especificación: hover de botones secundarios y
+       selectores vacíos. */
+    --c-interactive: #5c5b63;
 
-    --c-moss:      #9db5a0;
-    --c-moss-soft: rgba(157, 181, 160, 0.14);
-    --c-sand:      #c9b79b;
-    --c-clay:      #a98368;
+    --c-accent:      #b23b4a;  /* rojo general — ver nota de contraste arriba */
+    --c-accent-deep: #5c0009;  /* rojo primario exacto de la especificación */
+    --c-accent-soft: rgba(178, 59, 74, 0.16);
 
-    --c-success: #9db5a0;
-    --c-danger:  #dd8068;
+    --c-moss:      #8fa08c;
+    --c-moss-soft: rgba(143, 160, 140, 0.14);
+    --c-sand:      #b99ba0;
+    --c-clay:      #8c5a63;
+
+    --c-success: #8fa08c;
+    --c-danger:  #b23b4a;
     --c-info:    #7d8aa0;
 
     /* Sombras con tinte, no negro puro — en modo oscuro el negro ya
        funciona bien, pero se define aca tambien para que theme.ts lea
        siempre de la variable en vez de un valor fijo. */
     --c-shadow:       0,0,0;
-    --c-shadow-glow:  221,128,104;
+    --c-shadow-glow:  178,59,74;
 
-    /* Fondo "glass" del NavBar — antes era un rgba(29,33,42,...) fijo que
-       solo se veia bien en oscuro; en claro quedaba un azul-negro turbio
-       con texto oscuro encima, casi ilegible. Ahora cada tema aporta su
-       propio tono para el mismo efecto de vidrio esmerilado. */
-    --c-navbar-rgb: 32, 36, 45;
+    /* Fondo "glass" del NavBar. */
+    --c-navbar-rgb: 38, 38, 42;
 
-    /* Fondo de pantalla completa (ver pageBackground en theme.ts). Antes se
-       reusaba --c-moss-soft/--c-accent-soft (alpha 0.12-0.14, pensados para
-       resaltar un borde o chip) como fondo de pagina entera y quedaba
-       practicamente invisible. Estos dos son mas intensos a proposito. */
-    --c-bg-glow-1: rgba(157, 181, 160, 0.22);
-    --c-bg-glow-2: rgba(221, 128, 104, 0.18);
+    /* Fondo de pantalla completa (ver pageBackground en theme.ts). */
+    --c-bg-glow-1: rgba(143, 160, 140, 0.18);
+    --c-bg-glow-2: rgba(178, 59, 74, 0.16);
 
     /* Ilustraciones de fondo por pantalla (ver pageBackgroundJardin/Logros y
        el fondo de login/registro en theme.ts). SVG propio, no una foto —
@@ -68,102 +81,93 @@
     --c-img-logros: url('/img/fondos/logros-dark.svg');
 
     /* — mismos colores, en HSL, para shadcn/ui — */
-    --background: 228 19% 9%;
-    --foreground: 42 20% 88%;
-    --card: 220 19% 14%;
-    --card-foreground: 42 20% 88%;
-    --popover: 220 19% 14%;
-    --popover-foreground: 42 20% 88%;
-    --primary: 9 65% 68%;
-    --primary-foreground: 228 19% 9%;
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 42 20% 88%;
-    --muted: 220 15% 18%;
-    --muted-foreground: 222 12% 68%;
-    --accent: 220 15% 18%;
-    --accent-foreground: 42 20% 88%;
-    --destructive: 9 65% 68%;
-    --destructive-foreground: 228 19% 9%;
-    --border: 42 20% 88% / 0.10;
-    --input: 42 20% 88% / 0.16;
-    --ring: 9 65% 68%;
+    --background: 240 4% 11%;
+    --foreground: 348 18% 78%;
+    --card: 240 5% 16%;
+    --card-foreground: 348 18% 78%;
+    --popover: 240 5% 16%;
+    --popover-foreground: 348 18% 78%;
+    --primary: 352 50% 46%;
+    --primary-foreground: 348 18% 90%;
+    --secondary: 240 4% 13%;
+    --secondary-foreground: 348 18% 78%;
+    --muted: 240 4% 13%;
+    --muted-foreground: 263 7% 61%;
+    --accent: 240 4% 13%;
+    --accent-foreground: 348 18% 78%;
+    --destructive: 352 50% 46%;
+    --destructive-foreground: 348 18% 90%;
+    --border: 245 10% 25%;
+    --input: 245 14% 31%;
+    --ring: 352 50% 46%;
     --radius: 0.8rem;
   }
 
   [data-theme="light"] {
     color-scheme: light;
 
-    /* Segunda pasada sobre el modo claro: el problema no era la paleta en
-       si, sino que todo quedaba muy plano — bordes casi invisibles y
-       superficies demasiado parecidas al fondo, asi que nada se sentia con
-       profundidad real. Aca: bordes mas presentes, mas distancia entre
-       bg/surface/sunken, y sombras con tinte calido (ver --c-shadow mas
-       abajo) en vez de negro puro, que en papel claro se ve sucio. */
-    --c-bg:             #f3ead9;
-    --c-bg-alt:         #ece0c9;
-    --c-surface:        #fffcf5;
+    --c-bg:             #f5f1f3;
+    --c-bg-alt:         #ece6e9;
+    --c-surface:        #ffffff;
     --c-surface-raised: #ffffff;
-    --c-surface-sunken: #e8dcc2;
-    --c-border:         rgba(60, 46, 28, 0.16);
-    --c-border-soft:    rgba(60, 46, 28, 0.24);
+    --c-surface-sunken: #ebeaf0;
+    --c-border:         #f0eff4;
+    --c-border-soft:    #e4e1ea;
 
-    --c-text:        #2c2a24;
-    --c-text-muted:  #5c5544;
-    /* Antes #8a816c — contra el fondo de los inputs (surface-sunken) el
-       contraste bajaba a ~2.5:1, muy por debajo del minimo legible (4.5:1).
-       Este tono mantiene la jerarquia (mas suave que text-muted) sin caer
-       en casi-invisible. */
-    --c-text-faint:  #726a57;
+    --c-text:        #2a282d;
+    --c-text-muted:  #5c5b63;
+    --c-text-faint:  #86838c;
 
-    --c-accent:      #bd5340;
-    --c-accent-deep: #9c4433;
-    --c-accent-soft: rgba(189, 83, 64, 0.14);
+    --c-interactive: #ebeaf0;
 
-    --c-moss:      #3d4a3a;
-    --c-moss-soft: rgba(61, 74, 58, 0.12);
-    --c-sand:      #a37a53;
-    --c-clay:      #8f6946;
+    --c-accent:      #c25b6c;
+    --c-accent-deep: #a8485a;
+    --c-accent-soft: #ebdde3;
 
-    --c-success: #3d4a3a;
-    --c-danger:  #bd5340;
+    --c-moss:      #5b6b57;
+    --c-moss-soft: rgba(91, 107, 87, 0.12);
+    --c-sand:      #9c7a82;
+    --c-clay:      #8f5a62;
+
+    --c-success: #5b6b57;
+    --c-danger:  #c25b6c;
     --c-info:    #5f7084;
 
-    /* Sombra color tierra/cafe en vez de negro: el negro puro sobre papel
-       claro se ve como mugre, no como profundidad. */
-    --c-shadow:       120,90,58;
-    --c-shadow-glow:  189,83,64;
+    /* Sombra con tinte rosado/tierra, acorde a la nueva paleta pastel — el
+       negro puro sobre un fondo tan claro se ve como mugre, no profundidad. */
+    --c-shadow:       120,70,75;
+    --c-shadow-glow:  194,91,108;
 
-    /* Mismo "glass" del NavBar pero en tono papel/crema, mas oscuro que el
-       fondo de la pagina para que siga leyendose como una barra aparte. */
-    --c-navbar-rgb: 236, 224, 201;
+    /* Mismo "glass" del NavBar, en el tono bg-alt de este tema. */
+    --c-navbar-rgb: 236, 230, 233;
 
-    --c-bg-glow-1: rgba(61, 74, 58, 0.16);
-    --c-bg-glow-2: rgba(189, 83, 64, 0.14);
+    --c-bg-glow-1: rgba(91, 107, 87, 0.12);
+    --c-bg-glow-2: rgba(194, 91, 108, 0.12);
 
     --c-img-login:  url('/img/fondos/login-light.svg');
     --c-img-jardin: url('/img/fondos/jardin-light.svg');
     --c-img-logros: url('/img/fondos/logros-light.svg');
 
     /* — mismos colores, en HSL, para shadcn/ui — */
-    --background: 42 30% 91%;
-    --foreground: 60 8% 14%;
-    --card: 43 42% 97%;
-    --card-foreground: 60 8% 14%;
-    --popover: 43 42% 97%;
-    --popover-foreground: 60 8% 14%;
-    --primary: 6 51% 50%;
-    --primary-foreground: 43 42% 97%;
-    --secondary: 40 25% 87%;
-    --secondary-foreground: 60 8% 14%;
-    --muted: 40 25% 87%;
-    --muted-foreground: 30 8% 42%;
-    --accent: 40 25% 87%;
-    --accent-foreground: 60 8% 14%;
-    --destructive: 6 51% 50%;
-    --destructive-foreground: 43 42% 97%;
-    --border: 60 8% 14% / 0.10;
-    --input: 60 8% 14% / 0.16;
-    --ring: 6 51% 50%;
+    --background: 330 17% 95%;
+    --foreground: 264 6% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 264 6% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 264 6% 17%;
+    --primary: 350 46% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 17% 93%;
+    --secondary-foreground: 264 6% 17%;
+    --muted: 250 17% 93%;
+    --muted-foreground: 248 4% 37%;
+    --accent: 250 17% 93%;
+    --accent-foreground: 264 6% 17%;
+    --destructive: 350 46% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 252 19% 95%;
+    --input: 260 18% 90%;
+    --ring: 350 46% 56%;
   }
 
   * {

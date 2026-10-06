@@ -272,7 +272,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize:     14,
     zIndex:       100,
     color:        color.text,
-    boxShadow:    "0 4px 12px rgba(0,0,0,0.4)",
+    boxShadow:    "0 4px 12px rgba(var(--c-shadow), 0.4)",
   },
   header: {
     width:       "100%",

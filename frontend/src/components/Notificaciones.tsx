@@ -391,7 +391,7 @@ const s: Record<string, CSSProperties> = {
     background:   color.surface,
     border:       `1px solid ${color.border}`,
     borderRadius: radius.md,
-    boxShadow:    "0 10px 30px rgba(0,0,0,0.45)",
+    boxShadow:    "0 10px 30px rgba(var(--c-shadow), 0.45)",
     padding:      10,
     zIndex:       100,
   },

@@ -658,7 +658,7 @@ export default function SessionPage() {
 
       {/* ── Aviso de recuperación tras recarga ── */}
       {isRecovering && (
-        <div style={{ ...styles.overlay, background: "rgba(0, 0, 0, 0.3)" }}>
+        <div style={{ ...styles.overlay, background: "rgba(var(--c-shadow), 0.3)" }}>
           <div style={styles.voteCard}>
             <div style={{ fontSize: 40 }}>🔄</div>
             <h3 style={{ margin: "10px 0 6px", color: color.text }}>
@@ -1133,7 +1133,7 @@ const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position:       "fixed" as const,
     inset:          0,
-    background:     "rgba(12, 10, 8, 0.82)",
+    background:     "rgba(var(--c-shadow), 0.82)",
     display:        "flex",
     alignItems:     "center",
     justifyContent: "center",
@@ -1349,7 +1349,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap:            6,
     padding:        14,
     textAlign:      "center",
-    background:     "rgba(15, 13, 11, 0.72)",
+    background:     "rgba(var(--c-shadow), 0.72)",
     backdropFilter: "blur(2px)",
   },
   nombre: {
@@ -1360,8 +1360,12 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems:   "center",
     gap:          6,
     fontSize:     12,
-    color:        color.text,
-    background:   "rgba(0,0,0,0.6)",
+    // Fijo claro, no color.text: esta etiqueta va siempre sobre un video (o
+    // sobre negro si no hay cámara) con un scrim oscuro fijo detrás — en
+    // modo claro color.text es casi negro y quedaba invisible sobre su
+    // propio fondo oscuro.
+    color:        "#f1eef0",
+    background:   "rgba(var(--c-shadow), 0.6)",
     padding:      "3px 10px 3px 4px",
     borderRadius: 999,
     maxWidth:     "80%",
@@ -1490,8 +1494,8 @@ const styles: Record<string, React.CSSProperties> = {
     bottom:     8,
     left:       10,
     fontSize:   11,
-    color:      color.text,
-    background: "rgba(0,0,0,0.5)",
+    color:      "#f1eef0", // fijo claro — ver nota en `nombre` arriba
+    background: "rgba(var(--c-shadow), 0.5)",
     padding:    "2px 8px",
     borderRadius: 999,
   },
