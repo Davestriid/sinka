@@ -22,8 +22,8 @@ import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Pause, SkipForward, Check, Sparkles, Flame, Volume2, VolumeX,
-  X, Settings2, Plus, Trash2, ListTodo, CalendarCheck2, BellRing,
+  Play, Pause, Check, Sparkles, Flame, Volume2, VolumeX,
+  X, Settings2, Plus, Trash2, ListTodo, CalendarCheck2, BellRing, NotebookPen,
 } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
@@ -73,6 +73,7 @@ const K_RECIENTES    = "sinka-tareas-recientes";
 const K_POMODOROS_HOY = "sinka-pomodoros-hoy";
 const K_DUR_TRABAJO  = "sinka-duracion-trabajo";
 const K_DUR_DESCANSO = "sinka-duracion-descanso";
+const K_NOTAS        = "sinka-notas-pomodoro";
 
 function fmt(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
@@ -155,6 +156,10 @@ function SoloSessionInner() {
   // Notificaciones
   const [notifActivas, setNotifActivas] = useState(false);
 
+  // Apuntes — libreta libre al lado del temporizador, para anotar ideas sin
+  // salir de la pantalla. Persiste por navegador, no se reinicia por ronda.
+  const [notas, setNotas] = useState("");
+
   const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const fondoRef        = useRef<HTMLAudioElement | null>(null);
   const volMusicaRef    = useRef(volumenMusica);
@@ -207,8 +212,15 @@ function SoloSessionInner() {
       const raw = localStorage.getItem(K_RECIENTES);
       if (raw) setRecientes(JSON.parse(raw));
     } catch { /* ignorar */ }
+
+    setNotas(localStorage.getItem(K_NOTAS) ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const cambiarNotas = (texto: string) => {
+    setNotas(texto);
+    localStorage.setItem(K_NOTAS, texto);
+  };
 
   useEffect(() => { if (hidratado && !token) router.push("/login"); }, [hidratado, token, router]);
 
@@ -327,11 +339,26 @@ function SoloSessionInner() {
 
   const completarRonda = useCallback(async () => {
     if (!token) return;
-    setGuardando(true);
     sonar(SONIDOS.terminado);
     notificar("trabajo");
     const nuevoTotal = sumarPomodoroHoy();
     setPomodorosHoy(nuevoTotal);
+
+    // Pasar al descanso de inmediato, sin esperar al backend: el pedido de
+    // XP/FocusCoins sigue en paralelo y rellena el cuadro de resultado
+    // cuando llegue (ver "guardando" abajo). Antes se esperaba el await
+    // para recien cambiar de fase, y si la base de datos estaba suspendida
+    // por inactividad (plan gratuito, se duerme tras un rato sin uso — y en
+    // modo solo no se toca el backend durante toda la ronda de trabajo), el
+    // temporizador se quedaba congelado en 00:00 hasta que "despertaba".
+    const largo = ronda % RONDAS_POR_DESCANSO_LARGO === 0;
+    setEsDescansoLargo(largo);
+    setResultado(null);
+    setFase("descanso");
+    setRestante((largo ? LONG_BREAK_MINUTES : minDescanso) * 60);
+    setPausado(false);
+    setGuardando(true);
+
     try {
       const r = await gamificationApi.completeSoloSession(token, 1);
       setResultado(r);
@@ -340,12 +367,7 @@ function SoloSessionInner() {
       // Si falla el guardado no se bloquea el descanso: la persona igual
       // merece su pausa, aunque el XP no se haya podido registrar esta vez.
     } finally {
-      const largo = ronda % RONDAS_POR_DESCANSO_LARGO === 0;
-      setEsDescansoLargo(largo);
       setGuardando(false);
-      setFase("descanso");
-      setRestante((largo ? LONG_BREAK_MINUTES : minDescanso) * 60);
-      setPausado(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, ronda, minDescanso]);
@@ -455,7 +477,7 @@ function SoloSessionInner() {
       <div style={s.decoGlowA} />
       <div style={s.decoGlowB} />
 
-      <div style={s.card}>
+      <div style={{ ...s.card, ...(fase !== "config" ? s.cardAncho : {}) }}>
         {fase !== "config" && (
           <div style={s.barraSuperior}>
             <button style={s.btnSalir} onClick={salir} title={t("solo.salir")}>
@@ -670,107 +692,162 @@ function SoloSessionInner() {
 
           {/* ── Trabajo / Descanso ── */}
           {(fase === "trabajo" || fase === "descanso") && (
-            <motion.div key="timer" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={s.timerWrap}>
-              <span style={s.faseLabel}>
-                {fase === "trabajo"
-                  ? t("solo.fase_trabajo")
-                  : (esDescansoLargo ? t("solo.descanso_largo_label") : t("solo.fase_descanso"))}
-                {" — "}{t("solo.ronda")} {ronda}
-              </span>
+            <motion.div key="timer" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={s.timerLayout}>
+              {/* Columna principal: temporizador */}
+              <div style={s.timerWrap}>
+                <span style={s.faseLabel}>
+                  {fase === "trabajo"
+                    ? t("solo.fase_trabajo")
+                    : (esDescansoLargo ? t("solo.descanso_largo_label") : t("solo.fase_descanso"))}
+                  {" — "}{t("solo.ronda")} {ronda}
+                </span>
 
-              {fase === "trabajo" && tareaActual && (
-                <p style={s.tareaTexto}>{tareaActual.texto}</p>
-              )}
+                {fase === "trabajo" && tareaActual && (
+                  <p style={s.tareaTexto}>{tareaActual.texto}</p>
+                )}
 
-              <div style={s.circuloWrap}>
-                <svg width="260" height="260" viewBox="0 0 260 260" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="130" cy="130" r="116" fill="none" stroke={color.border} strokeWidth="11" />
-                  <motion.circle
-                    cx="130" cy="130" r="116" fill="none"
-                    stroke={fase === "trabajo" ? color.accent : color.moss}
-                    strokeWidth="11"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 116}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 116 * (1 - pct) }}
-                    transition={{ duration: 0.5, ease: "linear" }}
-                    style={{ filter: `drop-shadow(0 0 8px rgba(var(--c-shadow-glow), ${pausado ? 0 : 0.35}))` }}
-                  />
-                </svg>
-                <span style={s.tiempo}>{fmt(restante)}</span>
+                <div style={s.circuloWrap}>
+                  <svg width="260" height="260" viewBox="0 0 260 260" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="130" cy="130" r="116" fill="none" stroke={color.border} strokeWidth="11" />
+                    <motion.circle
+                      cx="130" cy="130" r="116" fill="none"
+                      stroke={fase === "trabajo" ? color.accent : color.moss}
+                      strokeWidth="11"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 116}
+                      animate={{ strokeDashoffset: 2 * Math.PI * 116 * (1 - pct) }}
+                      transition={{ duration: 0.5, ease: "linear" }}
+                      style={{ filter: `drop-shadow(0 0 8px rgba(var(--c-shadow-glow), ${pausado ? 0 : 0.35}))` }}
+                    />
+                  </svg>
+                  <span style={s.tiempo}>{fmt(restante)}</span>
+                </div>
+
+                {fase === "trabajo" && (
+                  <div style={s.controles}>
+                    <button style={s.btnIcono} onClick={() => setPausado(p => !p)}>
+                      {pausado ? <Play size={18} /> : <Pause size={18} />}
+                      <span>{pausado ? t("solo.reanudar") : t("solo.pausar")}</span>
+                    </button>
+                  </div>
+                )}
+
+                {fase === "descanso" && (
+                  <div style={s.postRonda}>
+                    {guardando && <p style={s.hint}>...</p>}
+                    {resultado && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={s.resultadoBox}
+                      >
+                        <div style={s.resultadoTitulo}>
+                          <Check size={16} color={color.success} />
+                          {t("solo.pomodoro_listo")}
+                        </div>
+                        <p style={s.resultadoLinea}>
+                          +{resultado.xp_earned} XP &nbsp;·&nbsp; +{resultado.fc_earned} FC
+                          {resultado.streak_increased && (
+                            <> &nbsp;·&nbsp; <Flame size={13} strokeWidth={2} color={color.accent} style={{ verticalAlign: -2 }} /> {resultado.streak_after}</>
+                          )}
+                        </p>
+                        {resultado.unlocked_achievements.length > 0 && (
+                          <p style={s.logroLinea}>
+                            <Sparkles size={14} color={color.accent} />
+                            {t("solo.logro_nuevo")}
+                          </p>
+                        )}
+                      </motion.div>
+                    )}
+
+                    <div style={s.controles}>
+                      <motion.button
+                        style={s.btnPrimary}
+                        whileHover={{ y: -1 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={otroPomodoro}
+                      >
+                        {t("solo.otro_pomodoro")}
+                      </motion.button>
+                      <button style={s.btnGhost} onClick={terminar}>
+                        {t("solo.terminar")}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {fase === "trabajo" && (
-                <div style={s.controles}>
-                  <button style={s.btnIcono} onClick={() => setPausado(p => !p)}>
-                    {pausado ? <Play size={18} /> : <Pause size={18} />}
-                    <span>{pausado ? t("solo.reanudar") : t("solo.pausar")}</span>
-                  </button>
-                </div>
-              )}
-
-              {fase === "trabajo" && tareas.length > 1 && (
-                <div style={s.miniListaTareas}>
-                  {tareas.filter(ta => !ta.hecha).slice(0, 4).map(ta => (
-                    <button
-                      key={ta.id}
-                      style={{ ...s.miniTareaChip, ...(ta.id === tareaActualId ? s.miniTareaChipActiva : {}) }}
-                      onClick={() => setTareaActualId(ta.id)}
-                    >
-                      {ta.texto}
+              {/* Columna lateral: tareas completas + apuntes libres */}
+              <div style={s.sidebar}>
+                <div style={s.sidebarSeccion}>
+                  <h3 style={s.sidebarTitulo}>
+                    <ListTodo size={14} /> {t("solo.label_tarea")}
+                  </h3>
+                  <div style={s.filaAgregarTarea}>
+                    <input
+                      style={{ ...s.input, padding: "8px 10px", fontSize: 13 }}
+                      placeholder={t("solo.placeholder_nueva_tarea")}
+                      maxLength={80}
+                      value={nuevaTarea}
+                      onChange={e => setNuevaTarea(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") agregarTarea(nuevaTarea); }}
+                    />
+                    <button style={s.btnAgregar} onClick={() => agregarTarea(nuevaTarea)} title={t("solo.agregar_tarea")}>
+                      <Plus size={14} />
                     </button>
-                  ))}
-                </div>
-              )}
+                  </div>
 
-              {fase === "descanso" && (
-                <div style={s.postRonda}>
-                  {guardando && <p style={s.hint}>...</p>}
-                  {resultado && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      style={s.resultadoBox}
-                    >
-                      <div style={s.resultadoTitulo}>
-                        <Check size={16} color={color.success} />
-                        {t("solo.pomodoro_listo")}
-                      </div>
-                      <p style={s.resultadoLinea}>
-                        +{resultado.xp_earned} XP &nbsp;·&nbsp; +{resultado.fc_earned} FC
-                        {resultado.streak_increased && (
-                          <> &nbsp;·&nbsp; <Flame size={13} strokeWidth={2} color={color.accent} style={{ verticalAlign: -2 }} /> {resultado.streak_after}</>
-                        )}
-                      </p>
-                      {resultado.unlocked_achievements.length > 0 && (
-                        <p style={s.logroLinea}>
-                          <Sparkles size={14} color={color.accent} />
-                          {t("solo.logro_nuevo")}
-                        </p>
-                      )}
-                    </motion.div>
+                  {tareas.length === 0 ? (
+                    <p style={s.hintTareas}>{t("solo.sin_tareas")}</p>
+                  ) : (
+                    <div style={s.listaTareas}>
+                      <AnimatePresence initial={false}>
+                        {tareas.map(ta => (
+                          <motion.div
+                            key={ta.id}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{
+                              ...s.filaTarea,
+                              ...(ta.id === tareaActualId && !ta.hecha ? s.filaTareaActual : {}),
+                            }}
+                            onClick={() => setTareaActualId(ta.id)}
+                          >
+                            <button
+                              style={{ ...s.checkTarea, ...(ta.hecha ? s.checkTareaHecha : {}) }}
+                              onClick={e => { e.stopPropagation(); alternarTarea(ta.id); }}
+                            >
+                              {ta.hecha && <Check size={11} strokeWidth={3} />}
+                            </button>
+                            <span style={{ ...s.textoTarea, ...(ta.hecha ? s.textoTareaHecha : {}) }}>
+                              {ta.texto}
+                            </span>
+                            <button
+                              style={s.btnEliminarTarea}
+                              onClick={e => { e.stopPropagation(); eliminarTarea(ta.id); }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
                   )}
-
-                  <div style={s.controles}>
-                    <button style={s.btnGhost} onClick={() => { setRestante(0); }}>
-                      <SkipForward size={16} />
-                      {t("solo.saltar_descanso")}
-                    </button>
-                  </div>
-                  <div style={{ ...s.controles, marginTop: 10 }}>
-                    <motion.button
-                      style={s.btnPrimary}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={otroPomodoro}
-                    >
-                      {t("solo.otro_pomodoro")}
-                    </motion.button>
-                    <button style={s.btnGhost} onClick={terminar}>
-                      {t("solo.terminar")}
-                    </button>
-                  </div>
                 </div>
-              )}
+
+                <div style={s.sidebarSeccion}>
+                  <h3 style={s.sidebarTitulo}>
+                    <NotebookPen size={14} /> {t("solo.apuntes")}
+                  </h3>
+                  <textarea
+                    style={s.textareaNotas}
+                    placeholder={t("solo.apuntes_placeholder")}
+                    value={notas}
+                    onChange={e => cambiarNotas(e.target.value)}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -817,6 +894,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: radius.xl,
     boxShadow: shadow.card,
     padding: "28px 40px 44px",
+    transition: "max-width 0.3s ease",
     textAlign: "center",
   },
   barraSuperior: {
@@ -1022,7 +1100,39 @@ const s: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontSize: 13,
   },
-  timerWrap: { display: "flex", flexDirection: "column", alignItems: "center" },
+  // Ancho extra de la tarjeta solo durante trabajo/descanso, para que quepa
+  // el panel lateral de tareas + apuntes sin apretujar el temporizador.
+  cardAncho: { maxWidth: 860 },
+  timerLayout: {
+    display: "flex", gap: 32, alignItems: "flex-start",
+    flexWrap: "wrap", justifyContent: "center",
+  },
+  timerWrap: {
+    display: "flex", flexDirection: "column", alignItems: "center",
+    flex: "1 1 320px", minWidth: 280,
+  },
+  // Panel lateral — antes las tareas pendientes eran unos chips sueltos
+  // debajo del circulo, mezclados con los controles. Ahora viven aparte, en
+  // su propia columna, junto con una libreta de apuntes libres.
+  sidebar: {
+    flex: "1 1 260px", minWidth: 240, maxWidth: 320,
+    display: "flex", flexDirection: "column", gap: 20,
+    alignSelf: "stretch", textAlign: "left",
+    borderLeft: `1px solid ${color.border}`, paddingLeft: 28,
+  },
+  sidebarSeccion: { display: "flex", flexDirection: "column" },
+  sidebarTitulo: {
+    display: "flex", alignItems: "center", gap: 6,
+    fontFamily: fontSerif, fontSize: 14, color: color.text,
+    margin: "0 0 10px",
+  },
+  textareaNotas: {
+    width: "100%", minHeight: 140, resize: "vertical",
+    background: color.surfaceSunken, border: `1px solid ${color.border}`,
+    borderRadius: radius.md, padding: "10px 12px",
+    color: color.text, fontSize: 13, lineHeight: 1.5,
+    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+  },
   faseLabel: {
     fontSize: 13,
     letterSpacing: "0.04em",
@@ -1057,14 +1167,6 @@ const s: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     flexWrap: "wrap",
   },
-  miniListaTareas: { display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 16 },
-  miniTareaChip: {
-    background: color.surfaceSunken, border: `1px solid ${color.border}`,
-    borderRadius: radius.pill, color: color.textMuted, fontSize: 11.5,
-    padding: "5px 11px", cursor: "pointer", maxWidth: 160, overflow: "hidden",
-    textOverflow: "ellipsis", whiteSpace: "nowrap",
-  },
-  miniTareaChipActiva: { background: color.accentSoft, borderColor: color.accent, color: color.accent },
   postRonda: { width: "100%" },
   hint: { color: color.textFaint, fontSize: 13 },
   resultadoBox: {

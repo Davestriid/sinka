@@ -99,6 +99,11 @@ export const dict = {
   "solo.recientes":          { es: "Recientes", en: "Recent" },
   "solo.tarea_actual":       { es: "Trabajando en", en: "Working on" },
   "solo.badge_actual":       { es: "Actual", en: "Current" },
+  "solo.apuntes":            { es: "Apuntes", en: "Notes" },
+  "solo.apuntes_placeholder": {
+    es: "Ideas, cosas que no quieres olvidar, lo que vas resolviendo…",
+    en: "Ideas, things you don't want to forget, what you're figuring out…",
+  },
   "solo.pomodoros_hoy":      { es: "pomodoros hoy", en: "pomodoros today" },
   "solo.volumen_musica":     { es: "Volumen de la música", en: "Music volume" },
   "solo.volumen_efectos":    { es: "Volumen de los efectos", en: "Effects volume" },
