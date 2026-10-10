@@ -4,6 +4,7 @@ import "./globals.css";
 import { NavBar } from "@/components/NavBar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/components/I18nProvider";
+import { ConfirmProvider } from "@/components/ConfirmProvider";
 
 // Se aplica el tema guardado ANTES de que React hidrate, corriendo como
 // script normal (no un módulo, no bloquea el parseo del resto del <head>).
@@ -55,8 +56,10 @@ export default function RootLayout({
       <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <I18nProvider>
-            <NavBar />
-            {children}
+            <ConfirmProvider>
+              <NavBar />
+              {children}
+            </ConfirmProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

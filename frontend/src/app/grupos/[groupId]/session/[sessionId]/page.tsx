@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Video, VideoOff, Users, Coffee, Timer as TimerIcon, Send, X } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { groupsApi, wsUrl, type Group, type GroupMember } from "@/lib/api";
 import { useGroupPeerConnections, type GroupSignal } from "@/lib/group-peer-connections";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
@@ -160,8 +161,10 @@ export default function SesionGrupoPage() {
     setMensaje("");
   };
 
-  const salir = () => {
-    if (timer && timer.phase === "focus" && !window.confirm("¿Seguro que quieres salir? El resto del grupo sigue sin ti.")) return;
+  const { confirm } = useConfirm();
+
+  const salir = async () => {
+    if (timer && timer.phase === "focus" && !(await confirm("¿Seguro que quieres salir? El resto del grupo sigue sin ti."))) return;
     router.push(`/grupos/${params.groupId}`);
   };
 

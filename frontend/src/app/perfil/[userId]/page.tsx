@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
-import { authApi, type PublicProfileFull } from "@/lib/api";
+import { profileApi, type PublicProfileFull } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
 
@@ -40,7 +40,7 @@ export default function PerfilPublicoPage() {
     setLoading(true);
     setError("");
     try {
-      setPerfil(await authApi.getPublicFull(token, params.userId));
+      setPerfil(await profileApi.getPublicFull(token, params.userId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "No pudimos cargar este perfil.");
     } finally {

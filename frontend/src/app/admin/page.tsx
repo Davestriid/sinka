@@ -10,7 +10,7 @@
  *
  * Toda accion que cambia algo (banear, cambiar rol, editar precio, resolver
  * un reporte, enviar o desactivar un anuncio) pide confirmacion antes de
- * ejecutarse — ver confirmar() mas abajo.
+ * ejecutarse, con el modal propio de useConfirm() — no window.confirm.
  *
  * Deliberadamente simple: tablas planas, sin librerias de grillas nuevas.
  */
@@ -30,6 +30,7 @@ import {
   type AdminUserRow,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 type Pestana =
@@ -42,12 +43,6 @@ const TIPOS_BUZON: Record<string, string> = {
   sugerencia:      "Sugerencia",
   otro:            "Otro",
 };
-
-/** Confirmacion simple antes de cualquier accion de administracion. */
-function confirmar(mensaje: string): boolean {
-  if (typeof window === "undefined") return true;
-  return window.confirm(mensaje);
-}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -178,6 +173,7 @@ function PanelUsuarios({
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(async () => {
     if (!token) return;
@@ -221,7 +217,7 @@ function PanelUsuarios({
   const accionEnLote = async (banear: boolean) => {
     if (!token || seleccion.size === 0) return;
     const verbo = banear ? "suspender" : "reactivar";
-    if (!confirmar(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} a ${seleccion.size} usuario(s) seleccionado(s)?`)) return;
+    if (!(await confirm(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} a ${seleccion.size} usuario(s) seleccionado(s)?`))) return;
     try {
       const actualizados = await adminApi.banUsersLote(token, Array.from(seleccion), banear);
       const mapa = new Map(actualizados.map((u) => [u.id, u]));
@@ -309,9 +305,9 @@ function PanelUsuarios({
                 <select
                   style={s.selectRol}
                   value={u.role}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const nuevoRol = e.target.value;
-                    if (!confirmar(`¿Cambiar el rol de ${u.alias || u.username} a "${nuevoRol}"?`)) return;
+                    if (!(await confirm(`¿Cambiar el rol de ${u.alias || u.username} a "${nuevoRol}"?`))) return;
                     act(() => token ? adminApi.changeRole(token, u.id, nuevoRol) : Promise.reject());
                   }}
                 >
@@ -324,9 +320,9 @@ function PanelUsuarios({
               {u.id !== propioId && (
                 <button
                   style={u.is_banned ? s.btnGhost : s.btnDanger}
-                  onClick={() => {
+                  onClick={async () => {
                     const accion = u.is_banned ? "reactivar" : "suspender";
-                    if (!confirmar(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} a ${u.alias || u.username}?`)) return;
+                    if (!(await confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} a ${u.alias || u.username}?`))) return;
                     act(() =>
                       token
                         ? (u.is_banned ? adminApi.unbanUser(token, u.id) : adminApi.banUser(token, u.id))
@@ -349,6 +345,7 @@ function PanelUsuarios({
 function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadmin: boolean }) {
   const [items, setItems] = useState<AdminShopItemRow[]>([]);
   const [error, setError] = useState("");
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     if (!token) return;
@@ -358,7 +355,7 @@ function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadm
   const guardarPrecio = async (item: AdminShopItemRow, precio: number) => {
     if (!token) return;
     if (precio === item.price_fc) return;   // sin cambio real, no molestar con confirmacion
-    if (!confirmar(`¿Cambiar el precio de "${item.name}" a ${precio} FocusCoins?`)) return;
+    if (!(await confirm(`¿Cambiar el precio de "${item.name}" a ${precio} FocusCoins?`))) return;
     try {
       const actualizado = await adminApi.editShopItem(token, item.id, { price_fc: precio });
       setItems((l) => l.map((i) => (i.id === item.id ? actualizado : i)));
@@ -370,7 +367,7 @@ function PanelTienda({ token, esSuperadmin }: { token: string | null; esSuperadm
   const alternarActivo = async (item: AdminShopItemRow) => {
     if (!token) return;
     const accion = item.is_active ? "desactivar" : "activar";
-    if (!confirmar(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${item.name}" en la tienda?`)) return;
+    if (!(await confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${item.name}" en la tienda?`))) return;
     try {
       const actualizado = await adminApi.editShopItem(token, item.id, { is_active: !item.is_active });
       setItems((l) => l.map((i) => (i.id === item.id ? actualizado : i)));
@@ -427,6 +424,7 @@ function PanelBuzon({ token }: { token: string | null }) {
   // hasta que se confirme el envio.
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [enviandoRespuesta, setEnviandoRespuesta] = useState<string | null>(null);
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(() => {
     if (!token) return;
@@ -441,7 +439,7 @@ function PanelBuzon({ token }: { token: string | null }) {
     if (!token) return;
     const verbo = nuevoEstado === "revisado" ? "marcar como revisado" : "descartar";
     const objetivo = r.reported_username || r.reported_user_id || "este mensaje";
-    if (!confirmar(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} ${r.tipo === "reporte_usuario" ? `el reporte contra ${objetivo}` : objetivo}?`)) return;
+    if (!(await confirm(`¿${verbo.charAt(0).toUpperCase() + verbo.slice(1)} ${r.tipo === "reporte_usuario" ? `el reporte contra ${objetivo}` : objetivo}?`))) return;
     try {
       await adminApi.resolveReport(token, r.id, nuevoEstado);
       cargar();
@@ -454,7 +452,7 @@ function PanelBuzon({ token }: { token: string | null }) {
     if (!token) return;
     const mensaje = (respuestas[r.id] ?? "").trim();
     if (!mensaje) return;
-    if (!confirmar(`¿Enviar esta respuesta a ${r.reporter_username || r.reporter_id}?`)) return;
+    if (!(await confirm(`¿Enviar esta respuesta a ${r.reporter_username || r.reporter_id}?`))) return;
     setEnviandoRespuesta(r.id);
     try {
       await adminApi.replyReport(token, r.id, mensaje);
@@ -547,6 +545,7 @@ function PanelBuzon({ token }: { token: string | null }) {
 function PanelGrupos({ token }: { token: string | null }) {
   const [lista, setLista] = useState<AdminGroupRow[]>([]);
   const [error, setError] = useState("");
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(() => {
     if (!token) return;
@@ -557,7 +556,7 @@ function PanelGrupos({ token }: { token: string | null }) {
 
   const disolver = async (g: AdminGroupRow) => {
     if (!token) return;
-    if (!confirmar(`¿Disolver el grupo "${g.name}"? Esto no se puede deshacer.`)) return;
+    if (!(await confirm(`¿Disolver el grupo "${g.name}"? Esto no se puede deshacer.`))) return;
     try {
       await adminApi.disbandGroup(token, g.id);
       cargar();
@@ -602,6 +601,7 @@ function PanelAnuncios({ token }: { token: string | null }) {
   const [mostrarDesde, setMostrarDesde] = useState("");
   const [ocultarEn, setOcultarEn] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(() => {
     if (!token) return;
@@ -612,7 +612,7 @@ function PanelAnuncios({ token }: { token: string | null }) {
 
   const enviar = async () => {
     if (!token || !titulo.trim() || !mensaje.trim()) return;
-    if (!confirmar(`¿Enviar el anuncio "${titulo}" a todos los usuarios? Aparecerá como banner en su panel de inicio.`)) return;
+    if (!(await confirm(`¿Enviar el anuncio "${titulo}" a todos los usuarios? Aparecerá como banner en su panel de inicio.`))) return;
     setEnviando(true);
     try {
       await adminApi.sendAnnouncement(
@@ -634,7 +634,7 @@ function PanelAnuncios({ token }: { token: string | null }) {
 
   const desactivar = async (a: AdminAnnouncementRow) => {
     if (!token) return;
-    if (!confirmar(`¿Ocultar el anuncio "${a.titulo}"? Dejará de verse en el dashboard.`)) return;
+    if (!(await confirm(`¿Ocultar el anuncio "${a.titulo}"? Dejará de verse en el dashboard.`))) return;
     try {
       await adminApi.deactivateAnnouncement(token, a.id);
       cargar();
@@ -725,6 +725,7 @@ function PanelParametros({ token }: { token: string | null }) {
   const [lista, setLista] = useState<AdminSettingRow[]>([]);
   const [error, setError] = useState("");
   const [valores, setValores] = useState<Record<string, string>>({});
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(() => {
     if (!token) return;
@@ -748,7 +749,7 @@ function PanelParametros({ token }: { token: string | null }) {
       return;
     }
     if (JSON.stringify(nuevo) === JSON.stringify(setting.value)) return;
-    if (!confirmar(`¿Actualizar el parámetro "${setting.name}"? Esto puede cambiar el comportamiento de la app para todos los usuarios.`)) return;
+    if (!(await confirm(`¿Actualizar el parámetro "${setting.name}"? Esto puede cambiar el comportamiento de la app para todos los usuarios.`))) return;
     try {
       const actualizado = await adminApi.updateSetting(token, setting.id, nuevo);
       setLista((l) => l.map((s2) => (s2.id === actualizado.id ? actualizado : s2)));

@@ -18,6 +18,7 @@ import {
   type UserResponse,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 export default function VinculosPage() {
@@ -72,20 +73,24 @@ export default function VinculosPage() {
   };
 
   const [mensaje, setMensaje] = useState("");
+  const { confirm, prompt } = useConfirm();
 
   /**
-   * Reportar a un amigo: texto libre en vez de un formulario aparte — para
-   * algo que se usa poco, un prompt() es mas simple que montar un modal.
+   * Reportar a un amigo: texto libre en vez de un formulario aparte — usa
+   * el prompt propio de la app (useConfirm) en vez de window.prompt, para
+   * no mostrar el dialogo nativo del navegador con el dominio.
    * La razon queda como "otro" y el texto del usuario va en `details`; quien
    * modera lo lee igual en el panel de administracion.
    */
   const reportar = async (u: { id: string; alias?: string | null; username: string }) => {
     if (!token) return;
-    const motivo = window.prompt(
-      `¿Por qué quieres reportar a ${u.alias || u.username}? Describe brevemente qué pasó.`
-    );
+    const motivo = await prompt({
+      title: "Reportar",
+      message: `¿Por qué quieres reportar a ${u.alias || u.username}? Describe brevemente qué pasó.`,
+      placeholder: "Describe qué pasó...",
+    });
     if (!motivo || !motivo.trim()) return;
-    if (!window.confirm(`¿Enviar este reporte sobre ${u.alias || u.username} al equipo de moderación?`)) return;
+    if (!(await confirm(`¿Enviar este reporte sobre ${u.alias || u.username} al equipo de moderación?`))) return;
     try {
       await reportsApi.crear(token, u.id, "otro", motivo.trim());
       setMensaje("Reporte enviado. Gracias por avisarnos.");

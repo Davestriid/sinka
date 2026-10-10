@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { catalogApi, groupsApi, type Group, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, fontSerif, pageBackground } from "@/lib/theme";
 
 type Pestana = "explorar" | "mios";
@@ -35,6 +36,7 @@ export default function GruposPage() {
   const [nuevo, setNuevo] = useState({
     name: "", topic: "", visibility: "public" as "public" | "private", default_task: "",
   });
+  const { confirm } = useConfirm();
 
   const cargar = useCallback(async () => {
     if (!hidratado) return;   // aun no se leyo la sesion guardada
@@ -98,12 +100,12 @@ export default function GruposPage() {
   // forma de borrar un grupo desde la interfaz — una vez creado, quedaba
   // ahi para siempre, acumulando grupos de prueba sin uso real.
   const disolver = async (groupId: string, nombre: string) => {
-    if (!window.confirm(`¿Disolver "${nombre}"? Los integrantes ya no podran usarlo.`)) return;
+    if (!(await confirm(`¿Disolver "${nombre}"? Los integrantes ya no podran usarlo.`))) return;
     await accion(() => groupsApi.disband(token!, groupId));
   };
 
   const salirDe = async (groupId: string, nombre: string) => {
-    if (!window.confirm(`¿Salir de "${nombre}"?`)) return;
+    if (!(await confirm(`¿Salir de "${nombre}"?`))) return;
     await accion(() => groupsApi.leave(token!, groupId));
   };
 

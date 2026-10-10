@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type SoloSessionCompleteResult } from "@/lib/api";
 import { useTranslation } from "@/components/I18nProvider";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
 
 type Fase = "config" | "trabajo" | "descanso";
@@ -126,6 +127,7 @@ function SoloSessionInner() {
   const params = useSearchParams();
   const { accessToken: token, hidratado } = useAuthStore();
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
 
   const [fase, setFase]       = useState<Fase>("config");
   const [restante, setRestante] = useState(WORK_PRESETS[0] * 60);
@@ -461,8 +463,8 @@ function SoloSessionInner() {
   // Antes no habia forma de salir durante la fase de trabajo (solo existia
   // "Terminar" en el descanso) — confirma si hay una ronda en curso para no
   // perderla sin querer con un click accidental.
-  const salir = () => {
-    if (fase === "trabajo" && !window.confirm(t("solo.confirmar_salir"))) return;
+  const salir = async () => {
+    if (fase === "trabajo" && !(await confirm(t("solo.confirmar_salir")))) return;
     router.push("/dashboard");
   };
 
