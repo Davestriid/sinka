@@ -13,6 +13,7 @@ Todo bajo /api/admin y protegido por rol (ver dependencies.py):
   GET   /admin/revenue                   — ingresos reales y compras   (superadmin)
   GET   /admin/reports                   — buzon: reportes y feedback  (admin+)
   PATCH /admin/reports/{id}              — marcar revisado/descartado  (admin+)
+  POST  /admin/reports/{id}/responder    — responder al remitente      (admin+)
   POST  /admin/announcements             — enviar anuncio (banner)     (admin+)
   GET   /admin/announcements             — historial de anuncios       (admin+)
   PATCH /admin/announcements/{id}/desactivar — ocultar el banner       (admin+)
@@ -42,6 +43,7 @@ from modules.admin.schemas import (
     CrearParametroRequest,
     EditarItemTiendaRequest,
     ResolverReporteRequest,
+    ResponderReporteRequest,
 )
 from modules.admin.service import AdminService
 from modules.identity.schemas.auth import UserResponse
@@ -157,6 +159,16 @@ async def resolver_reporte(
     service: AdminService = Depends(_service),
 ) -> AdminReportRow:
     return await service.resolver_reporte(report_id, body.status, admin.id)
+
+
+@router.post("/reports/{report_id}/responder", response_model=AdminReportRow)
+async def responder_reporte(
+    report_id: str,
+    body: ResponderReporteRequest,
+    admin: UserResponse = Depends(require_admin),
+    service: AdminService = Depends(_service),
+) -> AdminReportRow:
+    return await service.responder_reporte(report_id, body.mensaje, admin.id)
 
 
 @router.get("/revenue", response_model=AdminRevenue)

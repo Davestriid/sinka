@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AdminUserRow(BaseModel):
@@ -100,12 +100,19 @@ class AdminReportRow(BaseModel):
     status: str
     created_at: datetime
     resolved_at: datetime | None = None
+    admin_reply: str | None = None
+    replied_at: datetime | None = None
+    replied_by_username: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class ResolverReporteRequest(BaseModel):
     status: str  # "revisado" | "descartado"
+
+
+class ResponderReporteRequest(BaseModel):
+    mensaje: str = Field(min_length=1, max_length=1000)
 
 
 class EditarItemTiendaRequest(BaseModel):

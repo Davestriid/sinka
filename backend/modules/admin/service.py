@@ -240,28 +240,35 @@ class AdminService:
         # reportado), asi que se descarta antes del IN para no meter NULL.
         ids = {r.reporter_id for r in reportes} | {
             r.reported_user_id for r in reportes if r.reported_user_id
+        } | {
+            r.replied_by for r in reportes if r.replied_by
         }
         usuarios = (
             await self.db.execute(select(User.id, User.username).where(User.id.in_(ids)))
         ).all() if ids else []
         nombres = {uid: username for uid, username in usuarios}
 
-        return [
-            AdminReportRow(
-                id=r.id,
-                reporter_id=r.reporter_id,
-                reporter_username=nombres.get(r.reporter_id),
-                reported_user_id=r.reported_user_id,
-                reported_username=nombres.get(r.reported_user_id) if r.reported_user_id else None,
-                tipo=r.tipo,
-                reason=r.reason,
-                details=r.details,
-                status=r.status,
-                created_at=r.created_at,
-                resolved_at=r.resolved_at,
-            )
-            for r in reportes
-        ]
+        return [self._fila_reporte(r, nombres) for r in reportes]
+
+    def _fila_reporte(self, r: Report, nombres: dict[str, str]) -> AdminReportRow:
+        """Arma una fila para el panel a partir de un Report y un mapa id->username
+        ya resuelto, para no repetir el mismo armado en listar/resolver/responder."""
+        return AdminReportRow(
+            id=r.id,
+            reporter_id=r.reporter_id,
+            reporter_username=nombres.get(r.reporter_id),
+            reported_user_id=r.reported_user_id,
+            reported_username=nombres.get(r.reported_user_id) if r.reported_user_id else None,
+            tipo=r.tipo,
+            reason=r.reason,
+            details=r.details,
+            status=r.status,
+            created_at=r.created_at,
+            resolved_at=r.resolved_at,
+            admin_reply=r.admin_reply,
+            replied_at=r.replied_at,
+            replied_by_username=nombres.get(r.replied_by) if r.replied_by else None,
+        )
 
     async def resolver_reporte(self, report_id: str, nuevo_estado: str, admin_id: str) -> AdminReportRow:
         if nuevo_estado not in ESTADOS_REPORTE_VALIDOS:
@@ -281,32 +288,61 @@ class AdminService:
         await self.db.commit()
         await self.db.refresh(reporte)
 
-        ids_a_buscar = [reporte.reporter_id]
-        if reporte.reported_user_id:
-            ids_a_buscar.append(reporte.reported_user_id)
-        nombres = (
-            await self.db.execute(select(User.id, User.username).where(User.id.in_(ids_a_buscar)))
-        ).all()
-        mapa = {uid: username for uid, username in nombres}
+        mapa = await self._nombres_de(reporte)
 
         await self._auditar(
             admin_id, "resolver_reporte", objetivo_tipo="report", objetivo_id=report_id,
             detalle=nuevo_estado,
         )
 
-        return AdminReportRow(
-            id=reporte.id,
-            reporter_id=reporte.reporter_id,
-            reporter_username=mapa.get(reporte.reporter_id),
-            reported_user_id=reporte.reported_user_id,
-            reported_username=mapa.get(reporte.reported_user_id) if reporte.reported_user_id else None,
-            tipo=reporte.tipo,
-            reason=reporte.reason,
-            details=reporte.details,
-            status=reporte.status,
-            created_at=reporte.created_at,
-            resolved_at=reporte.resolved_at,
+        return self._fila_reporte(reporte, mapa)
+
+    async def responder_reporte(self, report_id: str, mensaje: str, admin_id: str) -> AdminReportRow:
+        """
+        Guarda la respuesta de un admin a un mensaje del buzon. El usuario que
+        lo envio la ve en GET /reports/mine.
+
+        Responder marca el reporte como "revisado" automaticamente si seguia
+        "pendiente" — en la practica, escribirle una respuesta a alguien ya
+        es la forma de atender el mensaje; no tiene sentido dejarlo pendiente
+        despues de eso. Si un admin ya lo habia descartado y aun asi quiere
+        responder (p.ej. para explicar por que), se respeta ese estado.
+        """
+        reporte = (
+            await self.db.execute(select(Report).where(Report.id == report_id))
+        ).scalar_one_or_none()
+        if not reporte:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reporte no encontrado.")
+
+        reporte.admin_reply = mensaje
+        reporte.replied_at = datetime.now(timezone.utc)
+        reporte.replied_by = admin_id
+        if reporte.status == "pendiente":
+            reporte.status = "revisado"
+            reporte.resolved_at = reporte.replied_at
+            reporte.resolved_by = admin_id
+        await self.db.commit()
+        await self.db.refresh(reporte)
+
+        mapa = await self._nombres_de(reporte)
+
+        await self._auditar(
+            admin_id, "responder_reporte", objetivo_tipo="report", objetivo_id=report_id,
         )
+
+        return self._fila_reporte(reporte, mapa)
+
+    async def _nombres_de(self, reporte: Report) -> dict[str, str]:
+        """id->username de todo usuario que aparece en una fila de buzon."""
+        ids_a_buscar = {reporte.reporter_id}
+        if reporte.reported_user_id:
+            ids_a_buscar.add(reporte.reported_user_id)
+        if reporte.replied_by:
+            ids_a_buscar.add(reporte.replied_by)
+        filas = (
+            await self.db.execute(select(User.id, User.username).where(User.id.in_(ids_a_buscar)))
+        ).all()
+        return {uid: username for uid, username in filas}
 
     # ------------------------------------------------------------------ #
     # Anuncios                                                          #

@@ -417,6 +417,11 @@ function PanelBuzon({ token }: { token: string | null }) {
   const [error, setError] = useState("");
   const [soloPendientes, setSoloPendientes] = useState(true);
   const [tipoFiltro, setTipoFiltro] = useState("");
+  // Texto de respuesta en edicion, por mensaje — solo uno abierto a la vez
+  // no hace falta forzarlo, pero el textarea se guarda aparte del backend
+  // hasta que se confirme el envio.
+  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+  const [enviandoRespuesta, setEnviandoRespuesta] = useState<string | null>(null);
 
   const cargar = useCallback(() => {
     if (!token) return;
@@ -440,6 +445,23 @@ function PanelBuzon({ token }: { token: string | null }) {
     }
   };
 
+  const responder = async (r: AdminReportRow) => {
+    if (!token) return;
+    const mensaje = (respuestas[r.id] ?? "").trim();
+    if (!mensaje) return;
+    if (!confirmar(`¿Enviar esta respuesta a ${r.reporter_username || r.reporter_id}?`)) return;
+    setEnviandoRespuesta(r.id);
+    try {
+      await adminApi.replyReport(token, r.id, mensaje);
+      setRespuestas((prev) => { const copia = { ...prev }; delete copia[r.id]; return copia; });
+      cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo enviar la respuesta.");
+    } finally {
+      setEnviandoRespuesta(null);
+    }
+  };
+
   if (error) return <p style={s.error}>{error}</p>;
 
   return (
@@ -459,25 +481,54 @@ function PanelBuzon({ token }: { token: string | null }) {
       </div>
       <div style={s.tabla}>
         {lista.map((r) => (
-          <div key={r.id} style={s.fila}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontWeight: 600 }}>
-                {r.tipo === "reporte_usuario"
-                  ? `${r.reporter_username || r.reporter_id} → ${r.reported_username || r.reported_user_id}`
-                  : r.reporter_username || r.reporter_id}
+          <div key={r.id} style={{ ...s.fila, flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontWeight: 600 }}>
+                  {r.tipo === "reporte_usuario"
+                    ? `${r.reporter_username || r.reporter_id} → ${r.reported_username || r.reported_user_id}`
+                    : r.reporter_username || r.reporter_id}
+                </div>
+                <div style={s.muted}>
+                  <span style={s.tipoBadge}>{TIPOS_BUZON[r.tipo] ?? r.tipo}</span>
+                  {" "}{r.reason !== r.tipo ? r.reason : ""} {r.details ? `— ${r.details}` : ""}
+                </div>
+                <div style={s.muted}>{new Date(r.created_at).toLocaleString()}</div>
               </div>
-              <div style={s.muted}>
-                <span style={s.tipoBadge}>{TIPOS_BUZON[r.tipo] ?? r.tipo}</span>
-                {" "}{r.reason !== r.tipo ? r.reason : ""} {r.details ? `— ${r.details}` : ""}
-              </div>
-              <div style={s.muted}>{new Date(r.created_at).toLocaleString()}</div>
+              <span style={r.status === "pendiente" ? s.banBadge : s.rolBadge}>{r.status}</span>
+              {r.status === "pendiente" && (
+                <>
+                  <button style={s.btn} onClick={() => resolver(r, "revisado")}>Marcar revisado</button>
+                  <button style={s.btnGhost} onClick={() => resolver(r, "descartado")}>Descartar</button>
+                </>
+              )}
             </div>
-            <span style={r.status === "pendiente" ? s.banBadge : s.rolBadge}>{r.status}</span>
-            {r.status === "pendiente" && (
-              <>
-                <button style={s.btn} onClick={() => resolver(r, "revisado")}>Marcar revisado</button>
-                <button style={s.btnGhost} onClick={() => resolver(r, "descartado")}>Descartar</button>
-              </>
+
+            {r.admin_reply ? (
+              <div style={s.respuestaYaEnviada}>
+                <strong>Tu respuesta{r.replied_by_username ? ` (${r.replied_by_username})` : ""}:</strong> {r.admin_reply}
+                {r.replied_at && <div style={s.muted}>{new Date(r.replied_at).toLocaleString()}</div>}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <textarea
+                  style={{ ...s.input, flex: 1, minWidth: 220, minHeight: 50, resize: "vertical", marginBottom: 0 }}
+                  placeholder="Responder a este mensaje…"
+                  value={respuestas[r.id] ?? ""}
+                  onChange={(e) => setRespuestas((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                />
+                <button
+                  style={{
+                    ...s.btn,
+                    opacity: enviandoRespuesta === r.id || !(respuestas[r.id] ?? "").trim() ? 0.55 : 1,
+                    cursor:  enviandoRespuesta === r.id || !(respuestas[r.id] ?? "").trim() ? "not-allowed" : "pointer",
+                  }}
+                  disabled={enviandoRespuesta === r.id || !(respuestas[r.id] ?? "").trim()}
+                  onClick={() => responder(r)}
+                >
+                  {enviandoRespuesta === r.id ? "Enviando…" : "Responder"}
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -811,6 +862,10 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 10, padding: "2px 8px", borderRadius: radius.pill,
     background: color.surface, border: `1px solid ${color.border}`, color: color.textMuted,
     marginRight: 6, display: "inline-block",
+  },
+  respuestaYaEnviada: {
+    fontSize: 13, lineHeight: 1.5, color: color.text,
+    background: color.mossSoft, borderRadius: radius.sm, padding: "10px 12px",
   },
   selectRol: {
     padding: "6px 10px", borderRadius: radius.sm, border: `1px solid ${color.border}`,

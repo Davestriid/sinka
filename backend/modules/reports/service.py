@@ -5,6 +5,7 @@ modules/admin/service.py, igual que admin ya lee CoinPurchase de
 modules/payments sin duplicar logica.
 """
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.identity.repositories.user_repository import UserRepository
@@ -68,3 +69,14 @@ class ReportsService:
         await self.db.commit()
         await self.db.refresh(item)
         return ReportResponse.model_validate(item)
+
+    async def listar_mios(self, reporter_id: str) -> list[ReportResponse]:
+        """Lo que un usuario mando al buzon (reportes y feedback), con la
+        respuesta del admin si ya la hay. Mas nuevo primero."""
+        q = (
+            select(Report)
+            .where(Report.reporter_id == reporter_id)
+            .order_by(Report.created_at.desc())
+        )
+        items = (await self.db.execute(q)).scalars().all()
+        return [ReportResponse.model_validate(i) for i in items]

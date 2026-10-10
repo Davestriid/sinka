@@ -395,6 +395,9 @@ export interface AdminReportRow {
   status: "pendiente" | "revisado" | "descartado";
   created_at: string;
   resolved_at: string | null;
+  admin_reply: string | null;
+  replied_at: string | null;
+  replied_by_username: string | null;
 }
 
 export interface AdminAnnouncementRow {
@@ -522,6 +525,12 @@ export const adminApi = {
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify({ status }),
     }),
+  replyReport: (accessToken: string, id: string, mensaje: string) =>
+    request<AdminReportRow>(`/admin/reports/${id}/responder`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    JSON.stringify({ mensaje }),
+    }),
   getSettings: (accessToken: string) =>
     request<AdminSettingRow[]>("/admin/settings", {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -562,6 +571,27 @@ export const reportsApi = {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify({ reported_user_id: reportedUserId, reason, details: details || null }),
+    }),
+};
+
+// ── Lo que el propio usuario mando al buzon (con la respuesta, si ya la hay) ──
+export interface MiMensajeBuzon {
+  id: string;
+  reporter_id: string;
+  reported_user_id: string | null;
+  tipo: "reporte_usuario" | "queja" | "sugerencia" | "otro";
+  reason: string;
+  details: string | null;
+  status: "pendiente" | "revisado" | "descartado";
+  created_at: string;
+  admin_reply: string | null;
+  replied_at: string | null;
+}
+
+export const misMensajesApi = {
+  listar: (accessToken: string) =>
+    request<MiMensajeBuzon[]>("/reports/mine", {
+      headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };
 
@@ -994,4 +1024,7 @@ export const wsUrl = {
 
   groupLobby: (groupId: string, token: string) =>
     `${WS_BASE}/groups/${groupId}/lobby?token=${encodeURIComponent(token)}`,
+
+  groupSession: (groupId: string, sessionId: string, token: string) =>
+    `${WS_BASE}/groups/${groupId}/session/${sessionId}?token=${encodeURIComponent(token)}`,
 };

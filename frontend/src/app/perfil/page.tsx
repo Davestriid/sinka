@@ -8,12 +8,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { authApi, feedbackApi, profileApi, trustApi, TIPOS_FEEDBACK, type TrustState } from "@/lib/api";
+import {
+  authApi, feedbackApi, misMensajesApi, profileApi, trustApi,
+  TIPOS_FEEDBACK, type MiMensajeBuzon, type TrustState,
+} from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/components/ThemeProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
+
+const ETIQUETAS_BUZON: Record<string, string> = {
+  reporte_usuario: "Reporte",
+  queja:           "Queja",
+  sugerencia:      "Sugerencia",
+  otro:            "Otro",
+};
 
 const LADO_FOTO   = 256;              // pixeles del lado del cuadrado final
 const MAX_ARCHIVO = 5 * 1024 * 1024;  // 5 MB de entrada
@@ -90,6 +100,8 @@ export default function PerfilPage() {
   const [enviandoFeedback, setEnviandoFeedback] = useState(false);
   const [feedbackOk, setFeedbackOk] = useState("");
 
+  const [misMensajes, setMisMensajes] = useState<MiMensajeBuzon[]>([]);
+
   /** Una foto se distingue de un símbolo porque es una imagen incrustada. */
   const esImagen = avatar.startsWith("data:image") || avatar.startsWith("http");
 
@@ -124,6 +136,7 @@ export default function PerfilPage() {
       // user.theme) apenas carga la app — no hace falta repetirlo aca.
     }
     trustApi.me(token).then(setTrust).catch(() => setTrust(null));
+    misMensajesApi.listar(token).then(setMisMensajes).catch(() => {});
   }, [token, user, router, hidratado]);
 
   /**
@@ -182,6 +195,7 @@ export default function PerfilPage() {
       await feedbackApi.enviar(token, tipoFeedback, textoFeedback.trim());
       setTextoFeedback("");
       setFeedbackOk("Gracias, lo recibimos.");
+      misMensajesApi.listar(token).then(setMisMensajes).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar.");
     } finally {
@@ -358,6 +372,32 @@ export default function PerfilPage() {
         </div>
       </section>
 
+      {misMensajes.length > 0 && (
+        <section style={s.card}>
+          <h2 style={s.cardTitle}>Mis mensajes</h2>
+          <p style={s.muted}>Lo que has enviado al buzón, y la respuesta del equipo cuando ya la hay.</p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+            {misMensajes.map((m) => (
+              <div key={m.id} style={s.mensajeFila}>
+                <div style={s.muted}>
+                  <span style={s.tipoBadgeMio}>{ETIQUETAS_BUZON[m.tipo] ?? m.tipo}</span>
+                  {" "}{new Date(m.created_at).toLocaleString()}
+                </div>
+                <p style={{ margin: "4px 0", fontSize: 14 }}>{m.details || m.reason}</p>
+                {m.admin_reply ? (
+                  <div style={s.respuestaAdmin}>
+                    <strong>Respuesta del equipo:</strong> {m.admin_reply}
+                  </div>
+                ) : (
+                  <span style={s.muted}>Aún sin respuesta.</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Espacio para que la barra anclada no tape el ultimo contenido */}
       <div style={{ height: 84 }} />
 
@@ -502,5 +542,18 @@ const s: Record<string, React.CSSProperties> = {
   ok: {
     background: color.mossSoft, color: color.moss, padding: 12,
     borderRadius: radius.sm, marginBottom: 16, fontSize: 13, maxWidth: 520,
+  },
+  mensajeFila: {
+    background: color.bg, border: `1px solid ${color.border}`,
+    borderRadius: radius.sm, padding: "10px 12px",
+  },
+  tipoBadgeMio: {
+    fontSize: 10, padding: "2px 8px", borderRadius: radius.pill,
+    background: color.surface, border: `1px solid ${color.border}`, color: color.textMuted,
+    display: "inline-block",
+  },
+  respuestaAdmin: {
+    fontSize: 13, lineHeight: 1.5, color: color.text,
+    background: color.mossSoft, borderRadius: radius.sm, padding: "8px 10px", marginTop: 6,
   },
 };

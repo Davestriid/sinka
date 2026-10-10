@@ -35,5 +35,7 @@ class ReportResponse(BaseModel):
     details: str | None
     status: str
     created_at: datetime
+    admin_reply: str | None = None
+    replied_at: datetime | None = None
 
     model_config = {"from_attributes": True}

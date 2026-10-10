@@ -45,3 +45,13 @@ class Report(Base):
     resolved_by: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+
+    # Respuesta de un admin, visible para quien envio el mensaje (GET /reports/mine).
+    # Responder no es lo mismo que resolver: se puede responder sin cambiar el
+    # estado, pero el service de admin por defecto marca "revisado" al
+    # responder porque en la practica siempre implica que ya se atendio.
+    admin_reply: Mapped[str | None] = mapped_column(Text, nullable=True)
+    replied_at:  Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    replied_by:  Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )

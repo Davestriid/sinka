@@ -1,7 +1,8 @@
 """
-POST /reports   — un usuario reporta a otro
-POST /feedback  — queja, sugerencia o comentario general (sin usuario reportado)
-Ambos caen en el mismo buzon. Ver /admin/reports para moderacion.
+POST /reports      — un usuario reporta a otro
+POST /feedback     — queja, sugerencia o comentario general (sin usuario reportado)
+GET  /reports/mine — lo que el usuario actual mando, con la respuesta del admin si la hay
+Los tres caen en el mismo buzon. Ver /admin/reports para moderacion.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,3 +36,11 @@ async def crear_feedback(
     service: ReportsService = Depends(_service),
 ) -> ReportResponse:
     return await service.crear_feedback(current_user.id, body)
+
+
+@router.get("/reports/mine", response_model=list[ReportResponse])
+async def mis_mensajes(
+    current_user: UserResponse = Depends(get_current_user),
+    service: ReportsService = Depends(_service),
+) -> list[ReportResponse]:
+    return await service.listar_mios(current_user.id)
