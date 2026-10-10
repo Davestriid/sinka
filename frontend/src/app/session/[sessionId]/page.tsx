@@ -181,6 +181,30 @@ export default function SessionPage() {
   const [extensionNote,  setExtensionNote]  = useState<string | null>(null);
   const [voteSeconds,    setVoteSeconds]    = useState(0);
 
+  // Aviso temporal para "compartir pantalla" cuando el navegador no lo
+  // soporta (la mayoria de navegadores moviles no implementan
+  // getDisplayMedia). Antes el boton fallaba en silencio — el catch de
+  // startScreenShare asumia que cualquier error era la persona cancelando
+  // el dialogo nativo, pero en movil directamente no hay dialogo: la
+  // llamada explota antes de abrir nada. Ahora se detecta antes de
+  // intentarlo y se explica por que no se puede.
+  const [avisoPantalla, setAvisoPantalla] = useState<string | null>(null);
+  useEffect(() => {
+    if (!avisoPantalla) return;
+    const id = setTimeout(() => setAvisoPantalla(null), 6000);
+    return () => clearTimeout(id);
+  }, [avisoPantalla]);
+
+  const manejarCompartirPantalla = () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      setAvisoPantalla(
+        "Este navegador no permite compartir pantalla (es una limitación del navegador, no de SINKA). Prueba desde una computadora."
+      );
+      return;
+    }
+    startScreenShare();
+  };
+
   // ── Función para enviar señales WebRTC a través del WS ───────────────────
   const sendSignal = useCallback((msg: WebRtcSignal) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -747,19 +771,32 @@ export default function SessionPage() {
         </div>
       )}
 
+      {/* ── Aviso: compartir pantalla no soportado en este navegador ── */}
+      {avisoPantalla && (
+        <div style={{ ...styles.extensionNote, background: color.accentSoft, borderColor: color.accentDeep, color: color.accent }}>
+          <MonitorX size={14} strokeWidth={2} style={{ verticalAlign: -2, marginRight: 5 }} />
+          {avisoPantalla}
+        </div>
+      )}
+
       {/* ── Header ── */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
           <span style={{ fontWeight: 700, fontSize: 18, color: color.text }}>SINKA</span>
+          {/* Antes el fondo y el texto de estos pills usaban el mismo token
+              de color (moss/success eran literalmente el mismo valor, e
+              "info" se repetia en fondo y texto) — el texto quedaba
+              invisible sobre su propio fondo. Ahora el fondo siempre es la
+              version "soft"/semitransparente y el texto el color solido. */}
           <span style={{
             ...styles.pill,
-            background: wsReady && partnerConnected ? color.moss : color.clay,
+            background: wsReady && partnerConnected ? color.mossSoft : color.clay,
             color:      wsReady && partnerConnected ? color.success : color.sand,
           }}>
             {wsReady && partnerConnected ? "● Sesión activa" : "● Esperando pareja..."}
           </span>
           {peerConnected && (
-            <span style={{ ...styles.pill, background: color.info, color: color.info, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ ...styles.pill, background: color.surfaceSunken, border: `1px solid ${color.border}`, color: color.info, display: "inline-flex", alignItems: "center", gap: 5 }}>
               <Video size={13} strokeWidth={2} /> Video conectado
             </span>
           )}
@@ -995,15 +1032,31 @@ export default function SessionPage() {
 
             {/* Barra de controles, centrada bajo el vídeo */}
             <div style={styles.barraControles}>
+              {/* El audio local solo se escucha durante el descanso (el otro
+                  lado tiene el <video> en mute mientras es "isBreak"=false).
+                  Antes este boton se podia tocar igual durante el enfoque:
+                  cambiaba de icono y de estado, pero no tenia ningun efecto
+                  audible, asi que parecia roto. Ahora queda bloqueado y
+                  visualmente "silenciado" durante el enfoque, y solo se
+                  puede tocar de verdad en el descanso. */}
               <motion.button
-                style={{ ...styles.botonRedondo, ...(micEnabled ? {} : styles.botonApagado) }}
-                onClick={toggleMic}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.94 }}
-                title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
+                style={{
+                  ...styles.botonRedondo,
+                  ...(micEnabled && isBreak ? {} : styles.botonApagado),
+                  ...(isBreak ? {} : styles.botonBloqueado),
+                }}
+                onClick={isBreak ? toggleMic : undefined}
+                disabled={!isBreak}
+                whileHover={isBreak ? { y: -2 } : {}}
+                whileTap={isBreak ? { scale: 0.94 } : {}}
+                title={
+                  !isBreak
+                    ? "El micrófono se habilita en el descanso"
+                    : micEnabled ? "Silenciar micrófono" : "Activar micrófono"
+                }
               >
-                {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
-                {micEnabled ? "Micrófono" : "Silenciado"}
+                {micEnabled && isBreak ? <Mic size={18} /> : <MicOff size={18} />}
+                {!isBreak ? "Silenciado" : micEnabled ? "Micrófono" : "Silenciado"}
               </motion.button>
 
               <motion.button
@@ -1019,7 +1072,7 @@ export default function SessionPage() {
 
               <motion.button
                 style={{ ...styles.botonRedondo, ...(isScreenSharing ? styles.botonActivo : {}) }}
-                onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                onClick={isScreenSharing ? stopScreenShare : manejarCompartirPantalla}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.94 }}
                 title={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
@@ -1410,6 +1463,12 @@ const styles: Record<string, React.CSSProperties> = {
     background:  color.accentSoft,
     borderColor: color.accentDeep,
     color:       color.sand,
+  },
+  // Boton de microfono fuera del descanso: ni siquiera parece clickeable,
+  // para que no quede duda de que tocarlo ahora no hace nada.
+  botonBloqueado: {
+    opacity:     0.55,
+    cursor:      "not-allowed",
   },
   card: {
     background:   color.surface,

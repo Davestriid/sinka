@@ -326,6 +326,7 @@ class SessionService:
 
         self._sessions.pop(session_id, None)
         self._focus.pop(session_id, None)
+        await self._clear_redis_state(session_id)
 
     async def _end_session_por_abandono(
         self,
@@ -373,6 +374,11 @@ class SessionService:
         self._voto_listo.pop(session_id, None)
         self._voto_resultado.pop(session_id, None)
         extension_service.limpiar(session_id)
+        # No esperar a que el game-loop cancelado llegue a su propio finally
+        # (hay una ventana de carrera entre cancelar la tarea y que de verdad
+        # termine) — se borra aca mismo, de una vez, para que una reconexion
+        # inmediata ya no encuentre nada que revivir.
+        await self._clear_redis_state(session_id)
 
     def update_focus(self, session_id: str, user_id: str, is_active: bool) -> None:
         """Actualiza el estado de actividad de un usuario (sin IO)."""
@@ -574,6 +580,19 @@ class SessionService:
             tarea_espera = self._espera_inicial.pop(session_id, None)
             if tarea_espera and not tarea_espera.done():
                 tarea_espera.cancel()
+            # La sesion ya termino de verdad (completa, cancelada por
+            # abandono, o el proceso se cayo a medio camino): borrar el
+            # estado de Redis para que connect() no la pueda "revivir" si
+            # alguien recarga la pagina mas tarde. Antes solo se confiaba en
+            # el TTL de 35 minutos, y dentro de esa ventana una reconexion
+            # tardia (el celular que se durmio y se prende horas... no, pero
+            # si minutos despues) encontraba el estado viejo en Redis,
+            # recreaba una sesion nueva con una sola persona adentro, y esa
+            # persona quedaba viendo la camara con el temporizador congelado
+            # para siempre (el game-loop nunca arranca con un solo lado
+            # conectado). Esto solo debe pasar en el modo solo, nunca aca.
+            self._sessions.pop(session_id, None)
+            await self._clear_redis_state(session_id)
 
     def _cancel_loop(self, session_id: str) -> None:
         task = self._loops.pop(session_id, None)
@@ -663,6 +682,25 @@ class SessionService:
             SESSION_STATE_TTL,
             json.dumps(state),
         )
+
+    async def _clear_redis_state(self, session_id: str) -> None:
+        """
+        Borra el estado persistido de la sesion en Redis.
+
+        Se llama en cada punto donde la sesion termina de verdad. Sin esto,
+        el estado seguia vivo en Redis hasta por SESSION_STATE_TTL (35 min)
+        despues de terminada, y connect() lo usaba para "revivir" la sesion
+        si alguien reconectaba en esa ventana — dejando a esa persona sola,
+        viendo su propia camara, con el temporizador congelado porque el
+        game-loop nunca arranca con un solo lado conectado.
+        """
+        try:
+            await redis_client.delete(f"session:{session_id}:state")
+        except Exception as e:
+            logger.warning(
+                "SessionService: no se pudo borrar el estado Redis de %s: %s",
+                session_id, e,
+            )
 
 
 # Singleton compartido por todo el proceso

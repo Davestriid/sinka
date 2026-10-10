@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ComponentType } f
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy,
-  Flame, Sun, Moon, ChevronDown, UserCircle, Settings, LogOut, ShieldCheck,
+  Flame, Sun, Moon, ChevronDown, UserCircle, LogOut, ShieldCheck,
   type LucideProps,
 } from "lucide-react";
 
@@ -266,19 +266,17 @@ export function NavBar({ monedas }: NavBarProps) {
 
                 <div style={s.menuDivider} />
 
+                {/* "Ajustes" apuntaba a /perfil#preferencias, una seccion
+                    que solo tenia el selector de tema — y ese selector era
+                    redundante con el icono de luna/sol de aca al lado, asi
+                    que se quito. Sin esa seccion, "Ajustes" llevaba al mismo
+                    lugar que "Perfil" sin aportar nada distinto. */}
                 <button
                   style={s.menuItem}
                   onClick={() => { setMenuAbierto(false); router.push("/perfil"); }}
                 >
                   <UserCircle size={16} strokeWidth={2} />
                   {t("nav.perfil")}
-                </button>
-                <button
-                  style={s.menuItem}
-                  onClick={() => { setMenuAbierto(false); router.push("/perfil#preferencias"); }}
-                >
-                  <Settings size={16} strokeWidth={2} />
-                  {t("nav.ajustes")}
                 </button>
 
                 {(user?.role === "admin" || user?.role === "superadmin") && (

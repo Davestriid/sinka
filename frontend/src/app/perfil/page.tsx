@@ -63,13 +63,19 @@ async function prepararFoto(archivo: File): Promise<string> {
 export default function PerfilPage() {
   const router = useRouter();
   const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
-  const { setTema: aplicarTemaGlobal } = useTheme();
+  // El tema ya no tiene un control propio aca: el icono de luna/sol del
+  // NavBar (ver components/NavBar.tsx) hace exactamente lo mismo y esta
+  // siempre a mano, asi que el selector de "Tema" en Preferencias era una
+  // segunda forma de hacer lo mismo sin aportar nada. "tema" se toma del
+  // mismo contexto compartido que usa el NavBar, para que "Guardar cambios"
+  // siga recordando en la cuenta lo ultimo que se eligio, sin importar
+  // desde donde se haya tocado.
+  const { tema, setTema: aplicarTemaGlobal } = useTheme();
 
   const [alias,  setAlias]  = useState("");
   const [bio,    setBio]    = useState("");
   const [avatar, setAvatar] = useState("");
   const [idioma, setIdioma] = useState<"es" | "en">("es");
-  const [tema,   setTema]   = useState<"light" | "dark">("dark");
 
   const [trust,   setTrust]   = useState<TrustState | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -114,7 +120,8 @@ export default function PerfilPage() {
       setBio(user.bio ?? "");
       setAvatar(user.avatar_url ?? AVATARES[0]);
       setIdioma(user.language);
-      setTema(user.theme);
+      // El tema ya lo inicializa ThemeProvider solo (localStorage o
+      // user.theme) apenas carga la app — no hace falta repetirlo aca.
     }
     trustApi.me(token).then(setTrust).catch(() => setTrust(null));
   }, [token, user, router, hidratado]);
@@ -270,27 +277,6 @@ export default function PerfilPage() {
           onChange={(e) => setBio(e.target.value)}
         />
         <span style={s.muted}>{bio.length}/280</span>
-      </section>
-
-      <section id="preferencias" style={s.card}>
-        <h2 style={s.cardTitle}>Preferencias</h2>
-
-        <p style={s.label}>Tema</p>
-        <div style={s.chips}>
-          <button
-            style={{ ...s.chip, ...(tema === "dark" ? s.chipOn : {}) }}
-            onClick={() => { setTema("dark"); aplicarTemaGlobal("dark"); }}
-          >
-            Oscuro
-          </button>
-          <button
-            style={{ ...s.chip, ...(tema === "light" ? s.chipOn : {}) }}
-            onClick={() => { setTema("light"); aplicarTemaGlobal("light"); }}
-          >
-            Claro
-          </button>
-        </div>
-        <span style={s.muted}>Se aplica al instante. &quot;Guardar cambios&quot; lo recuerda en tu cuenta.</span>
       </section>
 
       {trust && (

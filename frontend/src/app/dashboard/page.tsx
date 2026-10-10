@@ -408,7 +408,12 @@ const styles: Record<string, React.CSSProperties> = {
     flex:           1,
     display:        "flex",
     alignItems:     "center",
-    justifyContent: "center",
+    // Antes centraba verticalmente dentro de los 100vh de la pagina: si el
+    // alto disponible era grande (p.ej. "sitio de escritorio" en un celular,
+    // donde el NavBar pasa de dos filas a una y libera mucho espacio), el
+    // contenido quedaba flotando muy abajo con un hueco negro enorme arriba.
+    // flex-start + padding fijo lo ancla cerca del tope siempre.
+    justifyContent: "flex-start",
     padding:        "48px 16px",
   },
   kicker: {

@@ -24,6 +24,11 @@ export default function GruposPage() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
 
+  // Filtro de area en "Explorar" — null significa "todas". Se vuelve a
+  // pedir la lista al backend en vez de filtrar en el cliente, para no
+  // cargar grupos de areas que la persona nunca va a ver.
+  const [filtroTopic, setFiltroTopic] = useState<string | null>(null);
+
   const [codigo, setCodigo] = useState("");
   const [copiado, setCopiado] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
@@ -35,7 +40,10 @@ export default function GruposPage() {
     if (!hidratado) return;   // aun no se leyo la sesion guardada
     if (!token) { router.push("/login"); return; }
     try {
-      const [e, m] = await Promise.all([groupsApi.explore(token), groupsApi.mine(token)]);
+      const [e, m] = await Promise.all([
+        groupsApi.explore(token, filtroTopic ?? undefined),
+        groupsApi.mine(token),
+      ]);
       setExplorar(e);
       setMios(m);
       setError("");
@@ -44,7 +52,7 @@ export default function GruposPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, router, hidratado]);
+  }, [token, router, hidratado, filtroTopic]);
 
   useEffect(() => {
     cargar();
@@ -86,10 +94,24 @@ export default function GruposPage() {
     setNuevo({ name: "", topic: "", visibility: "public", default_task: "" });
   };
 
+  // Disolver un grupo propio (lo desactiva para siempre). Antes no habia
+  // forma de borrar un grupo desde la interfaz — una vez creado, quedaba
+  // ahi para siempre, acumulando grupos de prueba sin uso real.
+  const disolver = async (groupId: string, nombre: string) => {
+    if (!window.confirm(`¿Disolver "${nombre}"? Los integrantes ya no podran usarlo.`)) return;
+    await accion(() => groupsApi.disband(token!, groupId));
+  };
+
+  const salirDe = async (groupId: string, nombre: string) => {
+    if (!window.confirm(`¿Salir de "${nombre}"?`)) return;
+    await accion(() => groupsApi.leave(token!, groupId));
+  };
+
   const lista = pestana === "explorar" ? explorar : mios;
 
   return (
     <div style={s.page}>
+      <div style={s.contenido}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Grupos</h1>
@@ -166,44 +188,71 @@ export default function GruposPage() {
         </section>
       )}
 
-      <section style={s.card}>
-        <div style={s.joinRow}>
-          <input
-            style={{ ...s.input, marginBottom: 0 }}
-            placeholder="¿Tienes un código de invitación?"
-            value={codigo}
-            maxLength={12}
-            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-          />
-          <button
-            style={{ ...s.btn, opacity: codigo.trim() ? 1 : 0.45 }}
-            disabled={!codigo.trim()}
-            onClick={() => accion(async () => {
-              await groupsApi.joinByCode(token!, codigo.trim());
-              setCodigo("");
-            })}
-          >
-            Entrar
-          </button>
-        </div>
-      </section>
+      {/* Mientras se esta creando un grupo, no tiene sentido seguir
+          mostrando "entrar por codigo" ni la lista de grupos debajo — solo
+          distrae del formulario que la persona esta llenando. */}
+      {!creando && (
+        <>
+          <section style={s.card}>
+            <div style={s.joinRow}>
+              <input
+                style={{ ...s.input, marginBottom: 0 }}
+                placeholder="¿Tienes un código de invitación?"
+                value={codigo}
+                maxLength={12}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+              />
+              <button
+                style={{ ...s.btn, opacity: codigo.trim() ? 1 : 0.45 }}
+                disabled={!codigo.trim()}
+                onClick={() => accion(async () => {
+                  await groupsApi.joinByCode(token!, codigo.trim());
+                  setCodigo("");
+                })}
+              >
+                Entrar
+              </button>
+            </div>
+          </section>
 
-      <div style={s.tabs}>
-        <button
-          style={{ ...s.tab, ...(pestana === "mios" ? s.tabOn : {}) }}
-          onClick={() => setPestana("mios")}
-        >
-          Mis grupos ({mios.length})
-        </button>
-        <button
-          style={{ ...s.tab, ...(pestana === "explorar" ? s.tabOn : {}) }}
-          onClick={() => setPestana("explorar")}
-        >
-          Explorar ({explorar.length})
-        </button>
-      </div>
+          <div style={s.tabs}>
+            <button
+              style={{ ...s.tab, ...(pestana === "mios" ? s.tabOn : {}) }}
+              onClick={() => setPestana("mios")}
+            >
+              Mis grupos ({mios.length})
+            </button>
+            <button
+              style={{ ...s.tab, ...(pestana === "explorar" ? s.tabOn : {}) }}
+              onClick={() => setPestana("explorar")}
+            >
+              Explorar ({explorar.length})
+            </button>
+          </div>
 
-      {loading ? (
+          {pestana === "explorar" && (
+            <div style={s.chips}>
+              <button
+                style={{ ...s.chip, ...(filtroTopic === null ? s.chipOn : {}) }}
+                onClick={() => setFiltroTopic(null)}
+              >
+                Todas las áreas
+              </button>
+              {topics.map((t) => (
+                <button
+                  key={t.slug}
+                  style={{ ...s.chip, ...(filtroTopic === t.slug ? s.chipOn : {}) }}
+                  onClick={() => setFiltroTopic(t.slug)}
+                >
+                  {t.label_es}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {creando ? null : loading ? (
         <p style={s.muted}>Cargando grupos…</p>
       ) : lista.length === 0 ? (
         <p style={s.empty}>
@@ -227,37 +276,52 @@ export default function GruposPage() {
                 {g.requires_screen_share && " · pantalla obligatoria"}
               </p>
 
+              {/* El codigo es la forma principal de invitar — como en
+                  Valorant, se dicta o se pega en el campo "¿Tienes un
+                  codigo?" de arriba. El link es solo un atajo opcional que
+                  rellena ese mismo campo, por eso queda chiquito y abajo. */}
               {g.invite_code && (
                 <>
                   <p style={s.code}>Código: <strong>{g.invite_code}</strong></p>
                   <div style={s.inviteRow}>
                     <button
-                      style={s.btnGhost}
+                      style={s.btnSmall}
                       onClick={() => copiar(g.invite_code!, `codigo-${g.id}`)}
                     >
                       {copiado === `codigo-${g.id}` ? "¡Copiado!" : "Copiar código"}
                     </button>
-                    <button
-                      style={s.btnGhost}
-                      onClick={() => copiar(
-                        `${window.location.origin}/grupos?codigo=${g.invite_code}`,
-                        `link-${g.id}`,
-                      )}
-                    >
-                      {copiado === `link-${g.id}` ? "¡Copiado!" : "Copiar link de invitación"}
-                    </button>
                   </div>
+                  <button
+                    style={s.linkChico}
+                    onClick={() => copiar(
+                      `${window.location.origin}/grupos?codigo=${g.invite_code}`,
+                      `link-${g.id}`,
+                    )}
+                  >
+                    {copiado === `link-${g.id}` ? "¡Copiado!" : "o copiar link de invitación"}
+                  </button>
                 </>
               )}
 
               <div style={s.groupActions}>
                 {g.is_member ? (
-                  <button
-                    style={s.btnSmall}
-                    onClick={() => router.push(`/grupos/${g.id}`)}
-                  >
-                    Entrar a la sala
-                  </button>
+                  <>
+                    <button
+                      style={s.btnSmall}
+                      onClick={() => router.push(`/grupos/${g.id}`)}
+                    >
+                      Entrar a la sala
+                    </button>
+                    {g.is_owner ? (
+                      <button style={s.btnPeligro} onClick={() => disolver(g.id, g.name)}>
+                        Disolver grupo
+                      </button>
+                    ) : (
+                      <button style={s.btnPeligro} onClick={() => salirDe(g.id, g.name)}>
+                        Salir del grupo
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <button
                     style={{ ...s.btnSmall, opacity: g.is_full ? 0.45 : 1 }}
@@ -272,12 +336,18 @@ export default function GruposPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
+  page: { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24 },
+  // Antes el contenido ocupaba el ancho completo de la pantalla sin limite
+  // — en monitores anchos (o el modo "sitio de escritorio" del celular) el
+  // formulario quedaba estirado de borde a borde. El resto de pantallas de
+  // la app usa un ancho maximo centrado; esta lo iguala.
+  contenido: { maxWidth: 860, margin: "0 auto" },
   header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0, marginRight: "auto", fontFamily: fontSerif },
