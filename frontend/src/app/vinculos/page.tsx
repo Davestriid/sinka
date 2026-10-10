@@ -156,9 +156,20 @@ export default function VinculosPage() {
             ) : (
               friends.map((f) => (
                 <div key={f.friendship_id} style={s.row}>
-                  <Avatar url={f.user.avatar_url} nombre={f.user.alias || f.user.username} />
+                  <button
+                    style={s.avatarBtn}
+                    onClick={() => router.push(`/perfil/${f.user.id}`)}
+                    title="Ver perfil"
+                  >
+                    <Avatar url={f.user.avatar_url} nombre={f.user.alias || f.user.username} />
+                  </button>
                   <div style={s.rowInfo}>
-                    <span style={s.name}>{f.user.alias || f.user.username}</span>
+                    <span
+                      style={{ ...s.name, cursor: "pointer" }}
+                      onClick={() => router.push(`/perfil/${f.user.id}`)}
+                    >
+                      {f.user.alias || f.user.username}
+                    </span>
                     {f.plant && (
                       <span style={s.muted}>
                         {f.plant.emoji} {f.plant.sessions_together} sesiones juntos
@@ -303,6 +314,10 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1, padding: "5px 10px", borderRadius: radius.sm,
     border: `1px solid ${color.border}`, background: "none", color: color.textFaint,
     cursor: "pointer", fontSize: 12,
+  },
+  avatarBtn: {
+    background: "none", border: "none", padding: 0, cursor: "pointer",
+    borderRadius: "50%", lineHeight: 0, flexShrink: 0,
   },
   avatar: { width: 36, height: 36, borderRadius: "50%", objectFit: "cover" },
   avatarFallback: {

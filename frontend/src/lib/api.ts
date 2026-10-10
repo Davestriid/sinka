@@ -716,6 +716,13 @@ export const profileApi = {
     request<UserBrief>(`/auth/users/${userId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
+
+  // "Tarjeta de jugador" completa: nivel/XP, racha, sesiones y logros.
+  // Se usa en la pantalla /perfil/[userId].
+  getPublicFull: (accessToken: string, userId: string) =>
+    request<PublicProfileFull>(`/auth/users/${userId}/profile`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
 };
 
 // ── Social: amigos y jardin ──────────────────────────────────────────────────
@@ -725,6 +732,37 @@ export interface UserBrief {
   username:   string;
   alias:      string | null;
   avatar_url: string | null;
+}
+
+export interface PublicBadge {
+  id:      string;
+  name_es: string;
+  name_en: string;
+  icon:    string;
+}
+
+export interface PublicProfileFull {
+  id:         string;
+  username:   string;
+  alias:      string | null;
+  avatar_url: string | null;
+  bio:        string | null;
+  member_since: string;
+
+  level:             number;
+  xp_total:          number;
+  xp_in_level:       number;
+  xp_for_next_level: number;
+  xp_progress_pct:   number;
+
+  streak_current:      number;
+  streak_max:          number;
+  sessions_completed:  number;
+  pomodoros_completed: number;
+
+  achievements_unlocked: number;
+  achievements_total:    number;
+  badges: PublicBadge[];
 }
 
 export interface PlantBrief {

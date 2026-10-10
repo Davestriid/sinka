@@ -8,7 +8,13 @@ from passlib.context import CryptContext
 from core.config import settings
 from modules.identity.models import User
 from modules.identity.repositories.user_repository import SessionRepository, UserRepository
-from modules.identity.schemas.auth import PublicProfile, TokenResponse, UserResponse
+from modules.identity.schemas.auth import (
+    PublicBadge,
+    PublicProfile,
+    PublicProfileFull,
+    TokenResponse,
+    UserResponse,
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -208,6 +214,61 @@ class IdentityService:
         if user is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Ese usuario no existe.")
         return PublicProfile.model_validate(user)
+
+    async def get_public_profile_full(self, user_id: str) -> PublicProfileFull:
+        """
+        "Tarjeta de jugador" de otra persona: lo mismo que get_public_profile
+        mas nivel/XP, racha, sesiones y logros desbloqueados — se usa cuando
+        alguien toca la foto de otra persona en vinculos, grupos o el ranking.
+
+        Importado aca adentro (no arriba del archivo) para evitar un ciclo de
+        imports a nivel de modulo: gamification y achievements no dependen de
+        identity_service, pero varios de sus __init__ de paquete si recorren
+        bastante al cargarse, y mantenerlo perezoso evita tener que pensar en
+        el orden de carga de modules/main.py.
+        """
+        from modules.achievements.services.achievements_service import achievements_service
+        from modules.gamification.repositories.gamification_repository import (
+            GamificationRepository,
+        )
+        from modules.gamification.services.gamification_service import compute_xp_progress
+
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Ese usuario no existe.")
+
+        stats = await GamificationRepository(self.user_repo.db).get_by_user_id(user_id)
+        xp_total = stats.xp_total if stats else 0
+        level = stats.level if stats else 1
+        xp_in_level, xp_next, pct = compute_xp_progress(xp_total, level)
+
+        resumen = await achievements_service.get_summary(user_id)
+        badges = [
+            PublicBadge(id=a["id"], name_es=a["name_es"], name_en=a["name_en"], icon=a["icon"])
+            for a in resumen["achievements"]
+            if a["unlocked"]
+        ]
+
+        return PublicProfileFull(
+            id=user.id,
+            username=user.username,
+            alias=user.alias,
+            avatar_url=user.avatar_url,
+            bio=user.bio,
+            member_since=user.created_at,
+            level=level,
+            xp_total=xp_total,
+            xp_in_level=xp_in_level,
+            xp_for_next_level=xp_next,
+            xp_progress_pct=pct,
+            streak_current=stats.streak_current if stats else 0,
+            streak_max=stats.streak_max if stats else 0,
+            sessions_completed=stats.sessions_completed if stats else 0,
+            pomodoros_completed=stats.pomodoros_completed if stats else 0,
+            achievements_unlocked=resumen["unlocked"],
+            achievements_total=resumen["total"],
+            badges=badges,
+        )
 
     async def _issue_tokens(self, user: User) -> TokenResponse:
         access_token = self.create_access_token(user.id)

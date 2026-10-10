@@ -8,6 +8,7 @@ from modules.identity.schemas.auth import (
     OnboardingRequest,
     ProfileUpdateRequest,
     PublicProfile,
+    PublicProfileFull,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -122,6 +123,21 @@ async def get_public_profile(
     ejemplo, para mostrar quien es tu pareja dentro de una sesion.
     """
     return await service.get_public_profile(user_id)
+
+
+@router.get("/users/{user_id}/profile", response_model=PublicProfileFull)
+async def get_public_profile_full(
+    user_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+) -> PublicProfileFull:
+    """
+    "Tarjeta de jugador" de otra persona: nombre, foto, bio, nivel/XP,
+    racha, sesiones completadas y logros desbloqueados. Se usa al tocar la
+    foto de alguien en vínculos, grupos o el ranking — nunca su correo ni
+    su trust_score (ese es un dato interno de emparejamiento).
+    """
+    return await service.get_public_profile_full(user_id)
 
 
 # ---------------------------------------------------------------------------

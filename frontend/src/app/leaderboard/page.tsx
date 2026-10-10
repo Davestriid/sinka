@@ -93,7 +93,12 @@ export default function LeaderboardPage() {
           entries.map(entry => {
             const isMe = entry.user_id === user?.id;
             return (
-              <div key={entry.user_id} style={{ ...styles.row, ...(isMe ? styles.rowMe : {}) }}>
+              <div
+                key={entry.user_id}
+                style={{ ...styles.row, ...(isMe ? styles.rowMe : {}), cursor: "pointer" }}
+                onClick={() => router.push(`/perfil/${entry.user_id}`)}
+                title="Ver perfil"
+              >
                 {/* Rank badge */}
                 <div style={rankBadgeStyle(entry.rank)}>{entry.rank}</div>
 

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, field_validator
 
 
@@ -73,6 +75,52 @@ class PublicProfile(BaseModel):
     username:   str
     alias:      str | None = None
     avatar_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class PublicBadge(BaseModel):
+    """Un logro ya desbloqueado, version minima para mostrar en una tarjeta
+    de perfil publico — sin progreso ni fecha, eso vive en /achievements."""
+
+    id:      str
+    name_es: str
+    name_en: str
+    icon:    str
+
+
+class PublicProfileFull(BaseModel):
+    """
+    Perfil publico completo de otra persona: lo mismo que PublicProfile mas
+    estadisticas y logros — la "tarjeta de jugador" al estilo Clash Royale
+    que se ve al tocar la foto de alguien en vinculos, grupos o el ranking.
+
+    Todo aca es informacion que cualquiera puede ver sin comprometer
+    privacidad: nunca el correo, y nunca el trust_score (es un dato interno
+    de emparejamiento, no un puntaje para presumir o comparar).
+    """
+
+    id:         str
+    username:   str
+    alias:      str | None = None
+    avatar_url: str | None = None
+    bio:        str | None = None
+    member_since: datetime
+
+    level:              int
+    xp_total:           int
+    xp_in_level:        int
+    xp_for_next_level:  int
+    xp_progress_pct:    float
+
+    streak_current:      int
+    streak_max:          int
+    sessions_completed:  int
+    pomodoros_completed: int
+
+    achievements_unlocked: int
+    achievements_total:    int
+    badges: list[PublicBadge]
 
     model_config = {"from_attributes": True}
 
