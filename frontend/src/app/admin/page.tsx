@@ -21,6 +21,7 @@ import {
   adminApi,
   type AdminAnnouncementRow,
   type AdminAuditRow,
+  type AdminGroupRow,
   type AdminReportRow,
   type AdminRevenue,
   type AdminSettingRow,
@@ -33,7 +34,7 @@ import { color, radius, pageBackground } from "@/lib/theme";
 
 type Pestana =
   | "usuarios" | "tienda" | "stats" | "ingresos" | "buzon" | "anuncios"
-  | "parametros" | "auditoria";
+  | "parametros" | "auditoria" | "grupos";
 
 const TIPOS_BUZON: Record<string, string> = {
   reporte_usuario: "Reporte de usuario",
@@ -98,6 +99,9 @@ export default function AdminPage() {
           <button style={{ ...s.tab, ...(pestana === "anuncios" ? s.tabOn : {}) }} onClick={() => setPestana("anuncios")}>
             Anuncios
           </button>
+          <button style={{ ...s.tab, ...(pestana === "grupos" ? s.tabOn : {}) }} onClick={() => setPestana("grupos")}>
+            Grupos
+          </button>
           {user?.role === "superadmin" && (
             <button style={{ ...s.tab, ...(pestana === "parametros" ? s.tabOn : {}) }} onClick={() => setPestana("parametros")}>
               Parámetros
@@ -120,6 +124,7 @@ export default function AdminPage() {
         {pestana === "tienda"     && <PanelTienda token={token} esSuperadmin={user?.role === "superadmin"} />}
         {pestana === "buzon"      && <PanelBuzon token={token} />}
         {pestana === "anuncios"   && <PanelAnuncios token={token} />}
+        {pestana === "grupos"     && <PanelGrupos token={token} />}
         {pestana === "parametros" && user?.role === "superadmin" && <PanelParametros token={token} />}
         {pestana === "auditoria"  && user?.role === "superadmin" && <PanelAuditoria token={token} />}
         {pestana === "ingresos"   && user?.role === "superadmin" && <PanelIngresos token={token} />}
@@ -533,6 +538,54 @@ function PanelBuzon({ token }: { token: string | null }) {
           </div>
         ))}
         {lista.length === 0 && <p style={s.muted}>No hay nada{soloPendientes ? " pendiente" : ""} en el buzón.</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Grupos (moderacion) ──────────────────────────────────────────────────
+function PanelGrupos({ token }: { token: string | null }) {
+  const [lista, setLista] = useState<AdminGroupRow[]>([]);
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(() => {
+    if (!token) return;
+    adminApi.getGroups(token).then(setLista).catch((e) => setError(e instanceof Error ? e.message : "Error"));
+  }, [token]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const disolver = async (g: AdminGroupRow) => {
+    if (!token) return;
+    if (!confirmar(`¿Disolver el grupo "${g.name}"? Esto no se puede deshacer.`)) return;
+    try {
+      await adminApi.disbandGroup(token, g.id);
+      cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo disolver.");
+    }
+  };
+
+  if (error) return <p style={s.error}>{error}</p>;
+
+  return (
+    <div>
+      <p style={{ ...s.muted, marginBottom: 12 }}>Todos los grupos activos, públicos y privados.</p>
+      <div style={s.tabla}>
+        {lista.map((g) => (
+          <div key={g.id} style={s.fila}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontWeight: 600 }}>{g.name}</div>
+              <div style={s.muted}>
+                <span style={s.tipoBadge}>{g.visibility === "public" ? "Público" : "Privado"}</span>
+                {" "}{g.topic} · {g.member_count}/{g.max_members} integrantes · dueño: {g.owner_username || g.owner_id}
+              </div>
+              <div style={s.muted}>{new Date(g.created_at).toLocaleString()}</div>
+            </div>
+            <button style={s.btnGhost} onClick={() => disolver(g)}>Disolver</button>
+          </div>
+        ))}
+        {lista.length === 0 && <p style={s.muted}>No hay grupos activos.</p>}
       </div>
     </div>
   );

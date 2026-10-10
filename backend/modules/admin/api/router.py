@@ -10,6 +10,8 @@ Todo bajo /api/admin y protegido por rol (ver dependencies.py):
   PATCH /admin/users/{id}/role           — otorgar/quitar admin        (superadmin)
   GET   /admin/shop                      — catalogo completo (incl. inactivos) (admin+)
   PATCH /admin/shop/{item_id}            — precio, nombre, activo/no   (superadmin)
+  GET   /admin/groups                    — todos los grupos activos    (admin+)
+  DELETE /admin/groups/{id}              — disolver cualquier grupo    (admin+)
   GET   /admin/revenue                   — ingresos reales y compras   (superadmin)
   GET   /admin/reports                   — buzon: reportes y feedback  (admin+)
   PATCH /admin/reports/{id}              — marcar revisado/descartado  (admin+)
@@ -31,6 +33,7 @@ from modules.admin.schemas import (
     ActualizarParametroRequest,
     AdminAnnouncementRow,
     AdminAuditRow,
+    AdminGroupRow,
     AdminReportRow,
     AdminRevenue,
     AdminSettingRow,
@@ -169,6 +172,25 @@ async def responder_reporte(
     service: AdminService = Depends(_service),
 ) -> AdminReportRow:
     return await service.responder_reporte(report_id, body.mensaje, admin.id)
+
+
+@router.get("/groups", response_model=list[AdminGroupRow])
+async def listar_grupos(
+    _admin: UserResponse = Depends(require_admin),
+    service: AdminService = Depends(_service),
+) -> list[AdminGroupRow]:
+    return await service.listar_grupos()
+
+
+@router.delete("/groups/{group_id}", status_code=204)
+async def disolver_grupo(
+    group_id: str,
+    admin: UserResponse = Depends(require_admin),
+    service: AdminService = Depends(_service),
+) -> None:
+    """Disuelve cualquier grupo, sea quien sea el dueno — para limpiar
+    grupos de prueba o moderar grupos reportados."""
+    await service.disolver_grupo(group_id, admin.id)
 
 
 @router.get("/revenue", response_model=AdminRevenue)

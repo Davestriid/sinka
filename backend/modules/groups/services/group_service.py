@@ -107,6 +107,17 @@ class GroupService:
         await self.groups.deactivate(grupo)
         logger.info("Groups: grupo %s disuelto por %s", group_id, user_id)
 
+    async def force_disband(self, group_id: str) -> None:
+        """
+        Disuelve un grupo sin exigir que quien llama sea el dueno — para
+        moderacion desde el panel de admin (p.ej. grupos de prueba creados
+        antes de quitar el seed, o grupos reportados). El chequeo de rol
+        admin vive en el router/service de admin, no aqui.
+        """
+        grupo = await self._existente(group_id)
+        await self.groups.deactivate(grupo)
+        logger.info("Groups: grupo %s disuelto por un admin", group_id)
+
     # ------------------------------------------------------------------
     # Entrar y salir
     # ------------------------------------------------------------------

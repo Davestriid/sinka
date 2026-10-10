@@ -419,6 +419,18 @@ export interface AdminSettingRow {
   updated_at: string;
 }
 
+export interface AdminGroupRow {
+  id: string;
+  name: string;
+  topic: string;
+  visibility: "public" | "private";
+  owner_id: string;
+  owner_username: string | null;
+  member_count: number;
+  max_members: number;
+  created_at: string;
+}
+
 export interface AdminAuditRow {
   id: string;
   admin_id: string;
@@ -552,6 +564,15 @@ export const adminApi = {
     }),
   getAudit: (accessToken: string, limite = 100) =>
     request<AdminAuditRow[]>(`/admin/audit?limite=${limite}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  getGroups: (accessToken: string) =>
+    request<AdminGroupRow[]>("/admin/groups", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  disbandGroup: (accessToken: string, groupId: string) =>
+    request<void>(`/admin/groups/${groupId}`, {
+      method:  "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };

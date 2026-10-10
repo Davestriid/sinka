@@ -145,6 +145,18 @@ class CrearParametroRequest(BaseModel):
     description: str | None = None
 
 
+class AdminGroupRow(BaseModel):
+    id: str
+    name: str
+    topic: str
+    visibility: str
+    owner_id: str
+    owner_username: str | None = None
+    member_count: int
+    max_members: int
+    created_at: datetime
+
+
 class AdminAuditRow(BaseModel):
     id: str
     admin_id: str

@@ -19,6 +19,7 @@ from modules.admin.models import AuditLog, Setting
 from modules.admin.schemas import (
     AdminAnnouncementRow,
     AdminAuditRow,
+    AdminGroupRow,
     AdminPurchaseRow,
     AdminReportRow,
     AdminRevenue,
@@ -30,6 +31,8 @@ from modules.admin.schemas import (
 )
 from modules.announcements.models import Announcement
 from modules.gamification.models import ShopItem, UserStats
+from modules.groups.repositories.group_repository import GroupRepository
+from modules.groups.services.group_service import GroupService
 from modules.identity.models import User
 from modules.identity.repositories.user_repository import UserRepository
 from modules.payments.models import CoinPurchase
@@ -45,6 +48,8 @@ class AdminService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
         self.user_repo = UserRepository(db)
+        self.group_repo = GroupRepository(db)
+        self.group_service = GroupService(group_repo=self.group_repo, user_repo=self.user_repo)
 
     # ------------------------------------------------------------------ #
     # Auditoria                                                         #
@@ -343,6 +348,42 @@ class AdminService:
             await self.db.execute(select(User.id, User.username).where(User.id.in_(ids_a_buscar)))
         ).all()
         return {uid: username for uid, username in filas}
+
+    # ------------------------------------------------------------------ #
+    # Grupos (moderacion)                                               #
+    # ------------------------------------------------------------------ #
+    async def listar_grupos(self) -> list[AdminGroupRow]:
+        """Todos los grupos activos, publicos y privados, para poder
+        disolver cualquiera sin depender de que el dueno lo haga el solo
+        (p.ej. grupos de prueba que quedaron de antes de quitar el seed)."""
+        grupos = await self.group_repo.list_all_active()
+
+        ids = {g.owner_id for g in grupos}
+        nombres = (
+            await self.db.execute(select(User.id, User.username).where(User.id.in_(ids)))
+        ).all() if ids else []
+        mapa = {uid: username for uid, username in nombres}
+
+        return [
+            AdminGroupRow(
+                id=g.id,
+                name=g.name,
+                topic=g.topic,
+                visibility=g.visibility,
+                owner_id=g.owner_id,
+                owner_username=mapa.get(g.owner_id),
+                member_count=len(g.members),
+                max_members=g.max_members,
+                created_at=g.created_at,
+            )
+            for g in grupos
+        ]
+
+    async def disolver_grupo(self, group_id: str, admin_id: str) -> None:
+        await self.group_service.force_disband(group_id)
+        await self._auditar(
+            admin_id, "disolver_grupo", objetivo_tipo="group", objetivo_id=group_id,
+        )
 
     # ------------------------------------------------------------------ #
     # Anuncios                                                          #

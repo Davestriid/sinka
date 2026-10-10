@@ -46,6 +46,18 @@ class GroupRepository:
         # El cupo se filtra en memoria porque members ya viene cargado
         return [g for g in grupos if len(g.members) < g.max_members]
 
+    async def list_all_active(self, limite: int = 200) -> list[Group]:
+        """Todos los grupos activos (publicos y privados, llenos o no) —
+        para moderacion desde el panel de admin, no para explorar/unirse."""
+        result = await self.db.execute(
+            select(Group)
+            .options(selectinload(Group.members))
+            .where(Group.is_active.is_(True))
+            .order_by(Group.created_at.desc())
+            .limit(limite)
+        )
+        return list(result.scalars().unique().all())
+
     async def list_for_user(self, user_id: str) -> list[Group]:
         result = await self.db.execute(
             select(Group)
