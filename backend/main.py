@@ -122,6 +122,7 @@ async def startup_event() -> None:
     EventBus.subscribe("session.completed", achievements_service.on_session_completed)
     # Grupos -> Logros: cuenta sesiones de grupo iniciadas para sus logros
     EventBus.subscribe("group.session.started", achievements_service.on_group_session_started)
+    EventBus.subscribe("group_session.completed", gamification_service.on_group_session_completed)
 
     logger.info(
         "SINKA API iniciada (v%s). EventBus configurado. "

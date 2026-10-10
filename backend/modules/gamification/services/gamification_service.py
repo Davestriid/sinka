@@ -250,6 +250,34 @@ class GamificationService:
             repo = GamificationRepository(db)
             return await self._award_xp_and_fc(repo, user_id, rounds_completed, "")
 
+    # ── Sesiones grupales ─────────────────────────────────────────────────────
+
+    async def on_group_session_completed(self, payload: dict[str, Any]) -> None:
+        """
+        Escucha 'group_session.completed' (ver GroupSessionService) y premia
+        a cada participante que seguia conectado al terminar el Pomodoro.
+        Igual que en el modo solitario, no hay planta en las sesiones de
+        grupo, asi que tampoco hay bonus de plant_stage.
+
+        A diferencia de las sesiones de pareja, aca no se penaliza a nadie
+        por irse antes: en un grupo es normal que alguien entre y salga sin
+        que eso sea un "abandono" que haya arruinado la sesion para el resto
+        (el servicio ya se encarga de que nunca quede una sola persona sola).
+        """
+        participant_ids = payload.get("participant_ids") or []
+        rounds = int(payload.get("rounds_completed", 1))
+
+        async with AsyncSessionLocal() as db:
+            repo = GamificationRepository(db)
+            for user_id in participant_ids:
+                try:
+                    await self._award_xp_and_fc(repo, user_id, rounds, "")
+                except Exception:
+                    logger.exception(
+                        "GamificationService: error otorgando recompensas grupales a %s",
+                        user_id,
+                    )
+
     # ── Lógica de negocio ─────────────────────────────────────────────────────
 
     async def _leer_parametro(self, db, code: str, default: int) -> int:

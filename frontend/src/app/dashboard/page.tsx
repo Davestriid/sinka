@@ -405,15 +405,19 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
   },
   main: {
-    flex:           1,
-    display:        "flex",
-    alignItems:     "center",
-    // Antes centraba verticalmente dentro de los 100vh de la pagina: si el
-    // alto disponible era grande (p.ej. "sitio de escritorio" en un celular,
-    // donde el NavBar pasa de dos filas a una y libera mucho espacio), el
-    // contenido quedaba flotando muy abajo con un hueco negro enorme arriba.
-    // flex-start + padding fijo lo ancla cerca del tope siempre.
-    justifyContent: "flex-start",
+    flex:    1,
+    display: "flex",
+    // Ojo: este flex container es en fila (no se puso flexDirection), asi
+    // que justifyContent manda en el eje horizontal y alignItems en el
+    // vertical — iba al reves en el intento anterior, lo que corrio todo el
+    // contenido a la izquierda en vez de solo subirlo. justifyContent
+    // centra horizontalmente (como siempre), alignItems ancla arriba en vez
+    // de centrar verticalmente, que era el problema real: con mucho alto
+    // disponible (p.ej. "sitio de escritorio" en un celular, donde el
+    // NavBar pasa de dos filas a una y libera espacio) el centrado vertical
+    // dejaba un hueco negro enorme arriba del contenido.
+    justifyContent: "center",
+    alignItems:     "flex-start",
     padding:        "48px 16px",
   },
   kicker: {

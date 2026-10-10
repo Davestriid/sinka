@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from core.event_bus import EventBus
+from modules.groups.services.group_session_service import group_session_service
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -157,6 +158,16 @@ class LobbyService:
 
         session_id = str(uuid.uuid4())
         participantes = [uid for uid, p in lobby.presentes.items() if p.ready]
+
+        # Registra la sala en GroupSessionService ANTES de avisarle a nadie —
+        # si el primer SESSION_STARTED le gana la carrera al registro, su
+        # connect() llegaria a una sala que todavia no existe.
+        group_session_service.register(
+            group_id=group_id,
+            session_id=session_id,
+            owner_id=lobby.owner_id,
+            participant_ids=participantes,
+        )
 
         await EventBus.publish("group.session.started", {
             "group_id":     group_id,

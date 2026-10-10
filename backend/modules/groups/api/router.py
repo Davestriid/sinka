@@ -20,6 +20,7 @@ from modules.groups.schemas.groups import (
     UpdateGroupRequest,
 )
 from modules.groups.services.group_service import GroupService
+from modules.groups.services.group_session_service import group_session_service
 from modules.groups.services.lobby_service import lobby_service
 from modules.identity.api.dependencies import get_current_user
 from modules.identity.repositories.user_repository import UserRepository
@@ -271,3 +272,75 @@ async def lobby_state(
     """Estado de la sala sin abrir WebSocket. Util para la lista de grupos."""
     await service.detail(group_id, current_user.id)  # valida el acceso
     return lobby_service.snapshot(group_id)
+
+
+# ---------------------------------------------------------------------------
+# Sesion grupal (2 a 8 personas trabajando juntas, tras la sala de espera)
+# ---------------------------------------------------------------------------
+
+@router.websocket("/{group_id}/session/{session_id}")
+async def group_session_websocket(
+    websocket: WebSocket,
+    group_id: str,
+    session_id: str,
+    current_user: UserResponse = Depends(get_current_user_ws),
+) -> None:
+    """
+    Canal de la sesion grupal: temporizador Pomodoro compartido, relevo de
+    señales WebRTC (cada participante arma su propia conexion con cada uno
+    de los demas — malla, no estrella) y chat para todos.
+
+    Cliente -> Servidor:
+      {"type": "SIGNAL", "payload": {"target": "<user_id>", "data": {...}}}
+      {"type": "CHAT",   "payload": {"text": "..."}}
+      {"type": "PING"}
+
+    Servidor -> Cliente:
+      ROOM_STATE          Al conectar: quien mas esta ya adentro + el timer
+      PARTICIPANT_JOINED  Alguien se sumo (armar conexion WebRTC con el/ella)
+      PARTICIPANT_LEFT    Alguien se fue (cerrar esa conexion WebRTC)
+      TIMER_TICK          Cada segundo mientras haya al menos una persona
+      SIGNAL              Señal WebRTC reenviada de otro participante
+      CHAT_MESSAGE         Mensaje de otro participante
+      SESSION_ENDED        reason: timer_completed | sola | vaciado
+      ERROR
+    """
+    await websocket.accept()
+
+    conectado = await group_session_service.connect(session_id, current_user.id, websocket)
+    if not conectado:
+        await websocket.send_json({
+            "type":   "ERROR",
+            "detail": "Esa sesion de grupo no existe o ya termino.",
+        })
+        await websocket.close(code=4004)
+        return
+
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            tipo = msg.get("type")
+            payload = msg.get("payload", {}) or {}
+
+            if tipo == "SIGNAL":
+                target = payload.get("target")
+                data = payload.get("data")
+                if target and data is not None:
+                    await group_session_service.relay_signal(
+                        session_id, current_user.id, target, data
+                    )
+
+            elif tipo == "CHAT":
+                texto = (payload.get("text") or "").strip()[:500]
+                if texto:
+                    await group_session_service.relay_chat(session_id, current_user.id, texto)
+
+            elif tipo == "PING":
+                await websocket.send_json({"type": "PONG"})
+
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        logger.exception("GroupSession: error inesperado en la sesion %s", session_id)
+    finally:
+        await group_session_service.disconnect(session_id, current_user.id)

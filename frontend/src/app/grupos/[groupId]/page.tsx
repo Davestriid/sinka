@@ -53,7 +53,11 @@ export default function SalaGrupoPage() {
       if (msg.type === "LOBBY_STATE") {
         setLobby(msg.payload);
       } else if (msg.type === "SESSION_STARTED") {
-        router.push(`/session/${msg.payload.session_id}`);
+        // Antes mandaba a /session/[sessionId], la pantalla pensada solo
+        // para parejas (el backend de esa sesion no sabe manejar mas de 2
+        // personas). Las sesiones de grupo tienen su propia pantalla y su
+        // propio canal en el backend (GroupSessionService).
+        router.push(`/grupos/${params.groupId}/session/${msg.payload.session_id}`);
       } else if (msg.type === "ERROR") {
         setError(msg.detail);
       }
