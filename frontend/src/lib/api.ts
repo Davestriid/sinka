@@ -170,6 +170,9 @@ export interface UserResponse {
   avatar_url: string | null;
   bio:        string | null;
 
+  banner_color:            string | null;
+  equipped_banner_item_id: string | null;
+
   language: "es" | "en";
   theme:    "light" | "dark";
 
@@ -303,6 +306,7 @@ export interface ShopItem {
   price_fc:    number;
   preview:     string;
   owned:       boolean;
+  equipped:    boolean;
 }
 
 export interface BuyItemResponse {
@@ -324,6 +328,16 @@ export const shopApi = {
     }),
   getInventory: (accessToken: string) =>
     request<ShopItem[]>("/shop/inventory", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  equipBanner: (accessToken: string, itemId: string) =>
+    request<UserResponse>(`/shop/equip/${itemId}`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  unequipBanner: (accessToken: string) =>
+    request<UserResponse>("/shop/unequip-banner", {
+      method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };
@@ -680,11 +694,12 @@ export const catalogApi = {
 };
 
 export interface ProfileUpdate {
-  alias?:      string;
-  avatar_url?: string;
-  bio?:        string;
-  language?:   "es" | "en";
-  theme?:      "light" | "dark";
+  alias?:        string;
+  avatar_url?:   string;
+  bio?:          string;
+  banner_color?: string;
+  language?:     "es" | "en";
+  theme?:        "light" | "dark";
 }
 
 export const profileApi = {
@@ -759,6 +774,12 @@ export interface PublicProfileFull {
   streak_max:          number;
   sessions_completed:  number;
   pomodoros_completed: number;
+
+  trust_score: number;
+  trust_level: string;
+
+  banner_color:   string | null;
+  banner_preview: string | null;
 
   achievements_unlocked: number;
   achievements_total:    number;

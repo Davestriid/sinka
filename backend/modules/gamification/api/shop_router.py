@@ -1,9 +1,11 @@
 """
 Router de la tienda de cosméticos.
 
-GET  /api/shop/items          — Catálogo completo (con flag owned por usuario)
-POST /api/shop/buy/{item_id}  — Comprar un ítem con FocusCoins
-GET  /api/shop/inventory      — Inventario del usuario autenticado
+GET  /api/shop/items            — Catálogo completo (con flag owned por usuario)
+POST /api/shop/buy/{item_id}    — Comprar un ítem con FocusCoins
+GET  /api/shop/inventory        — Inventario del usuario autenticado
+POST /api/shop/equip/{item_id}  — Equipar un banner de perfil ya comprado
+POST /api/shop/unequip-banner   — Quitar el banner equipado (vuelve al color propio)
 """
 import logging
 
@@ -15,7 +17,9 @@ from modules.gamification.repositories.gamification_repository import Gamificati
 from modules.gamification.repositories.shop_repository import ShopRepository
 from modules.gamification.schemas.gamification import BuyItemResponse, ShopItemResponse
 from modules.identity.api.dependencies import get_current_user
+from modules.identity.api.dependencies import get_identity_service
 from modules.identity.schemas.auth import UserResponse
+from modules.identity.services.identity_service import IdentityService
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +45,7 @@ async def get_shop_items(
             price_fc    = item.price_fc,
             preview     = item.preview,
             owned       = item.id in owned,
+            equipped    = item.id == current_user.equipped_banner_item_id,
         )
         for item in items
     ]
@@ -118,7 +123,43 @@ async def get_inventory(
             price_fc    = item.price_fc,
             preview     = item.preview,
             owned       = True,
+            equipped    = item.id == current_user.equipped_banner_item_id,
         )
         for item in items
         if item.id in owned_ids
     ]
+
+
+@router.post("/equip/{item_id}", response_model=UserResponse)
+async def equip_banner(
+    item_id: str,
+    current_user: UserResponse = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    identity: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """
+    Equipa un banner de perfil que el usuario ya compró. Solo items de
+    categoria "profile_banner"; otras categorias no tienen equipar todavia.
+    """
+    shop_repo = ShopRepository(db)
+    item = await shop_repo.get_by_id(item_id)
+    if item is None or item.category != "profile_banner":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ese banner no existe.",
+        )
+    if not await shop_repo.owns_item(current_user.id, item_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Todavía no tienes ese banner — cómpralo primero.",
+        )
+    return await identity.set_equipped_banner(current_user.id, item_id)
+
+
+@router.post("/unequip-banner", response_model=UserResponse)
+async def unequip_banner(
+    current_user: UserResponse = Depends(get_current_user),
+    identity: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """Quita el banner de tienda equipado; el perfil vuelve al color propio."""
+    return await identity.set_equipped_banner(current_user.id, None)

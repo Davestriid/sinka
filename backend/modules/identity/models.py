@@ -32,6 +32,15 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     bio:        Mapped[str | None] = mapped_column(String(280), nullable=True)
 
+    # Banner del perfil publico: color propio elegido libremente (hex), o un
+    # item de la tienda ya comprado y "equipado" (tiene prioridad sobre el
+    # color si esta presente). Ver migracion 0021 y modules/gamification
+    # (categoria "profile_banner" de shop_items).
+    banner_color: Mapped[str | None] = mapped_column(String(9), nullable=True)
+    equipped_banner_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
+    )
+
     # --- Preferencias de interfaz ----------------------------------------
     language: Mapped[str] = mapped_column(String(5),  nullable=False, default="es")
     theme:    Mapped[str] = mapped_column(String(10), nullable=False, default="light")

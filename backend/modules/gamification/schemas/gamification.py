@@ -64,6 +64,7 @@ class ShopItemResponse(BaseModel):
     price_fc: int
     preview: str
     owned: bool = False
+    equipped: bool = False
 
     model_config = {"from_attributes": True}
 

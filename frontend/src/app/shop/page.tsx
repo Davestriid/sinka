@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ShoppingBag, Coins, Image as ImageIcon, Sprout, Wand2, Music,
+  ShoppingBag, Coins, Image as ImageIcon, Sprout, Wand2, Music, Flag,
   CheckCircle2, XCircle, Check, CreditCard, type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -16,10 +16,11 @@ import { SkeletonShopCard } from "@/components/Skeleton";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
-  background:   { texto: "Fondos",          Icono: ImageIcon },
-  plant_skin:   { texto: "Skins de Planta", Icono: Sprout },
-  avatar_frame: { texto: "Marcos de Avatar", Icono: Wand2 },
-  music:        { texto: "Música",          Icono: Music },
+  background:     { texto: "Fondos",            Icono: ImageIcon },
+  plant_skin:     { texto: "Skins de Planta",   Icono: Sprout },
+  avatar_frame:   { texto: "Marcos de Avatar",  Icono: Wand2 },
+  music:          { texto: "Música",            Icono: Music },
+  profile_banner: { texto: "Banners de Perfil", Icono: Flag },
 };
 
 export default function ShopPage() {
@@ -33,13 +34,14 @@ export default function ShopPage() {
 function ShopPageInner() {
   const router                       = useRouter();
   const searchParams                 = useSearchParams();
-  const { accessToken: token, user, hidratado } = useAuthStore();
+  const { accessToken: token, user, setUser, hidratado } = useAuthStore();
 
   const [items,   setItems]   = useState<ShopItem[]>([]);
   const [stats,   setStats]   = useState<UserStats | null>(null);
   const [packs,   setPacks]   = useState<CoinPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying,  setBuying]  = useState<string | null>(null);
+  const [equipando, setEquipando] = useState<string | null>(null);
   const [comprandoPack, setComprandoPack] = useState<string | null>(null);
   const [toast,   setToast]   = useState<{ msg: string; ok: boolean } | null>(null);
 
@@ -111,6 +113,40 @@ function ShopPageInner() {
       showToast(msg, false);
     } finally {
       setBuying(null);
+    }
+  };
+
+  const handleEquip = async (item: ShopItem) => {
+    if (!token || equipando) return;
+    setEquipando(item.id);
+    try {
+      const actualizado = await shopApi.equipBanner(token, item.id);
+      setUser(actualizado);
+      setItems(prev => prev.map(i => {
+        if (i.category !== "profile_banner") return i;
+        return { ...i, equipped: i.id === item.id };
+      }));
+      showToast(`¡${item.name} equipado!`, true);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "No se pudo equipar.";
+      showToast(msg, false);
+    } finally {
+      setEquipando(null);
+    }
+  };
+
+  const handleUnequip = async (item: ShopItem) => {
+    if (!token || equipando) return;
+    setEquipando(item.id);
+    try {
+      const actualizado = await shopApi.unequipBanner(token);
+      setUser(actualizado);
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, equipped: false } : i));
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "No se pudo quitar.";
+      showToast(msg, false);
+    } finally {
+      setEquipando(null);
     }
   };
 
@@ -201,14 +237,40 @@ function ShopPageInner() {
               : cat}
           </h2>
           <div style={styles.grid}>
-            {catItems.map(item => (
+            {catItems.map(item => {
+              const esBanner = item.category === "profile_banner";
+              return (
               <div key={item.id} style={{ ...styles.card, ...(item.owned ? styles.cardOwned : {}) }}>
-                <div style={styles.preview}>{item.preview}</div>
+                {esBanner ? (
+                  <div style={{ ...styles.bannerSwatch, background: item.preview }} />
+                ) : (
+                  <div style={styles.preview}>{item.preview}</div>
+                )}
                 <div style={styles.cardName}>{item.name}</div>
                 <div style={styles.cardDesc}>{item.description}</div>
 
                 {item.owned ? (
-                  <div style={styles.ownedBadge}><Check size={13} strokeWidth={2} /> En tu inventario</div>
+                  esBanner ? (
+                    item.equipped ? (
+                      <button
+                        style={{ ...styles.buyBtn, background: color.surfaceRaised, color: color.textMuted }}
+                        onClick={() => handleUnequip(item)}
+                        disabled={equipando === item.id}
+                      >
+                        {equipando === item.id ? "…" : "Equipado · Quitar"}
+                      </button>
+                    ) : (
+                      <button
+                        style={styles.buyBtn}
+                        onClick={() => handleEquip(item)}
+                        disabled={!!equipando}
+                      >
+                        {equipando === item.id ? "…" : "Equipar"}
+                      </button>
+                    )
+                  ) : (
+                    <div style={styles.ownedBadge}><Check size={13} strokeWidth={2} /> En tu inventario</div>
+                  )
                 ) : (
                   <button
                     style={{
@@ -224,7 +286,8 @@ function ShopPageInner() {
                   </button>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         );
@@ -358,6 +421,10 @@ const styles: Record<string, React.CSSProperties> = {
   preview: {
     fontSize:   36,
     lineHeight: 1,
+  },
+  bannerSwatch: {
+    width: "100%", height: 40, borderRadius: radius.sm,
+    border: `1px solid ${color.border}`,
   },
   cardName: {
     fontWeight: 600,

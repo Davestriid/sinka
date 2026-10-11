@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * Tarjeta de jugador de otra persona — al estilo Clash Royale: avatar
- * grande, nivel, barra de XP, racha, sesiones y los logros que ya
- * desbloqueó. Se abre al tocar la foto de alguien en vínculos, grupos o
- * el ranking.
+ * Tarjeta de jugador de otra persona — al estilo Clash Royale: banner,
+ * avatar grande, nivel, barra de XP, racha, sesiones, confianza y los
+ * logros que ya desbloqueó. Se abre al tocar la foto de alguien en
+ * vínculos, grupos o el ranking.
  *
- * Nunca muestra correo ni el puntaje de confianza (trust_score): ese es
- * un dato interno de emparejamiento, no algo para presumir o comparar.
+ * Nunca muestra el correo. El puntaje de confianza SI se muestra aca
+ * (decision explicita del producto).
  */
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Target, UserCircle, Users, Flame, Handshake, Sprout, ShoppingBag,
-  ArrowLeft, Trophy, Zap, Calendar, type LucideProps,
+  ArrowLeft, Trophy, Zap, Calendar, ShieldCheck, type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -71,6 +71,17 @@ export default function PerfilPublicoPage() {
     year: "numeric", month: "long",
   });
 
+  // El banner de tienda (degradado o color) tiene prioridad sobre el color
+  // propio; si no hay ninguno, un degradado suave de la paleta del tema.
+  const bannerFondo =
+    perfil.banner_preview || perfil.banner_color || `linear-gradient(135deg, ${color.mossSoft}, ${color.accentSoft})`;
+
+  const confianzaColor =
+    perfil.trust_score >= 90 ? color.moss
+    : perfil.trust_score >= 75 ? color.moss
+    : perfil.trust_score >= 60 ? color.sand
+    : color.accent;
+
   return (
     <div style={s.page}>
       <div style={s.centro}>
@@ -80,6 +91,8 @@ export default function PerfilPublicoPage() {
 
         {/* ── Tarjeta principal ─────────────────────────────────────── */}
         <div style={s.card}>
+          <div style={{ ...s.banner, background: bannerFondo }} />
+
           <div style={s.cardTop}>
             {perfil.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -119,6 +132,20 @@ export default function PerfilPublicoPage() {
           <Trofeo icono={<Flame size={20} />} valor={perfil.streak_current} etiqueta="Racha actual" />
           <Trofeo icono={<Zap size={20} />} valor={perfil.streak_max} etiqueta="Mejor racha" />
           <Trofeo icono={<Target size={20} />} valor={perfil.sessions_completed} etiqueta="Sesiones" />
+        </div>
+
+        {/* ── Confianza ─────────────────────────────────────────────── */}
+        <div style={s.card}>
+          <h2 style={s.sectionTitle}>
+            <ShieldCheck size={16} /> Confianza
+          </h2>
+          <div style={s.trustRow}>
+            <span style={s.trustScore}>{perfil.trust_score}</span>
+            <span style={s.muted}>de 100 · {perfil.trust_level}</span>
+          </div>
+          <div style={s.xpBarTrack}>
+            <div style={{ ...s.xpBarFill, width: `${perfil.trust_score}%`, background: confianzaColor }} />
+          </div>
         </div>
 
         {/* ── Logros ────────────────────────────────────────────────── */}
@@ -176,14 +203,23 @@ const s: Record<string, React.CSSProperties> = {
 
   card: {
     background: color.surface, borderRadius: radius.lg, padding: 24,
-    marginBottom: 16, boxShadow: shadow.card,
+    marginBottom: 16, boxShadow: shadow.card, overflow: "hidden", position: "relative",
   },
-  cardTop: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  avatar:  { width: 84, height: 84, borderRadius: "50%", objectFit: "cover", border: `2px solid ${color.accent}` },
+  banner: {
+    position: "absolute", top: 0, left: 0, right: 0, height: 84,
+  },
+  cardTop: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    position: "relative", marginTop: 36,
+  },
+  avatar: {
+    width: 84, height: 84, borderRadius: "50%", objectFit: "cover",
+    border: `3px solid ${color.surface}`, boxShadow: shadow.card,
+  },
   avatarFallback: {
     width: 84, height: 84, borderRadius: "50%", background: color.border,
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontWeight: 700, fontSize: 32, border: `2px solid ${color.accent}`,
+    fontWeight: 700, fontSize: 32, border: `3px solid ${color.surface}`, boxShadow: shadow.card,
   },
   levelBadge: {
     background: color.accent, color: color.bg, fontWeight: 700, fontSize: 13,
@@ -221,6 +257,9 @@ const s: Record<string, React.CSSProperties> = {
 
   sectionTitle: { fontSize: 16, margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 },
   count: { background: color.surfaceRaised, borderRadius: radius.sm, padding: "1px 8px", fontSize: 12 },
+
+  trustRow:   { display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 },
+  trustScore: { fontFamily: fontSerif, fontSize: 28, fontWeight: 700 },
 
   badgeGrid: {
     display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 12,

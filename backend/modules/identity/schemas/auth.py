@@ -1,6 +1,9 @@
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, field_validator
+
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{8}$")
 
 
 class RegisterRequest(BaseModel):
@@ -54,6 +57,11 @@ class UserResponse(BaseModel):
     avatar_url: str | None = None
     bio:        str | None = None
 
+    # Banner del perfil publico: color propio (hex). Si hay un item de
+    # tienda equipado, ese tiene prioridad — ver equipped_banner_item_id.
+    banner_color:             str | None = None
+    equipped_banner_item_id:  str | None = None
+
     # Preferencias
     language: str = "es"
     theme:    str = "light"
@@ -96,8 +104,8 @@ class PublicProfileFull(BaseModel):
     que se ve al tocar la foto de alguien en vinculos, grupos o el ranking.
 
     Todo aca es informacion que cualquiera puede ver sin comprometer
-    privacidad: nunca el correo, y nunca el trust_score (es un dato interno
-    de emparejamiento, no un puntaje para presumir o comparar).
+    privacidad: nunca el correo. El puntaje de confianza SI se muestra aca
+    (decision explicita del producto) — ya no se oculta como antes.
     """
 
     id:         str
@@ -118,6 +126,17 @@ class PublicProfileFull(BaseModel):
     sessions_completed:  int
     pomodoros_completed: int
 
+    # Confianza: numero exacto (0-100) y su nivel legible ("excelente",
+    # "bueno", "regular", "bajo"). Ver modules/gamification/services/trust_service.
+    trust_score: int
+    trust_level: str
+
+    # Banner: si hay un item de tienda equipado, banner_preview trae su
+    # valor CSS (color o degradado) y tiene prioridad sobre banner_color,
+    # el color propio elegido libremente.
+    banner_color:   str | None = None
+    banner_preview: str | None = None
+
     achievements_unlocked: int
     achievements_total:    int
     badges: list[PublicBadge]
@@ -128,11 +147,24 @@ class PublicProfileFull(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     """Actualizacion parcial del perfil. Todo opcional."""
 
-    alias:      str | None = None
-    avatar_url: str | None = None
-    bio:        str | None = None
-    language:   str | None = None
-    theme:      str | None = None
+    alias:        str | None = None
+    avatar_url:   str | None = None
+    bio:          str | None = None
+    banner_color: str | None = None
+    language:     str | None = None
+    theme:        str | None = None
+
+    @field_validator("banner_color")
+    @classmethod
+    def banner_color_hex(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        if not HEX_COLOR_RE.match(v):
+            raise ValueError("El color del banner debe ser un hex valido, ej. #4a90d9.")
+        return v
 
     @field_validator("alias")
     @classmethod

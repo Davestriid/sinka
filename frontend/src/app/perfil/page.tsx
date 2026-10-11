@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  authApi, feedbackApi, misMensajesApi, profileApi, trustApi,
+  authApi, feedbackApi, misMensajesApi, profileApi, shopApi, trustApi,
   TIPOS_FEEDBACK, type MiMensajeBuzon, type TrustState,
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
@@ -17,6 +17,10 @@ import { useTheme } from "@/components/ThemeProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
+
+// Paleta rapida para el banner — ademas del selector de color libre.
+const BANNERS_PRESET = ["#4a7c59", "#3d6b8a", "#8a5a9e", "#b8863f", "#a84a4a", "#5a5a7c"];
+const BANNER_DEFAULT = "#4a7c59";
 
 const ETIQUETAS_BUZON: Record<string, string> = {
   reporte_usuario: "Reporte",
@@ -85,7 +89,10 @@ export default function PerfilPage() {
   const [alias,  setAlias]  = useState("");
   const [bio,    setBio]    = useState("");
   const [avatar, setAvatar] = useState("");
+  const [bannerColor, setBannerColor] = useState(BANNER_DEFAULT);
   const [idioma, setIdioma] = useState<"es" | "en">("es");
+
+  const [quitandoBanner, setQuitandoBanner] = useState(false);
 
   const [trust,   setTrust]   = useState<TrustState | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -131,6 +138,7 @@ export default function PerfilPage() {
       setAlias(user.alias ?? user.username);
       setBio(user.bio ?? "");
       setAvatar(user.avatar_url ?? AVATARES[0]);
+      setBannerColor(user.banner_color ?? BANNER_DEFAULT);
       setIdioma(user.language);
       // El tema ya lo inicializa ThemeProvider solo (localStorage o
       // user.theme) apenas carga la app — no hace falta repetirlo aca.
@@ -161,6 +169,7 @@ export default function PerfilPage() {
       alias.trim() !== (user.alias ?? user.username) ||
       bio.trim()   !== (user.bio ?? "") ||
       avatar       !== (user.avatar_url ?? AVATARES[0]) ||
+      bannerColor  !== (user.banner_color ?? BANNER_DEFAULT) ||
       idioma       !== user.language ||
       tema         !== user.theme
     );
@@ -175,6 +184,7 @@ export default function PerfilPage() {
         alias: alias.trim(),
         bio: bio.trim(),
         avatar_url: avatar,
+        banner_color: bannerColor,
         language: idioma,
         theme: tema,
       });
@@ -185,7 +195,21 @@ export default function PerfilPage() {
     } finally {
       setGuardando(false);
     }
-  }, [token, alias, bio, avatar, idioma, tema, setUser]);
+  }, [token, alias, bio, avatar, bannerColor, idioma, tema, setUser]);
+
+  const quitarBannerTienda = useCallback(async () => {
+    if (!token) return;
+    setQuitandoBanner(true);
+    setError("");
+    try {
+      const actualizado = await shopApi.unequipBanner(token);
+      setUser(actualizado);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo quitar el banner.");
+    } finally {
+      setQuitandoBanner(false);
+    }
+  }, [token, setUser]);
 
   const enviarFeedback = useCallback(async () => {
     if (!token || textoFeedback.trim().length < 3) return;
@@ -291,6 +315,48 @@ export default function PerfilPage() {
           onChange={(e) => setBio(e.target.value)}
         />
         <span style={s.muted}>{bio.length}/280</span>
+
+        <p style={s.label}>Banner de tu perfil</p>
+        {user?.equipped_banner_item_id ? (
+          <div style={s.bannerPreview}>
+            <span style={s.muted}>
+              Tienes un banner de la tienda equipado. Para cambiarlo de color, primero quítalo.
+            </span>
+            <button
+              style={s.btnQuitar}
+              disabled={quitandoBanner}
+              onClick={quitarBannerTienda}
+            >
+              {quitandoBanner ? "Quitando…" : "Quitar banner de tienda"}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={s.bannerFila}>
+              <div style={{ ...s.bannerMuestra, background: bannerColor }} />
+              <input
+                type="color"
+                value={bannerColor}
+                onChange={(e) => setBannerColor(e.target.value)}
+                style={s.colorInput}
+                aria-label="Elegir color de banner"
+              />
+              <div style={s.bannerPresets}>
+                {BANNERS_PRESET.map((c) => (
+                  <button
+                    key={c}
+                    style={{ ...s.bannerPreset, background: c, ...(bannerColor === c ? s.bannerPresetOn : {}) }}
+                    onClick={() => setBannerColor(c)}
+                    aria-label={`Banner ${c}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <span style={s.muted}>
+              También hay banners especiales en la tienda, comprables con FocusCoins.
+            </span>
+          </>
+        )}
       </section>
 
       {trust && (
@@ -503,6 +569,23 @@ const s: Record<string, React.CSSProperties> = {
     fontSize:     13,
   },
   fotoNota: { fontSize: 11, color: color.textFaint, flexBasis: "100%", lineHeight: 1.4 },
+  bannerFila: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 },
+  bannerMuestra: {
+    width: 48, height: 32, borderRadius: radius.sm, border: `1px solid ${color.border}`, flexShrink: 0,
+  },
+  colorInput: {
+    width: 40, height: 32, border: `1px solid ${color.border}`, borderRadius: radius.sm,
+    cursor: "pointer", padding: 0, background: "none",
+  },
+  bannerPresets: { display: "flex", gap: 6, flexWrap: "wrap" },
+  bannerPreset: {
+    width: 26, height: 26, borderRadius: "50%", border: `2px solid transparent`, cursor: "pointer", padding: 0,
+  },
+  bannerPresetOn: { borderColor: color.text },
+  bannerPreview: {
+    display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+    background: color.bg, border: `1px solid ${color.border}`, borderRadius: radius.sm, padding: "10px 12px",
+  },
   avatarGrid: { display: "flex", flexWrap: "wrap", gap: 8 },
   avatarBtn: {
     width: 42, height: 42, fontSize: 20, borderRadius: radius.sm,

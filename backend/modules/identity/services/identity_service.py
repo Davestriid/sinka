@@ -137,6 +137,22 @@ class IdentityService:
         user = await self.user_repo.update_fields(user, **cambios)
         return UserResponse.model_validate(user)
 
+    async def set_equipped_banner(self, user_id: str, item_id: str | None) -> UserResponse:
+        """
+        Equipa (o quita, si item_id es None) un banner de la tienda ya
+        comprado. Se usa `update_fields` para el resto del perfil, pero ese
+        helper ignora los valores None a proposito (para no borrar datos que
+        el cliente no envio) — aqui el caso contrario es el que importa:
+        "quitar banner" SI debe guardar None, por eso se asigna directo.
+        """
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+
+        user.equipped_banner_item_id = item_id
+        user = await self.user_repo.update_fields(user)
+        return UserResponse.model_validate(user)
+
     async def complete_onboarding(
         self,
         user_id:    str,
@@ -231,6 +247,8 @@ class IdentityService:
         from modules.gamification.repositories.gamification_repository import (
             GamificationRepository,
         )
+        from modules.gamification.repositories.shop_repository import ShopRepository
+        from modules.gamification.services import trust_service
         from modules.gamification.services.gamification_service import compute_xp_progress
 
         user = await self.user_repo.get_by_id(user_id)
@@ -241,6 +259,14 @@ class IdentityService:
         xp_total = stats.xp_total if stats else 0
         level = stats.level if stats else 1
         xp_in_level, xp_next, pct = compute_xp_progress(xp_total, level)
+
+        trust_score = stats.trust_score if stats else trust_service.PUNTAJE_INICIAL
+        trust_level = trust_service.nivel_de(trust_score)
+
+        banner_preview = None
+        if user.equipped_banner_item_id:
+            item = await ShopRepository(self.user_repo.db).get_by_id(user.equipped_banner_item_id)
+            banner_preview = item.preview if item else None
 
         resumen = await achievements_service.get_summary(user_id)
         badges = [
@@ -265,6 +291,10 @@ class IdentityService:
             streak_max=stats.streak_max if stats else 0,
             sessions_completed=stats.sessions_completed if stats else 0,
             pomodoros_completed=stats.pomodoros_completed if stats else 0,
+            trust_score=trust_score,
+            trust_level=trust_level,
+            banner_color=user.banner_color,
+            banner_preview=banner_preview,
             achievements_unlocked=resumen["unlocked"],
             achievements_total=resumen["total"],
             badges=badges,
