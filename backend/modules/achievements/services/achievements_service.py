@@ -44,6 +44,8 @@ class Achievement:
 
 CATALOG: Final[list[Achievement]] = [
     # ── Primeros pasos ───────────────────────────────────────────────────
+    # Un toque de cada mecánica del juego, a umbral mínimo — para que
+    # cualquier persona nueva desbloquee varios en su primer día.
     Achievement(
         "primer_enfoque", "primeros_pasos",
         "Primer enfoque", "First focus",
@@ -65,14 +67,71 @@ CATALOG: Final[list[Achievement]] = [
         "Join your first work group.",
         "Users", "group_sessions", 1, 30,
     ),
+    Achievement(
+        "primer_pomodoro", "primeros_pasos",
+        "Primera ronda", "First round",
+        "Completa tu primer Pomodoro, solo o acompañado.",
+        "Complete your first Pomodoro round, solo or with someone.",
+        "Target", "pomodoros_completed", 1, 15,
+    ),
+    Achievement(
+        "primer_vinculo", "primeros_pasos",
+        "Hiciste un amigo", "You made a friend",
+        "Agrega a tu primera persona como amistad.",
+        "Add your first friend.",
+        "Handshake", "friends_count", 1, 20,
+    ),
+    Achievement(
+        "primera_compra_tienda", "primeros_pasos",
+        "Tu estilo empieza acá", "Your style starts here",
+        "Compra tu primer artículo en la tienda.",
+        "Buy your first shop item.",
+        "ShoppingBag", "shop_purchases", 1, 10,
+    ),
+    Achievement(
+        "primera_racha", "primeros_pasos",
+        "Encendiste la mecha", "You lit the fuse",
+        "Completa una sesión y empieza tu racha.",
+        "Complete a session and start your streak.",
+        "Flame", "streak_max", 1, 15,
+    ),
+    Achievement(
+        "nivel_2", "primeros_pasos",
+        "Subiste de nivel", "You leveled up",
+        "Alcanza el nivel 2.",
+        "Reach level 2.",
+        "Target", "level", 2, 25,
+    ),
+    Achievement(
+        "cien_xp", "primeros_pasos",
+        "Primeros cien", "First hundred",
+        "Acumula 100 XP en total.",
+        "Earn a total of 100 XP.",
+        "Target", "xp_total", 100, 25,
+    ),
+    Achievement(
+        "primeros_minutos_jardin", "primeros_pasos",
+        "Primera semilla", "First seed",
+        "Comparte tus primeros minutos de enfoque con una amistad.",
+        "Share your first focus minutes with a friend.",
+        "Sprout", "garden_minutes", 1, 15,
+    ),
 
     # ── Constancia ───────────────────────────────────────────────────────
+    # Pura escalera de racha (streak_max) — entre más larga, más FC.
     Achievement(
         "racha_3", "constancia",
         "Tres días seguidos", "Three days straight",
         "Mantén una racha de 3 días.",
         "Keep a 3-day streak.",
         "Flame", "streak_max", 3, 30,
+    ),
+    Achievement(
+        "racha_5", "constancia",
+        "Cinco días seguidos", "Five days straight",
+        "Mantén una racha de 5 días.",
+        "Keep a 5-day streak.",
+        "Flame", "streak_max", 5, 50,
     ),
     Achievement(
         "racha_7", "constancia",
@@ -82,20 +141,70 @@ CATALOG: Final[list[Achievement]] = [
         "Flame", "streak_max", 7, 75,
     ),
     Achievement(
+        "racha_14", "constancia",
+        "Dos semanas", "Two weeks",
+        "Mantén una racha de 14 días.",
+        "Keep a 14-day streak.",
+        "Flame", "streak_max", 14, 150,
+    ),
+    Achievement(
+        "racha_21", "constancia",
+        "Tres semanas", "Three weeks",
+        "Mantén una racha de 21 días.",
+        "Keep a 21-day streak.",
+        "Flame", "streak_max", 21, 200,
+    ),
+    Achievement(
         "racha_30", "constancia",
         "Hábito formado", "Habit formed",
         "Mantén una racha de 30 días.",
         "Keep a 30-day streak.",
         "Flame", "streak_max", 30, 300,
     ),
+    Achievement(
+        "racha_60", "constancia",
+        "Dos meses", "Two months",
+        "Mantén una racha de 60 días.",
+        "Keep a 60-day streak.",
+        "Flame", "streak_max", 60, 450,
+    ),
+    Achievement(
+        "racha_100", "constancia",
+        "Tres cifras", "Triple digits",
+        "Mantén una racha de 100 días.",
+        "Keep a 100-day streak.",
+        "Flame", "streak_max", 100, 700,
+    ),
+    Achievement(
+        "racha_180", "constancia",
+        "Medio año", "Half a year",
+        "Mantén una racha de 180 días.",
+        "Keep a 180-day streak.",
+        "Flame", "streak_max", 180, 1200,
+    ),
+    Achievement(
+        "racha_365", "constancia",
+        "Un año entero", "A full year",
+        "Mantén una racha de 365 días.",
+        "Keep a 365-day streak.",
+        "Flame", "streak_max", 365, 2000,
+    ),
 
     # ── Vínculos ─────────────────────────────────────────────────────────
+    # Escalera de amistades (friends_count).
     Achievement(
         "primer_amigo", "vinculos",
         "Primer vínculo", "First bond",
         "Haz tu primer amigo en SINKA.",
         "Make your first friend on SINKA.",
         "Handshake", "friends_count", 1, 20,
+    ),
+    Achievement(
+        "tres_amigos", "vinculos",
+        "Un pequeño grupo", "A small group",
+        "Ten 3 amistades.",
+        "Have 3 friendships.",
+        "Handshake", "friends_count", 3, 35,
     ),
     Achievement(
         "cinco_amigos", "vinculos",
@@ -105,20 +214,71 @@ CATALOG: Final[list[Achievement]] = [
         "Handshake", "friends_count", 5, 60,
     ),
     Achievement(
+        "ocho_amigos", "vinculos",
+        "Red en crecimiento", "Growing network",
+        "Ten 8 amistades.",
+        "Have 8 friendships.",
+        "Handshake", "friends_count", 8, 90,
+    ),
+    Achievement(
         "quince_amigos", "vinculos",
         "Comunidad", "Community",
         "Ten 15 amistades.",
         "Have 15 friendships.",
         "Handshake", "friends_count", 15, 150,
     ),
+    Achievement(
+        "veinticinco_amigos", "vinculos",
+        "Cara conocida", "Familiar face",
+        "Ten 25 amistades.",
+        "Have 25 friendships.",
+        "Handshake", "friends_count", 25, 220,
+    ),
+    Achievement(
+        "cuarenta_amigos", "vinculos",
+        "Muy conectado", "Well connected",
+        "Ten 40 amistades.",
+        "Have 40 friendships.",
+        "Handshake", "friends_count", 40, 350,
+    ),
+    Achievement(
+        "sesenta_amigos", "vinculos",
+        "Red social", "Social network",
+        "Ten 60 amistades.",
+        "Have 60 friendships.",
+        "Handshake", "friends_count", 60, 500,
+    ),
+    Achievement(
+        "ochenta_amigos", "vinculos",
+        "Embajador", "Ambassador",
+        "Ten 80 amistades.",
+        "Have 80 friendships.",
+        "Handshake", "friends_count", 80, 650,
+    ),
+    Achievement(
+        "cien_amigos", "vinculos",
+        "Tres cifras de amistad", "Triple-digit friendships",
+        "Ten 100 amistades.",
+        "Have 100 friendships.",
+        "Handshake", "friends_count", 100, 800,
+    ),
 
     # ── Jardín ───────────────────────────────────────────────────────────
+    # Mitad plantas maduras (plants_maxed), mitad minutos acumulados
+    # (garden_minutes) — dos formas distintas de medir dedicación al jardín.
     Achievement(
         "primera_planta_madura", "jardin",
         "Primera cosecha", "First harvest",
         "Haz crecer una planta hasta su fase máxima.",
         "Grow a plant to its final phase.",
         "Sprout", "plants_maxed", 1, 50,
+    ),
+    Achievement(
+        "dos_plantas_maduras", "jardin",
+        "Segunda cosecha", "Second harvest",
+        "Haz crecer 2 plantas hasta su fase máxima.",
+        "Grow 2 plants to their final phase.",
+        "Sprout", "plants_maxed", 2, 100,
     ),
     Achievement(
         "tres_plantas_maduras", "jardin",
@@ -128,20 +288,77 @@ CATALOG: Final[list[Achievement]] = [
         "Sprout", "plants_maxed", 3, 150,
     ),
     Achievement(
+        "cinco_plantas_maduras", "jardin",
+        "Jardín floreciente", "Blooming garden",
+        "Haz crecer 5 plantas hasta su fase máxima.",
+        "Grow 5 plants to their final phase.",
+        "Sprout", "plants_maxed", 5, 250,
+    ),
+    Achievement(
+        "diez_plantas_maduras", "jardin",
+        "Bosque propio", "Your own forest",
+        "Haz crecer 10 plantas hasta su fase máxima.",
+        "Grow 10 plants to their final phase.",
+        "Sprout", "plants_maxed", 10, 500,
+    ),
+    Achievement(
+        "cien_minutos_jardin", "jardin",
+        "Regando la relación", "Watering the friendship",
+        "Acumula 100 minutos compartidos con tus amistades.",
+        "Accumulate 100 shared minutes with your friends.",
+        "Sprout", "garden_minutes", 100, 30,
+    ),
+    Achievement(
+        "doscientos_cincuenta_minutos_jardin", "jardin",
+        "Raíces que crecen", "Growing roots",
+        "Acumula 250 minutos compartidos con tus amistades.",
+        "Accumulate 250 shared minutes with your friends.",
+        "Sprout", "garden_minutes", 250, 70,
+    ),
+    Achievement(
         "quinientos_minutos_jardin", "jardin",
         "Raíces profundas", "Deep roots",
         "Acumula 500 minutos compartidos con tus amistades.",
         "Accumulate 500 shared minutes with your friends.",
         "Sprout", "garden_minutes", 500, 100,
     ),
+    Achievement(
+        "mil_minutos_jardin", "jardin",
+        "Jardín establecido", "Established garden",
+        "Acumula 1000 minutos compartidos con tus amistades.",
+        "Accumulate 1000 shared minutes with your friends.",
+        "Sprout", "garden_minutes", 1000, 200,
+    ),
+    Achievement(
+        "dos_mil_quinientos_minutos_jardin", "jardin",
+        "Bosque centenario", "Century-old forest",
+        "Acumula 2500 minutos compartidos con tus amistades.",
+        "Accumulate 2500 shared minutes with your friends.",
+        "Sprout", "garden_minutes", 2500, 450,
+    ),
 
     # ── Tienda ───────────────────────────────────────────────────────────
+    # Escalera de compras (shop_purchases).
     Achievement(
         "primera_compra", "tienda",
         "Tu primer cosmético", "Your first cosmetic",
         "Compra tu primer artículo en la tienda.",
         "Buy your first shop item.",
         "ShoppingBag", "shop_purchases", 1, 10,
+    ),
+    Achievement(
+        "dos_compras", "tienda",
+        "Le tomaste el gusto", "You got a taste for it",
+        "Compra 2 artículos en la tienda.",
+        "Buy 2 shop items.",
+        "ShoppingBag", "shop_purchases", 2, 20,
+    ),
+    Achievement(
+        "tres_compras", "tienda",
+        "Vas por más", "You're going for more",
+        "Compra 3 artículos en la tienda.",
+        "Buy 3 shop items.",
+        "ShoppingBag", "shop_purchases", 3, 30,
     ),
     Achievement(
         "cinco_compras", "tienda",
@@ -151,20 +368,63 @@ CATALOG: Final[list[Achievement]] = [
         "ShoppingBag", "shop_purchases", 5, 50,
     ),
     Achievement(
+        "siete_compras", "tienda",
+        "Casi todo el catálogo", "Almost the whole catalog",
+        "Compra 7 artículos en la tienda.",
+        "Buy 7 shop items.",
+        "ShoppingBag", "shop_purchases", 7, 75,
+    ),
+    Achievement(
         "diez_compras", "tienda",
         "Estilo propio", "Signature style",
         "Compra 10 artículos en la tienda.",
         "Buy 10 shop items.",
         "ShoppingBag", "shop_purchases", 10, 100,
     ),
+    Achievement(
+        "quince_compras", "tienda",
+        "Guardarropa completo", "Full wardrobe",
+        "Compra 15 artículos en la tienda.",
+        "Buy 15 shop items.",
+        "ShoppingBag", "shop_purchases", 15, 150,
+    ),
+    Achievement(
+        "veinte_compras", "tienda",
+        "De compras frecuentes", "Frequent shopper",
+        "Compra 20 artículos en la tienda.",
+        "Buy 20 shop items.",
+        "ShoppingBag", "shop_purchases", 20, 200,
+    ),
+    Achievement(
+        "treinta_compras", "tienda",
+        "Curador de estilo", "Style curator",
+        "Compra 30 artículos en la tienda.",
+        "Buy 30 shop items.",
+        "ShoppingBag", "shop_purchases", 30, 300,
+    ),
+    Achievement(
+        "cincuenta_compras", "tienda",
+        "Mecenas de la tienda", "Shop patron",
+        "Compra 50 artículos en la tienda.",
+        "Buy 50 shop items.",
+        "ShoppingBag", "shop_purchases", 50, 500,
+    ),
 
     # ── Grupos ───────────────────────────────────────────────────────────
+    # Escalera de sesiones de grupo (group_sessions).
     Achievement(
         "grupo_1", "grupos",
         "Trabajo en equipo", "Teamwork",
         "Participa en tu primera sesión de grupo.",
         "Take part in your first group session.",
         "Users", "group_sessions", 1, 30,
+    ),
+    Achievement(
+        "grupo_3", "grupos",
+        "Le agarraste el ritmo", "You found the rhythm",
+        "Participa en 3 sesiones de grupo.",
+        "Take part in 3 group sessions.",
+        "Users", "group_sessions", 3, 50,
     ),
     Achievement(
         "grupo_5", "grupos",
@@ -174,11 +434,53 @@ CATALOG: Final[list[Achievement]] = [
         "Users", "group_sessions", 5, 75,
     ),
     Achievement(
+        "grupo_10", "grupos",
+        "Siempre presente", "Always present",
+        "Participa en 10 sesiones de grupo.",
+        "Take part in 10 group sessions.",
+        "Users", "group_sessions", 10, 110,
+    ),
+    Achievement(
         "grupo_15", "grupos",
         "Pilar de la comunidad", "Community pillar",
         "Participa en 15 sesiones de grupo.",
         "Take part in 15 group sessions.",
         "Users", "group_sessions", 15, 150,
+    ),
+    Achievement(
+        "grupo_25", "grupos",
+        "Rostro conocido", "Familiar face",
+        "Participa en 25 sesiones de grupo.",
+        "Take part in 25 group sessions.",
+        "Users", "group_sessions", 25, 220,
+    ),
+    Achievement(
+        "grupo_40", "grupos",
+        "Veterano de grupo", "Group veteran",
+        "Participa en 40 sesiones de grupo.",
+        "Take part in 40 group sessions.",
+        "Users", "group_sessions", 40, 350,
+    ),
+    Achievement(
+        "grupo_60", "grupos",
+        "Motor del equipo", "Team driver",
+        "Participa en 60 sesiones de grupo.",
+        "Take part in 60 group sessions.",
+        "Users", "group_sessions", 60, 500,
+    ),
+    Achievement(
+        "grupo_100", "grupos",
+        "Tres cifras en equipo", "Triple digits as a team",
+        "Participa en 100 sesiones de grupo.",
+        "Take part in 100 group sessions.",
+        "Users", "group_sessions", 100, 800,
+    ),
+    Achievement(
+        "grupo_150", "grupos",
+        "Leyenda de los grupos", "Groups legend",
+        "Participa en 150 sesiones de grupo.",
+        "Take part in 150 group sessions.",
+        "Users", "group_sessions", 150, 1200,
     ),
 ]
 
@@ -208,6 +510,15 @@ class AchievementsService:
             return await repo.count_shop_purchases(user_id)
         if metric == "group_sessions":
             return await repo.get_group_sessions_started(user_id)
+        if metric == "pomodoros_completed":
+            stats = await repo.get_user_stats(user_id)
+            return stats.pomodoros_completed if stats else 0
+        if metric == "level":
+            stats = await repo.get_user_stats(user_id)
+            return stats.level if stats else 0
+        if metric == "xp_total":
+            stats = await repo.get_user_stats(user_id)
+            return stats.xp_total if stats else 0
         if metric == "profile_complete":
             user_repo = UserRepository(repo.db)
             user = await user_repo.get_by_id(user_id)
@@ -292,7 +603,11 @@ class AchievementsService:
         for user_id in (payload.get("user_a_id"), payload.get("user_b_id")):
             if user_id:
                 await self.evaluate_for_user(
-                    user_id, metrics={"sessions_completed", "streak_max"}
+                    user_id,
+                    metrics={
+                        "sessions_completed", "streak_max",
+                        "pomodoros_completed", "level", "xp_total",
+                    },
                 )
 
     async def on_group_session_started(self, payload: dict[str, Any]) -> None:
@@ -301,7 +616,12 @@ class AchievementsService:
             async with AsyncSessionLocal() as db:
                 await AchievementsRepository(db).increment_group_sessions(user_id)
                 await db.commit()
-            await self.evaluate_for_user(user_id, metrics={"group_sessions"})
+            await self.evaluate_for_user(
+                user_id,
+                metrics={
+                    "group_sessions", "pomodoros_completed", "level", "xp_total",
+                },
+            )
 
 
 achievements_service = AchievementsService()
