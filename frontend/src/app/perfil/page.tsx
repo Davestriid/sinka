@@ -240,16 +240,13 @@ export default function PerfilPage() {
       {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
       <div style={{ ...s.centro, position: "relative", zIndex: 1 }}>
       <header style={s.header}>
-        <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
+        <button
+          style={s.back}
+          onClick={() => router.push(user?.id ? `/perfil/${user.id}` : "/dashboard")}
+        >
+          ← Volver a mi perfil
+        </button>
         <h1 style={s.title}>Editar perfil</h1>
-        {user?.id && (
-          <button
-            style={s.verComoBtn}
-            onClick={() => router.push(`/perfil/${user.id}`)}
-          >
-            👀 Ver mi perfil como lo ven los demás
-          </button>
-        )}
       </header>
 
       {error   && <div style={s.error}>{error}</div>}

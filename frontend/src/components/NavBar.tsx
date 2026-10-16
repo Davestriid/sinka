@@ -287,10 +287,18 @@ export function NavBar({ monedas }: NavBarProps) {
                     que solo tenia el selector de tema — y ese selector era
                     redundante con el icono de luna/sol de aca al lado, asi
                     que se quito. Sin esa seccion, "Ajustes" llevaba al mismo
-                    lugar que "Perfil" sin aportar nada distinto. */}
+                    lugar que "Perfil" sin aportar nada distinto.
+
+                    "Perfil" lleva a la tarjeta de solo lectura (la misma
+                    vista que ven los demas, /perfil/[userId]) en vez de ir
+                    directo al formulario de edicion — esa tarjeta ya trae su
+                    propio boton "Editar mi perfil" que lleva a /perfil. */}
                 <button
                   style={s.menuItem}
-                  onClick={() => { setMenuAbierto(false); router.push("/perfil"); }}
+                  onClick={() => {
+                    setMenuAbierto(false);
+                    router.push(user?.id ? `/perfil/${user.id}` : "/perfil");
+                  }}
                 >
                   <UserCircle size={16} strokeWidth={2} />
                   {t("nav.perfil")}
