@@ -330,7 +330,7 @@ function ShopPageInner() {
                     </div>
                   ) : esEscena ? (
                     <div style={{ ...styles.bannerSwatch, position: "relative", overflow: "hidden" }}>
-                      <PageBackground bgId={item.id as BgId} />
+                      <PageBackground bgId={item.id as BgId} contenido />
                     </div>
                   ) : esSwatch ? (
                     <div style={{ ...styles.bannerSwatch, background: item.preview }} />

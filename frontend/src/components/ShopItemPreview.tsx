@@ -128,7 +128,7 @@ function PreviewFondo({ item }: { item: ShopItem }) {
   return (
     <div style={{ width: "100%" }}>
       <div style={{ ...s.fondoBox, background: item.preview }}>
-        <PageBackground bgId={item.id as BgId} />
+        <PageBackground bgId={item.id as BgId} contenido />
       </div>
       <span style={s.previewNota}>Así se vería de fondo en tus pantallas</span>
     </div>
