@@ -173,6 +173,13 @@ export interface UserResponse {
   banner_color:            string | null;
   equipped_banner_item_id: string | null;
 
+  // Mismo mecanismo que el banner, para las categorías de la tienda que ya
+  // se aplican a algo real: fondo del Dashboard, anillo del avatar en el
+  // NavBar y pistas extra en el Pomodoro en solitario.
+  equipped_background_item_id:   string | null;
+  equipped_avatar_frame_item_id: string | null;
+  equipped_music_item_id:        string | null;
+
   language: "es" | "en";
   theme:    "light" | "dark";
 
@@ -330,8 +337,21 @@ export const shopApi = {
     request<ShopItem[]>("/shop/inventory", {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
+  // Genérico: funciona para cualquier categoría equipable (profile_banner,
+  // background, avatar_frame, music). equipBanner queda como alias porque
+  // ya era así de genérico por dentro — solo cambia el nombre.
+  equipItem: (accessToken: string, itemId: string) =>
+    request<UserResponse>(`/shop/equip/${itemId}`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
   equipBanner: (accessToken: string, itemId: string) =>
     request<UserResponse>(`/shop/equip/${itemId}`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+  unequip: (accessToken: string, category: string) =>
+    request<UserResponse>(`/shop/unequip/${category}`, {
       method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
     }),

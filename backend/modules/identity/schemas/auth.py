@@ -62,6 +62,13 @@ class UserResponse(BaseModel):
     banner_color:             str | None = None
     equipped_banner_item_id:  str | None = None
 
+    # Mismo mecanismo que el banner, para categorias de la tienda que ya se
+    # aplican a algo real: fondo del Dashboard, anillo del avatar en el
+    # NavBar y pistas extra del Pomodoro en solitario. Ver migracion 0023.
+    equipped_background_item_id:   str | None = None
+    equipped_avatar_frame_item_id: str | None = None
+    equipped_music_item_id:        str | None = None
+
     # Preferencias
     language: str = "es"
     theme:    str = "light"

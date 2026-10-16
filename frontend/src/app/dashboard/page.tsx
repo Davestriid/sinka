@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { wsUrl, gamificationApi, announcementsApi, type UserStats, type ActiveAnnouncement } from "@/lib/api";
+import { wsUrl, gamificationApi, announcementsApi, shopApi, type UserStats, type ActiveAnnouncement } from "@/lib/api";
 import { Megaphone as MegaphoneIcon, X as XIcon } from "lucide-react";
 import { useTranslation } from "@/components/I18nProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
@@ -55,6 +55,23 @@ export default function DashboardPage() {
 
   // Stats de gamificación
   const [stats, setStats] = useState<UserStats | null>(null);
+
+  // Fondo de tienda equipado: `preview` del ítem ya es el valor CSS real
+  // (color o degradado), igual que el banner del perfil. Si no hay nada
+  // equipado o el ítem ya no existe, se queda con el fondo por defecto.
+  const [fondoEquipado, setFondoEquipado] = useState<string | null>(null);
+  useEffect(() => {
+    if (!token || !user?.equipped_background_item_id) { setFondoEquipado(null); return; }
+    let cancelado = false;
+    shopApi.getItems(token)
+      .then(items => {
+        if (cancelado) return;
+        const item = items.find(i => i.id === user.equipped_background_item_id);
+        setFondoEquipado(item?.preview ?? null);
+      })
+      .catch(() => { if (!cancelado) setFondoEquipado(null); });
+    return () => { cancelado = true; };
+  }, [token, user?.equipped_background_item_id]);
 
   useEffect(() => {
     if (!token) return;
@@ -142,7 +159,7 @@ export default function DashboardPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, ...(fondoEquipado ? { background: fondoEquipado } : {}) }}>
       <main style={styles.main}>
 
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>

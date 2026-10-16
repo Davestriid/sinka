@@ -1,11 +1,12 @@
 """
 Router de la tienda de cosméticos.
 
-GET  /api/shop/items            — Catálogo completo (con flag owned por usuario)
-POST /api/shop/buy/{item_id}    — Comprar un ítem con FocusCoins
-GET  /api/shop/inventory        — Inventario del usuario autenticado
-POST /api/shop/equip/{item_id}  — Equipar un banner de perfil ya comprado
-POST /api/shop/unequip-banner   — Quitar el banner equipado (vuelve al color propio)
+GET  /api/shop/items              — Catálogo completo (con flags owned/equipped por usuario)
+POST /api/shop/buy/{item_id}      — Comprar un ítem con FocusCoins
+GET  /api/shop/inventory          — Inventario del usuario autenticado, listo para agrupar por categoría
+POST /api/shop/equip/{item_id}    — Equipar un ítem ya comprado (profile_banner, background, avatar_frame o music)
+POST /api/shop/unequip/{category} — Quitar lo equipado en esa categoría
+POST /api/shop/unequip-banner     — Alias retrocompatible de unequip/profile_banner
 """
 import logging
 
@@ -26,6 +27,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/shop", tags=["shop"])
 
 
+def _equipped_ids(user: UserResponse) -> set[str]:
+    """Todos los item_id que el usuario tiene equipados, sin importar la
+    categoría. Las categorías son disjuntas y los item_id son únicos, así
+    que un simple "está en este conjunto" alcanza para el flag `equipped`."""
+    return {
+        item_id for item_id in (
+            user.equipped_banner_item_id,
+            user.equipped_background_item_id,
+            user.equipped_avatar_frame_item_id,
+            user.equipped_music_item_id,
+        ) if item_id is not None
+    }
+
+
 @router.get("/items", response_model=list[ShopItemResponse])
 async def get_shop_items(
     current_user: UserResponse = Depends(get_current_user),
@@ -35,6 +50,7 @@ async def get_shop_items(
     shop_repo = ShopRepository(db)
     items     = await shop_repo.get_all_active()
     owned     = await shop_repo.get_user_inventory(current_user.id)
+    equipped_ids = _equipped_ids(current_user)
 
     return [
         ShopItemResponse(
@@ -45,7 +61,7 @@ async def get_shop_items(
             price_fc    = item.price_fc,
             preview     = item.preview,
             owned       = item.id in owned,
-            equipped    = item.id == current_user.equipped_banner_item_id,
+            equipped    = item.id in equipped_ids,
         )
         for item in items
     ]
@@ -114,6 +130,7 @@ async def get_inventory(
         return []
 
     items = await shop_repo.get_all_active()
+    equipped_ids = _equipped_ids(current_user)
     return [
         ShopItemResponse(
             id          = item.id,
@@ -123,7 +140,7 @@ async def get_inventory(
             price_fc    = item.price_fc,
             preview     = item.preview,
             owned       = True,
-            equipped    = item.id == current_user.equipped_banner_item_id,
+            equipped    = item.id in equipped_ids,
         )
         for item in items
         if item.id in owned_ids
@@ -131,29 +148,46 @@ async def get_inventory(
 
 
 @router.post("/equip/{item_id}", response_model=UserResponse)
-async def equip_banner(
+async def equip_item(
     item_id: str,
     current_user: UserResponse = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     identity: IdentityService = Depends(get_identity_service),
 ) -> UserResponse:
     """
-    Equipa un banner de perfil que el usuario ya compró. Solo items de
-    categoria "profile_banner"; otras categorias no tienen equipar todavia.
+    Equipa un ítem que el usuario ya compró. Funciona para las categorías
+    "equipables": profile_banner, background, avatar_frame y music. Las
+    demás (como plant_skin) no tienen equipar todavía.
     """
     shop_repo = ShopRepository(db)
     item = await shop_repo.get_by_id(item_id)
-    if item is None or item.category != "profile_banner":
+    if item is None or item.category not in IdentityService.EQUIPABLE_FIELDS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ese banner no existe.",
+            detail="Ese ítem no existe o no se puede equipar.",
         )
     if not await shop_repo.owns_item(current_user.id, item_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Todavía no tienes ese banner — cómpralo primero.",
+            detail="Todavía no tienes ese ítem — cómpralo primero.",
         )
-    return await identity.set_equipped_banner(current_user.id, item_id)
+    return await identity.set_equipped_item(current_user.id, item.category, item_id)
+
+
+@router.post("/unequip/{category}", response_model=UserResponse)
+async def unequip_category(
+    category: str,
+    current_user: UserResponse = Depends(get_current_user),
+    identity: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """Quita lo equipado en esa categoría (profile_banner, background,
+    avatar_frame o music). El perfil/pantalla vuelve a su valor por defecto."""
+    if category not in IdentityService.EQUIPABLE_FIELDS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"La categoría '{category}' no se puede equipar.",
+        )
+    return await identity.set_equipped_item(current_user.id, category, None)
 
 
 @router.post("/unequip-banner", response_model=UserResponse)
@@ -161,5 +195,5 @@ async def unequip_banner(
     current_user: UserResponse = Depends(get_current_user),
     identity: IdentityService = Depends(get_identity_service),
 ) -> UserResponse:
-    """Quita el banner de tienda equipado; el perfil vuelve al color propio."""
+    """Alias retrocompatible de POST /shop/unequip/profile_banner."""
     return await identity.set_equipped_banner(current_user.id, None)

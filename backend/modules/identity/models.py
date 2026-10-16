@@ -41,6 +41,21 @@ class User(Base):
         String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
     )
 
+    # Mismo mecanismo que el banner, pero para el resto de categorias de la
+    # tienda que si se "usan" en algun lugar real de la app (a diferencia de
+    # plant_skin, que todavia no se conecta a nada porque una planta es de
+    # un vinculo entre dos personas y no esta definido de quien es el skin
+    # que gana). Ver migracion 0023.
+    equipped_background_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
+    )
+    equipped_avatar_frame_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
+    )
+    equipped_music_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
+    )
+
     # --- Preferencias de interfaz ----------------------------------------
     language: Mapped[str] = mapped_column(String(5),  nullable=False, default="es")
     theme:    Mapped[str] = mapped_column(String(10), nullable=False, default="light")

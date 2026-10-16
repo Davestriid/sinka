@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
-import { gamificationApi, type SoloSessionCompleteResult } from "@/lib/api";
+import { gamificationApi, shopApi, type SoloSessionCompleteResult } from "@/lib/api";
 import { useTranslation } from "@/components/I18nProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
@@ -62,6 +62,14 @@ const PISTAS = [
   { id: "musica", nombre: "Música",           src: "/sounds/fondo-musica.mp3" },
   { id: "pop",    nombre: "Música pop",       src: "/sounds/fondo-pop.mp3" },
 ] as const;
+
+// Ítems de categoría "music" de la tienda -> archivo de audio real. Solo
+// estos dos existen hoy en el catálogo; si no hay mapeo para un item_id
+// comprado, simplemente no aparece como pista (no rompe nada).
+const MUSICA_TIENDA_SRC: Record<string, string> = {
+  "item-music-rain": "/sounds/fondo-lluvia.mp3",
+  "item-music-lofi": "/sounds/fondo-musica.mp3",
+};
 
 // ── Persistencia local (por navegador, no por cuenta) ───────────────────────
 const K_VOL_MUSICA   = "sinka-volumen-musica";
@@ -168,7 +176,23 @@ function SoloSessionInner() {
   const volEfectosRef   = useRef(volumenEfectos);
   const notifActivasRef = useRef(notifActivas);
 
-  const pista = PISTAS.find(p => p.id === pistaId) ?? PISTAS[0];
+  // Pistas de música compradas en la tienda (categoría "music"), además de
+  // las gratuitas de siempre. Se cargan una vez al entrar a la pantalla.
+  const [pistasCompradas, setPistasCompradas] = useState<{ id: string; nombre: string; src: string }[]>([]);
+  useEffect(() => {
+    if (!token) return;
+    shopApi.getInventory(token)
+      .then(items => {
+        const compradas = items
+          .filter(i => i.category === "music" && MUSICA_TIENDA_SRC[i.id])
+          .map(i => ({ id: i.id, nombre: `${i.name} 🔓`, src: MUSICA_TIENDA_SRC[i.id] }));
+        setPistasCompradas(compradas);
+      })
+      .catch(() => { /* sin pistas compradas, no pasa nada */ });
+  }, [token]);
+
+  const todasLasPistas = [...PISTAS, ...pistasCompradas];
+  const pista = todasLasPistas.find(p => p.id === pistaId) ?? PISTAS[0];
 
   // ── Cargar preferencias guardadas (todo por navegador, no por cuenta) ──────
   useEffect(() => {
@@ -181,8 +205,11 @@ function SoloSessionInner() {
     volMusicaRef.current = vm;
     volEfectosRef.current = ve;
 
+    // No se valida contra PISTAS aquí: una pista comprada todavía no cargó
+    // en este punto (llega async). Si el id guardado no existe en ninguna
+    // lista, `pista` más abajo cae de vuelta a PISTAS[0] sin romper nada.
     const pistaGuardada = localStorage.getItem(K_PISTA);
-    if (pistaGuardada && PISTAS.some(p => p.id === pistaGuardada)) setPistaId(pistaGuardada);
+    if (pistaGuardada) setPistaId(pistaGuardada);
 
     setSeguirMusicaDescanso(leerBool(K_SEGUIR_DESC, false));
     const notif = leerBool(K_NOTIF, false) && "Notification" in window && Notification.permission === "granted";
@@ -516,7 +543,7 @@ function SoloSessionInner() {
                       value={pistaId}
                       onChange={e => cambiarPista(e.target.value)}
                     >
-                      {PISTAS.map(p => (
+                      {todasLasPistas.map(p => (
                         <option key={p.id} value={p.id}>{p.nombre}</option>
                       ))}
                     </select>

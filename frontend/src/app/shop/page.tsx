@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShoppingBag, Coins, Image as ImageIcon, Sprout, Wand2, Music, Flag,
-  CheckCircle2, XCircle, Check, CreditCard, type LucideProps,
+  CheckCircle2, XCircle, Check, CreditCard, Archive, Store, type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
@@ -13,6 +13,7 @@ import {
   type ShopItem, type UserStats, type CoinPack, ApiError,
 } from "@/lib/api";
 import { SkeletonShopCard } from "@/components/Skeleton";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 
 const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
@@ -22,6 +23,12 @@ const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<Luci
   music:          { texto: "Música",            Icono: Music },
   profile_banner: { texto: "Banners de Perfil", Icono: Flag },
 };
+
+// Categorías que de verdad se pueden "equipar" (tienen un efecto real en
+// algún lugar de la app: fondo del Dashboard, anillo del avatar en el
+// NavBar, pistas extra del Pomodoro, o el banner del perfil público).
+// plant_skin queda fuera: la planta es de un vínculo entre dos personas.
+const EQUIPABLE = new Set(["profile_banner", "background", "avatar_frame", "music"]);
 
 export default function ShopPage() {
   return (
@@ -35,6 +42,7 @@ function ShopPageInner() {
   const router                       = useRouter();
   const searchParams                 = useSearchParams();
   const { accessToken: token, user, setUser, hidratado } = useAuthStore();
+  const { confirm } = useConfirm();
 
   const [items,   setItems]   = useState<ShopItem[]>([]);
   const [stats,   setStats]   = useState<UserStats | null>(null);
@@ -44,6 +52,7 @@ function ShopPageInner() {
   const [equipando, setEquipando] = useState<string | null>(null);
   const [comprandoPack, setComprandoPack] = useState<string | null>(null);
   const [toast,   setToast]   = useState<{ msg: string; ok: boolean } | null>(null);
+  const [vista,   setVista]   = useState<"tienda" | "inventario">("tienda");
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -88,6 +97,13 @@ function ShopPageInner() {
 
   const handleComprarCoins = async (pack: CoinPack) => {
     if (!token || comprandoPack) return;
+    const ok = await confirm({
+      title: "Comprar FocusCoins",
+      message: `Vas a comprar ${pack.coins} FocusCoins por $${(pack.precio_centavos / 100).toFixed(2)}. Se te redirigirá a Stripe para completar el pago.`,
+      confirmLabel: "Continuar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
     setComprandoPack(pack.id);
     try {
       const { checkout_url } = await paymentsApi.createCheckout(token, pack.id);
@@ -101,6 +117,13 @@ function ShopPageInner() {
 
   const handleBuy = async (item: ShopItem) => {
     if (!token || buying) return;
+    const ok = await confirm({
+      title: "Confirmar compra",
+      message: `¿Comprar "${item.name}" por ${item.price_fc} FC? Esta acción no se puede deshacer.`,
+      confirmLabel: "Comprar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
     setBuying(item.id);
     try {
       const res = await shopApi.buyItem(token, item.id);
@@ -120,10 +143,12 @@ function ShopPageInner() {
     if (!token || equipando) return;
     setEquipando(item.id);
     try {
-      const actualizado = await shopApi.equipBanner(token, item.id);
+      const actualizado = await shopApi.equipItem(token, item.id);
       setUser(actualizado);
+      // Dentro de la misma categoría solo puede haber un ítem equipado a
+      // la vez: este pasa a true, cualquier otro de su categoría a false.
       setItems(prev => prev.map(i => {
-        if (i.category !== "profile_banner") return i;
+        if (i.category !== item.category) return i;
         return { ...i, equipped: i.id === item.id };
       }));
       showToast(`¡${item.name} equipado!`, true);
@@ -139,7 +164,7 @@ function ShopPageInner() {
     if (!token || equipando) return;
     setEquipando(item.id);
     try {
-      const actualizado = await shopApi.unequipBanner(token);
+      const actualizado = await shopApi.unequip(token, item.category);
       setUser(actualizado);
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, equipped: false } : i));
     } catch (err) {
@@ -150,11 +175,14 @@ function ShopPageInner() {
     }
   };
 
-  // Agrupar por categoría
-  const byCategory = items.reduce<Record<string, ShopItem[]>>((acc, item) => {
+  // Agrupar por categoría — en la vista "Tienda" se ve todo el catálogo;
+  // en "Mi Inventario" solo lo que ya se compró, separado igual por categoría.
+  const itemsVisibles = vista === "inventario" ? items.filter(i => i.owned) : items;
+  const byCategory = itemsVisibles.reduce<Record<string, ShopItem[]>>((acc, item) => {
     (acc[item.category] ??= []).push(item);
     return acc;
   }, {});
+  const totalPoseidos = items.filter(i => i.owned).length;
 
   if (loading) return (
     <div style={styles.page}>
@@ -190,12 +218,30 @@ function ShopPageInner() {
         </div>
       </div>
 
+      {/* Tienda / Mi Inventario */}
+      <div style={styles.tabs}>
+        <button
+          style={{ ...styles.tabBtn, ...(vista === "tienda" ? styles.tabBtnActive : {}) }}
+          onClick={() => setVista("tienda")}
+        >
+          <Store size={14} strokeWidth={2} /> Tienda
+        </button>
+        <button
+          style={{ ...styles.tabBtn, ...(vista === "inventario" ? styles.tabBtnActive : {}) }}
+          onClick={() => setVista("inventario")}
+        >
+          <Archive size={14} strokeWidth={2} /> Mi Inventario ({totalPoseidos})
+        </button>
+      </div>
+
       <p style={styles.hint}>
-        Gana FocusCoins completando sesiones de enfoque. ¡Compra cosméticos para personalizar tu espacio!
+        {vista === "tienda"
+          ? "Gana FocusCoins completando sesiones de enfoque. ¡Compra cosméticos para personalizar tu espacio!"
+          : "Lo que ya compraste, agrupado por categoría. Equipa lo que quieras usar."}
       </p>
 
       {/* Comprar FocusCoins con dinero real */}
-      {packs.length > 0 && (
+      {vista === "tienda" && packs.length > 0 && (
         <div style={styles.section}>
           <h2 style={styles.catTitle}>
             <CreditCard size={16} strokeWidth={2} /> Comprar FocusCoins
@@ -238,10 +284,14 @@ function ShopPageInner() {
           </h2>
           <div style={styles.grid}>
             {catItems.map(item => {
-              const esBanner = item.category === "profile_banner";
+              // profile_banner y background guardan un valor CSS (color o
+              // degradado) en `preview`, en vez de un emoji — se ve mejor
+              // como una muestra de color que como texto crudo.
+              const esSwatch   = item.category === "profile_banner" || item.category === "background";
+              const esEquipable = EQUIPABLE.has(item.category);
               return (
               <div key={item.id} style={{ ...styles.card, ...(item.owned ? styles.cardOwned : {}) }}>
-                {esBanner ? (
+                {esSwatch ? (
                   <div style={{ ...styles.bannerSwatch, background: item.preview }} />
                 ) : (
                   <div style={styles.preview}>{item.preview}</div>
@@ -250,7 +300,7 @@ function ShopPageInner() {
                 <div style={styles.cardDesc}>{item.description}</div>
 
                 {item.owned ? (
-                  esBanner ? (
+                  esEquipable ? (
                     item.equipped ? (
                       <button
                         style={{ ...styles.buyBtn, background: color.surfaceRaised, color: color.textMuted }}
@@ -293,9 +343,11 @@ function ShopPageInner() {
         );
       })}
 
-      {items.length === 0 && (
+      {itemsVisibles.length === 0 && (
         <div style={{ ...styles.empty, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          La tienda está vacía. Vuelve pronto <Sprout size={14} strokeWidth={2} />
+          {vista === "inventario"
+            ? <>Todavía no compraste nada. <Sprout size={14} strokeWidth={2} /></>
+            : <>La tienda está vacía. Vuelve pronto <Sprout size={14} strokeWidth={2} /></>}
         </div>
       )}
     </div>
@@ -380,6 +432,29 @@ const styles: Record<string, React.CSSProperties> = {
     color:     color.textFaint,
     margin:    0,
     textAlign: "center" as const,
+  },
+  tabs: {
+    width:    "100%",
+    maxWidth: 600,
+    display:  "flex",
+    gap:      8,
+  },
+  tabBtn: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          6,
+    background:   "none",
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    padding:      "7px 14px",
+    fontSize:     13,
+    color:        color.textMuted,
+    cursor:       "pointer",
+  },
+  tabBtnActive: {
+    background: color.accentDeep,
+    color:      color.text,
+    borderColor: color.accentDeep,
   },
   section: {
     width:   "100%",

@@ -137,21 +137,43 @@ class IdentityService:
         user = await self.user_repo.update_fields(user, **cambios)
         return UserResponse.model_validate(user)
 
-    async def set_equipped_banner(self, user_id: str, item_id: str | None) -> UserResponse:
+    # Categoria de shop_items -> columna de users que guarda el item
+    # equipado de esa categoria. "plant_skin" queda fuera a proposito: una
+    # planta es de un vinculo entre dos personas, no de una sola, y todavia
+    # no hay una regla de producto sobre de quien gana el skin equipado.
+    EQUIPABLE_FIELDS = {
+        "profile_banner": "equipped_banner_item_id",
+        "background":     "equipped_background_item_id",
+        "avatar_frame":   "equipped_avatar_frame_item_id",
+        "music":          "equipped_music_item_id",
+    }
+
+    async def set_equipped_item(self, user_id: str, category: str, item_id: str | None) -> UserResponse:
         """
-        Equipa (o quita, si item_id es None) un banner de la tienda ya
-        comprado. Se usa `update_fields` para el resto del perfil, pero ese
-        helper ignora los valores None a proposito (para no borrar datos que
-        el cliente no envio) — aqui el caso contrario es el que importa:
-        "quitar banner" SI debe guardar None, por eso se asigna directo.
+        Equipa (o quita, si item_id es None) un item ya comprado de una
+        categoria equipable. Se usa `update_fields` para el resto del
+        perfil, pero ese helper ignora los valores None a proposito (para no
+        borrar datos que el cliente no envio) — aqui el caso contrario es el
+        que importa: "quitar" SI debe guardar None, por eso se asigna directo.
         """
+        campo = self.EQUIPABLE_FIELDS.get(category)
+        if campo is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"La categoría '{category}' no se puede equipar.",
+            )
+
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
 
-        user.equipped_banner_item_id = item_id
+        setattr(user, campo, item_id)
         user = await self.user_repo.update_fields(user)
         return UserResponse.model_validate(user)
+
+    async def set_equipped_banner(self, user_id: str, item_id: str | None) -> UserResponse:
+        """Alias retrocompatible de set_equipped_item para "profile_banner"."""
+        return await self.set_equipped_item(user_id, "profile_banner", item_id)
 
     async def complete_onboarding(
         self,
