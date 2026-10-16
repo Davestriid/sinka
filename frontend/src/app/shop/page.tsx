@@ -322,7 +322,7 @@ function ShopPageInner() {
                   aria-label={`Vista previa de ${item.name}`}
                 >
                   {esMarco ? (
-                    <div style={{ ...styles.preview, position: "relative", background: color.surfaceRaised, borderRadius: radius.md }}>
+                    <div style={{ ...styles.preview, position: "relative", background: color.surfaceRaised, borderRadius: radius.md, contain: "layout style paint", isolation: "isolate" }}>
                       <span style={{ position: "relative", display: "inline-flex", width: 34, height: 34 }}>
                         <span style={{ width: 34, height: 34, borderRadius: "50%", background: color.accentSoft, display: "block" }} />
                         <AvatarFrame frameId={item.id as FrameId} size={34} />
@@ -589,6 +589,12 @@ const styles: Record<string, React.CSSProperties> = {
   bannerSwatch: {
     width: "100%", height: 40, borderRadius: radius.sm,
     border: `1px solid ${color.border}`,
+    // Aísla el repintado de esta miniatura (que puede tener varias docenas
+    // de elementos SVG animados a la vez en muy poco espacio) del resto de
+    // la tarjeta — sin esto, en algunos navegadores el texto justo debajo
+    // podía quedar sin pintarse (visible solo al seleccionarlo).
+    contain: "layout style paint",
+    isolation: "isolate",
   },
   cardName: {
     fontWeight: 600,
@@ -596,7 +602,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   cardDesc: {
     fontSize:  11,
-    color:     color.textFaint,
+    color:     color.textMuted,
     flexGrow:  1,
   },
   buyBtn: {

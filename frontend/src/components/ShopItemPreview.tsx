@@ -237,10 +237,12 @@ const s: Record<string, React.CSSProperties> = {
   fondoBox: {
     width: "100%", height: 200, borderRadius: radius.md, overflow: "hidden",
     position: "relative", border: `1px solid ${color.border}`,
+    contain: "layout style paint", isolation: "isolate",
   },
   bannerBox: {
     width: "100%", height: 76, borderRadius: radius.md, overflow: "hidden",
     position: "relative", border: `1px solid ${color.border}`,
+    contain: "layout style paint", isolation: "isolate",
   },
   skinFila: {
     display: "flex", justifyContent: "space-between", width: "100%",
