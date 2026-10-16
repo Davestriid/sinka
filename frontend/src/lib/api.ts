@@ -179,6 +179,7 @@ export interface UserResponse {
   equipped_background_item_id:   string | null;
   equipped_avatar_frame_item_id: string | null;
   equipped_music_item_id:        string | null;
+  equipped_plant_skin_item_id:   string | null;
 
   language: "es" | "en";
   theme:    "light" | "dark";

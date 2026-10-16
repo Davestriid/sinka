@@ -12,10 +12,11 @@ import { useRouter } from "next/navigation";
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackgroundJardin } from "@/lib/theme";
+import { emojiConSkin } from "@/lib/plantSkins";
 
 export default function JardinPage() {
   const router = useRouter();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
 
   const [plants,  setPlants]  = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,7 @@ export default function JardinPage() {
               style={s.plantCard}
               onClick={() => router.push(`/jardin/${p.friendship_id}`)}
             >
-              <div style={s.plantEmoji}>{p.emoji}</div>
+              <div style={s.plantEmoji}>{emojiConSkin(p.phase_name, p.emoji, user?.equipped_plant_skin_item_id)}</div>
               <span style={s.plantName}>
                 {p.name || p.friend.alias || p.friend.username}
               </span>

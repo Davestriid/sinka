@@ -146,6 +146,7 @@ class IdentityService:
         "background":     "equipped_background_item_id",
         "avatar_frame":   "equipped_avatar_frame_item_id",
         "music":          "equipped_music_item_id",
+        "plant_skin":     "equipped_plant_skin_item_id",
     }
 
     async def set_equipped_item(self, user_id: str, category: str, item_id: str | None) -> UserResponse:

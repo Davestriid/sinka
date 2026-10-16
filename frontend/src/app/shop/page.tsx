@@ -15,6 +15,14 @@ import {
 import { SkeletonShopCard } from "@/components/Skeleton";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
+import { AvatarFrame, type FrameId } from "@/components/AvatarFrame";
+import { PageBackground, type BgId } from "@/components/PageBackground";
+
+const FRAME_IDS = new Set<FrameId>([
+  "item-frame-gold", "item-frame-fire", "item-frame-sakura",
+  "item-frame-vine", "item-frame-crystal", "item-frame-storm",
+]);
+const BG_IDS = new Set<BgId>(["item-bg-lofi-01", "item-bg-forest-01", "item-bg-space-01"]);
 
 const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
   background:     { texto: "Fondos",            Icono: ImageIcon },
@@ -26,9 +34,10 @@ const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<Luci
 
 // Categorías que de verdad se pueden "equipar" (tienen un efecto real en
 // algún lugar de la app: fondo del Dashboard, anillo del avatar en el
-// NavBar, pistas extra del Pomodoro, o el banner del perfil público).
-// plant_skin queda fuera: la planta es de un vínculo entre dos personas.
-const EQUIPABLE = new Set(["profile_banner", "background", "avatar_frame", "music"]);
+// NavBar, pistas extra del Pomodoro, el banner del perfil público, o (desde
+// la migración 0026) la piel de las plantas del jardín — esta última es
+// 100% local: no cambia los datos del vínculo ni lo que ve la otra persona.
+const EQUIPABLE = new Set(["profile_banner", "background", "avatar_frame", "music", "plant_skin"]);
 
 export default function ShopPage() {
   return (
@@ -287,11 +296,24 @@ function ShopPageInner() {
               // profile_banner y background guardan un valor CSS (color o
               // degradado) en `preview`, en vez de un emoji — se ve mejor
               // como una muestra de color que como texto crudo.
-              const esSwatch   = item.category === "profile_banner" || item.category === "background";
+              const esSwatch   = item.category === "profile_banner";
+              const esMarco    = item.category === "avatar_frame" && FRAME_IDS.has(item.id as FrameId);
+              const esEscena   = item.category === "background" && BG_IDS.has(item.id as BgId);
               const esEquipable = EQUIPABLE.has(item.category);
               return (
               <div key={item.id} style={{ ...styles.card, ...(item.owned ? styles.cardOwned : {}) }}>
-                {esSwatch ? (
+                {esMarco ? (
+                  <div style={{ ...styles.preview, position: "relative", background: color.surfaceRaised, borderRadius: radius.md }}>
+                    <span style={{ position: "relative", display: "inline-flex", width: 34, height: 34 }}>
+                      <span style={{ width: 34, height: 34, borderRadius: "50%", background: color.accentSoft, display: "block" }} />
+                      <AvatarFrame frameId={item.id as FrameId} size={34} />
+                    </span>
+                  </div>
+                ) : esEscena ? (
+                  <div style={{ ...styles.bannerSwatch, position: "relative", overflow: "hidden" }}>
+                    <PageBackground bgId={item.id as BgId} />
+                  </div>
+                ) : esSwatch ? (
                   <div style={{ ...styles.bannerSwatch, background: item.preview }} />
                 ) : (
                   <div style={styles.preview}>{item.preview}</div>

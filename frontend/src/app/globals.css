@@ -267,30 +267,72 @@
 .sinka-stagger > *:nth-child(n+7) { animation-delay: 0.26s; }
 
 /* ── Marcos de avatar de la tienda (categoría avatar_frame) ───────────────
-   El anillo base (color + grosor) queda fijo, pero el brillo exterior
-   respira/parpadea para que se note que es un item comprado y no solo un
-   borde estático. Ver AVATAR_FRAME_CLASS en components/NavBar.tsx. */
-@keyframes sinka-frame-gold {
-  0%, 100% {
-    box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #d4af37, 0 0 8px 1px rgba(212, 175, 55, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #f4d976, 0 0 16px 4px rgba(244, 217, 118, 0.85);
-  }
+   Ya no es un halo de luz (boxShadow) — ahora cada marco es una ilustración
+   SVG real que se dibuja encima del avatar (ver components/AvatarFrame.tsx).
+   Estas clases animan las piezas de esas ilustraciones. */
+@keyframes sinka-frame-ov-sparkle {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 1; filter: brightness(1.25); }
+}
+@keyframes sinka-frame-ov-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+@keyframes sinka-frame-ov-flicker {
+  0%, 100% { transform: scaleY(1)    translateY(0); opacity: 0.92; }
+  35%      { transform: scaleY(1.18) translateY(-1.5px); opacity: 1; }
+  65%      { transform: scaleY(0.9)  translateY(0.5px); opacity: 0.8; }
+}
+@keyframes sinka-frame-ov-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes sinka-frame-ov-drift {
+  0%   { transform: translate(0, 0) rotate(0deg);     opacity: 0; }
+  10%  { opacity: 0.9; }
+  100% { transform: translate(8px, 92px) rotate(220deg); opacity: 0; }
+}
+@keyframes sinka-frame-ov-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+@keyframes sinka-frame-ov-flash {
+  0%, 15%, 100% { opacity: 0; }
+  5%, 10%       { opacity: 1; }
 }
 
-@keyframes sinka-frame-fire {
-  0%   { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.55); }
-  30%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ffb347, 0 0 18px 5px rgba(255, 179, 71, 0.8); }
-  55%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.5); }
-  75%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff3d14, 0 0 20px 6px rgba(255, 61, 20, 0.85); }
-  100% { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.55); }
+.sinka-frame-ov-sparkle { animation: sinka-frame-ov-sparkle 2.4s ease-in-out infinite; }
+.sinka-frame-ov-twinkle { animation: sinka-frame-ov-twinkle 1.8s ease-in-out infinite; }
+.sinka-frame-ov-flicker { animation: sinka-frame-ov-flicker 1.1s ease-in-out infinite; }
+.sinka-frame-ov-sway    { animation: sinka-frame-ov-sway 3.2s ease-in-out infinite; }
+.sinka-frame-ov-drift   { animation: sinka-frame-ov-drift 4s linear infinite; }
+.sinka-frame-ov-pulse   { animation: sinka-frame-ov-pulse 1.9s ease-in-out infinite; }
+.sinka-frame-ov-flash   { animation: sinka-frame-ov-flash 2.6s ease-in-out infinite; }
+
+/* ── Fondos de la tienda (categoría background) ────────────────────────────
+   Escenas ilustradas en SVG (ver components/PageBackground.tsx), no un
+   degradado plano. Estas animan el vapor del café, la neblina del bosque,
+   el brillo de las estrellas y la estrella fugaz del cosmos. */
+@keyframes sinka-bg-steam {
+  0%   { opacity: 0;   transform: translateY(0) scaleY(1); }
+  20%  { opacity: 0.6; }
+  100% { opacity: 0;   transform: translateY(-14px) scaleY(1.3); }
+}
+@keyframes sinka-bg-dust {
+  0%, 100% { opacity: 0.15; transform: translateY(0); }
+  50%      { opacity: 0.6;  transform: translateY(-6px); }
+}
+@keyframes sinka-bg-niebla {
+  0%, 100% { opacity: 0.06; transform: translateX(0); }
+  50%      { opacity: 0.14; transform: translateX(12px); }
+}
+@keyframes sinka-bg-estrella-fugaz {
+  0%, 92%  { opacity: 0; transform: translate(0, 0); }
+  94%      { opacity: 1; }
+  100%     { opacity: 0; transform: translate(60px, 24px); }
 }
 
-.sinka-frame-gold {
-  animation: sinka-frame-gold 2.2s ease-in-out infinite;
-}
-
-.sinka-frame-fire {
-  animation: sinka-frame-fire 1.6s ease-in-out infinite;
-}
+.sinka-bg-steam          { animation: sinka-bg-steam 2.8s ease-in-out infinite; }
+.sinka-bg-dust            { animation: sinka-bg-dust 3.5s ease-in-out infinite; }
+.sinka-bg-niebla          { animation: sinka-bg-niebla 6s ease-in-out infinite; }
+.sinka-bg-estrella-fugaz  { animation: sinka-bg-estrella-fugaz 7s ease-in infinite; }

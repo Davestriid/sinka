@@ -15,6 +15,8 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { useTheme } from "@/components/ThemeProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
+import { BannerTexture } from "@/components/BannerTexture";
+import { useFondoTienda } from "@/lib/useFondoTienda";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
 
@@ -77,6 +79,7 @@ async function prepararFoto(archivo: File): Promise<string> {
 export default function PerfilPage() {
   const router = useRouter();
   const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
+  const bannerTiendaEquipado = useFondoTienda(token, user?.equipped_banner_item_id);
   // El tema ya no tiene un control propio aca: el icono de luna/sol del
   // NavBar (ver components/NavBar.tsx) hace exactamente lo mismo y esta
   // siempre a mano, asi que el selector de "Tema" en Preferencias era una
@@ -232,7 +235,15 @@ export default function PerfilPage() {
       <div style={s.centro}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
-        <h1 style={s.title}>Perfil</h1>
+        <h1 style={s.title}>Editar perfil</h1>
+        {user?.id && (
+          <button
+            style={s.verComoBtn}
+            onClick={() => router.push(`/perfil/${user.id}`)}
+          >
+            👀 Ver mi perfil como lo ven los demás
+          </button>
+        )}
       </header>
 
       {error   && <div style={s.error}>{error}</div>}
@@ -319,6 +330,9 @@ export default function PerfilPage() {
         <p style={s.label}>Banner de tu perfil</p>
         {user?.equipped_banner_item_id ? (
           <div style={s.bannerPreview}>
+            <div style={{ ...s.bannerAncha, background: bannerTiendaEquipado?.css ?? color.surfaceRaised }}>
+              <BannerTexture />
+            </div>
             <span style={s.muted}>
               Tienes un banner de la tienda equipado. Para cambiarlo de color, primero quítalo.
             </span>
@@ -332,8 +346,10 @@ export default function PerfilPage() {
           </div>
         ) : (
           <>
+            <div style={{ ...s.bannerAncha, background: bannerColor, marginBottom: 10 }}>
+              <BannerTexture />
+            </div>
             <div style={s.bannerFila}>
-              <div style={{ ...s.bannerMuestra, background: bannerColor }} />
               <input
                 type="color"
                 value={bannerColor}
@@ -353,7 +369,7 @@ export default function PerfilPage() {
               </div>
             </div>
             <span style={s.muted}>
-              También hay banners especiales en la tienda, comprables con FocusCoins.
+              También hay banners especiales (con degradados) en la tienda, comprables con FocusCoins.
             </span>
           </>
         )}
@@ -505,9 +521,14 @@ export default function PerfilPage() {
 const s: Record<string, React.CSSProperties> = {
   page:   { minHeight: "100vh", background: pageBackground, color: color.text, padding: 24, display: "flex", justifyContent: "center" },
   centro: { width: "100%", maxWidth: 560 },
-  header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
+  header: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" },
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },
+  verComoBtn: {
+    marginLeft: "auto", background: "none", border: `1px solid ${color.border}`,
+    borderRadius: radius.pill, padding: "7px 14px", color: color.textMuted,
+    cursor: "pointer", fontSize: 12.5, whiteSpace: "nowrap",
+  },
   card:      { background: color.surface, borderRadius: radius.md, padding: 20, marginBottom: 16, maxWidth: 520 },
   cardTitle: { fontSize: 16, margin: "0 0 14px" },
   label:  { color: color.sand, fontSize: 13, margin: "14px 0 8px" },
@@ -570,8 +591,9 @@ const s: Record<string, React.CSSProperties> = {
   },
   fotoNota: { fontSize: 11, color: color.textFaint, flexBasis: "100%", lineHeight: 1.4 },
   bannerFila: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 },
-  bannerMuestra: {
-    width: 48, height: 32, borderRadius: radius.sm, border: `1px solid ${color.border}`, flexShrink: 0,
+  bannerAncha: {
+    width: "100%", height: 64, borderRadius: radius.md,
+    border: `1px solid ${color.border}`, position: "relative", overflow: "hidden",
   },
   colorInput: {
     width: 40, height: 32, border: `1px solid ${color.border}`, borderRadius: radius.sm,

@@ -17,6 +17,7 @@ import { useTranslation } from "@/components/I18nProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, shadow, fontSerif, ease, pageBackground } from "@/lib/theme";
 import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
 // Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
@@ -148,8 +149,12 @@ export default function DashboardPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ ...styles.page, ...(fondoEquipado ? { background: fondoEquipado } : {}) }}>
-      <main style={styles.main}>
+    <div style={{
+      ...styles.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <main style={{ ...styles.main, position: "relative", zIndex: 1 }}>
 
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
 

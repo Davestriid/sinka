@@ -41,11 +41,8 @@ class User(Base):
         String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
     )
 
-    # Mismo mecanismo que el banner, pero para el resto de categorias de la
-    # tienda que si se "usan" en algun lugar real de la app (a diferencia de
-    # plant_skin, que todavia no se conecta a nada porque una planta es de
-    # un vinculo entre dos personas y no esta definido de quien es el skin
-    # que gana). Ver migracion 0023.
+    # Mismo mecanismo que el banner, para el resto de categorias de la
+    # tienda que se "usan" en algun lugar real de la app.
     equipped_background_item_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
     )
@@ -53,6 +50,14 @@ class User(Base):
         String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
     )
     equipped_music_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
+    )
+    # plant_skin: la planta es de un VINCULO entre dos personas, asi que esto
+    # NO cambia los datos de la planta ni lo que ve la otra persona — es
+    # nada mas "con que piel visual dibujo YO las plantas que veo", resuelto
+    # enteramente en el frontend (ver components/PlantSkin.tsx). Antes
+    # quedaba sin conectar por esto mismo; ver migracion 0026.
+    equipped_plant_skin_item_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("shop_items.id", ondelete="SET NULL"), nullable=True,
     )
 

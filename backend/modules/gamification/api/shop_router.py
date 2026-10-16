@@ -37,6 +37,7 @@ def _equipped_ids(user: UserResponse) -> set[str]:
             user.equipped_background_item_id,
             user.equipped_avatar_frame_item_id,
             user.equipped_music_item_id,
+            user.equipped_plant_skin_item_id,
         ) if item_id is not None
     }
 

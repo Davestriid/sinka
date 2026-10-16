@@ -20,6 +20,7 @@ import type { ComponentType } from "react";
 import { profileApi, type PublicProfileFull } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
+import { BannerTexture } from "@/components/BannerTexture";
 
 const ICONOS: Record<string, ComponentType<LucideProps>> = {
   Target, UserCircle, Users, Flame, Handshake, Sprout, ShoppingBag,
@@ -91,7 +92,9 @@ export default function PerfilPublicoPage() {
 
         {/* ── Tarjeta principal ─────────────────────────────────────── */}
         <div style={s.card}>
-          <div style={{ ...s.banner, background: bannerFondo }} />
+          <div style={{ ...s.banner, background: bannerFondo }}>
+            <BannerTexture />
+          </div>
 
           <div style={s.cardTop}>
             {perfil.avatar_url ? (
@@ -206,11 +209,11 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: 16, boxShadow: shadow.card, overflow: "hidden", position: "relative",
   },
   banner: {
-    position: "absolute", top: 0, left: 0, right: 0, height: 84,
+    position: "absolute", top: 0, left: 0, right: 0, height: 104, overflow: "hidden",
   },
   cardTop: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    position: "relative", marginTop: 36,
+    position: "relative", marginTop: 44,
   },
   avatar: {
     width: 84, height: 84, borderRadius: "50%", objectFit: "cover",

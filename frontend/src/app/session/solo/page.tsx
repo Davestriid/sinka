@@ -32,6 +32,7 @@ import { useTranslation } from "@/components/I18nProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
 import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 type Fase = "config" | "trabajo" | "descanso";
 
@@ -504,10 +505,11 @@ function SoloSessionInner() {
   const pct   = fase === "config" ? 0 : 1 - restante / total;
 
   return (
-    <main style={{ ...s.main, ...(fondoEquipado ? { background: fondoEquipado } : {}) }}>
+    <main style={{ ...s.main, ...(fondoEquipado ? { background: fondoEquipado.css } : {}) }}>
       {/* Musica de fondo (loop, oculta) — se controla solo via fondoRef */}
       <audio ref={fondoRef} src={pista.src} loop preload="none" />
 
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
       <div style={s.decoGlowA} />
       <div style={s.decoGlowB} />
 

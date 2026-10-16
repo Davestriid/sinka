@@ -68,6 +68,9 @@ class UserResponse(BaseModel):
     equipped_background_item_id:   str | None = None
     equipped_avatar_frame_item_id: str | None = None
     equipped_music_item_id:        str | None = None
+    # Piel visual de las plantas del jardín, solo para quien la equipa — no
+    # cambia los datos de la planta ni lo que ve la otra persona del vínculo.
+    equipped_plant_skin_item_id:   str | None = None
 
     # Preferencias
     language: str = "es"

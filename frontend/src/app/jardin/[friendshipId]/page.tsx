@@ -12,11 +12,12 @@ import { useParams, useRouter } from "next/navigation";
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackgroundJardin } from "@/lib/theme";
+import { emojiConSkin } from "@/lib/plantSkins";
 
 export default function PlantaPage() {
   const router = useRouter();
   const params = useParams<{ friendshipId: string }>();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
 
   const [plant,   setPlant]   = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ export default function PlantaPage() {
       </header>
 
       <div style={s.card}>
-        <div style={s.emoji}>{plant.emoji}</div>
+        <div style={s.emoji}>{emojiConSkin(plant.phase_name, plant.emoji, user?.equipped_plant_skin_item_id)}</div>
 
         {editando ? (
           <div style={s.editRow}>
