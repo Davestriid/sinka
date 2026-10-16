@@ -7,12 +7,15 @@ import { useAuthStore } from "@/store/auth.store";
 import { gamificationApi, type LeaderboardEntry, type UserStats } from "@/lib/api";
 import { SkeletonLeaderboardRow } from "@/components/Skeleton";
 import { color, radius, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 const REFRESH_INTERVAL_MS = 30_000; // actualizar cada 30 s
 
 export default function LeaderboardPage() {
   const router                = useRouter();
   const { accessToken: token, user, hidratado } = useAuthStore();
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [entries,   setEntries]   = useState<LeaderboardEntry[]>([]);
   const [myStats,   setMyStats]   = useState<UserStats | null>(null);
@@ -62,7 +65,12 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div style={styles.page}>
+    <div style={{
+      ...styles.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ position: "relative", zIndex: 1 }}>
       {/* Header */}
       <div style={styles.header}>
         <button onClick={() => router.push("/dashboard")} style={styles.back}>← Dashboard</button>
@@ -135,6 +143,7 @@ export default function LeaderboardPage() {
       <button onClick={fetchData} style={styles.refreshBtn}>
         ↻ Actualizar ahora
       </button>
+      </div>
     </div>
   );
 }

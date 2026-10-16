@@ -20,10 +20,13 @@ import {
 } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 export default function CitasPage() {
   const router = useRouter();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [agenda,       setAgenda]       = useState<Agenda | null>(null);
   const [invitaciones, setInvitaciones] = useState<Appointment[]>([]);
@@ -122,7 +125,12 @@ export default function CitasPage() {
     });
 
   return (
-    <div style={s.page}>
+    <div style={{
+      ...s.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ position: "relative", zIndex: 1 }}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Citas</h1>
@@ -299,6 +307,7 @@ export default function CitasPage() {
           ))
         )}
       </section>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 import { AvatarFrame, type FrameId } from "@/components/AvatarFrame";
 import { PageBackground, type BgId } from "@/components/PageBackground";
+import { useFondoTienda } from "@/lib/useFondoTienda";
 
 const FRAME_IDS = new Set<FrameId>([
   "item-frame-gold", "item-frame-fire", "item-frame-sakura",
@@ -52,6 +53,7 @@ function ShopPageInner() {
   const searchParams                 = useSearchParams();
   const { accessToken: token, user, setUser, hidratado } = useAuthStore();
   const { confirm } = useConfirm();
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [items,   setItems]   = useState<ShopItem[]>([]);
   const [stats,   setStats]   = useState<UserStats | null>(null);
@@ -210,7 +212,12 @@ function ShopPageInner() {
   );
 
   return (
-    <div style={styles.page}>
+    <div style={{
+      ...styles.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ position: "relative", zIndex: 1, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
       {/* Toast */}
       {toast && (
         <div style={{ ...styles.toast, background: toast.ok ? color.mossSoft : color.accentSoft, borderColor: toast.ok ? color.moss : color.accent, display: "flex", alignItems: "center", gap: 7 }}>
@@ -372,6 +379,7 @@ function ShopPageInner() {
             : <>La tienda está vacía. Vuelve pronto <Sprout size={14} strokeWidth={2} /></>}
         </div>
       )}
+      </div>
     </div>
   );
 }

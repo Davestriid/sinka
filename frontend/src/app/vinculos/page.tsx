@@ -20,10 +20,13 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 export default function VinculosPage() {
   const router = useRouter();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [friends,  setFriends]  = useState<Friend[]>([]);
   const [requests, setRequests] = useState<RequestsPayload | null>(null);
@@ -107,7 +110,12 @@ export default function VinculosPage() {
   const sinCuota = requests !== null && requests.remaining === 0;
 
   return (
-    <div style={s.page}>
+    <div style={{
+      ...s.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ position: "relative", zIndex: 1 }}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Vínculos</h1>
@@ -255,6 +263,7 @@ export default function VinculosPage() {
             </div>
           ))}
         </aside>
+      </div>
       </div>
     </div>
   );

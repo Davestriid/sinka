@@ -17,6 +17,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { color, radius, pageBackground } from "@/lib/theme";
 import { BannerTexture } from "@/components/BannerTexture";
 import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 const AVATARES = ["🌱", "🌿", "🍃", "🌸", "🌻", "🌙", "⭐", "🔥", "💧", "🗻"];
 
@@ -80,6 +81,7 @@ export default function PerfilPage() {
   const router = useRouter();
   const { accessToken: token, user, setUser, logout, hidratado } = useAuthStore();
   const bannerTiendaEquipado = useFondoTienda(token, user?.equipped_banner_item_id);
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
   // El tema ya no tiene un control propio aca: el icono de luna/sol del
   // NavBar (ver components/NavBar.tsx) hace exactamente lo mismo y esta
   // siempre a mano, asi que el selector de "Tema" en Preferencias era una
@@ -231,8 +233,12 @@ export default function PerfilPage() {
   }, [token, tipoFeedback, textoFeedback]);
 
   return (
-    <div style={s.page}>
-      <div style={s.centro}>
+    <div style={{
+      ...s.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ ...s.centro, position: "relative", zIndex: 1 }}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Editar perfil</h1>

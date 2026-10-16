@@ -11,12 +11,15 @@ import { catalogApi, groupsApi, type Group, type Topic } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, fontSerif, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
+import { PageBackground } from "@/components/PageBackground";
 
 type Pestana = "explorar" | "mios";
 
 export default function GruposPage() {
   const router = useRouter();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [pestana, setPestana] = useState<Pestana>("mios");
   const [explorar, setExplorar] = useState<Group[]>([]);
@@ -112,8 +115,12 @@ export default function GruposPage() {
   const lista = pestana === "explorar" ? explorar : mios;
 
   return (
-    <div style={s.page}>
-      <div style={s.contenido}>
+    <div style={{
+      ...s.page,
+      ...(fondoEquipado ? { background: fondoEquipado.css, position: "relative", overflow: "hidden" } : {}),
+    }}>
+      {fondoEquipado?.escenaId && <PageBackground bgId={fondoEquipado.escenaId} />}
+      <div style={{ ...s.contenido, position: "relative", zIndex: 1 }}>
       <header style={s.header}>
         <button style={s.back} onClick={() => router.push("/dashboard")}>← Volver</button>
         <h1 style={s.title}>Grupos</h1>
