@@ -336,3 +336,39 @@
 .sinka-bg-dust            { animation: sinka-bg-dust 3.5s ease-in-out infinite; }
 .sinka-bg-niebla          { animation: sinka-bg-niebla 6s ease-in-out infinite; }
 .sinka-bg-estrella-fugaz  { animation: sinka-bg-estrella-fugaz 7s ease-in infinite; }
+
+/* Pétalo de sakura cayendo en zigzag suave */
+@keyframes sinka-bg-petalo {
+  0%   { transform: translate(0, 0)     rotate(0deg);   opacity: 0; }
+  10%  { opacity: 0.85; }
+  50%  { transform: translate(-10px, 90px) rotate(140deg); }
+  100% { transform: translate(8px, 180px) rotate(280deg); opacity: 0; }
+}
+/* Brillo del agua del mar, parpadeo suave y lento */
+@keyframes sinka-bg-ola {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.6; }
+}
+/* Gota de lluvia cayendo recto por el cristal */
+@keyframes sinka-bg-lluvia {
+  0%   { transform: translateY(0);    opacity: 0; }
+  15%  { opacity: 0.75; }
+  100% { transform: translateY(70px); opacity: 0; }
+}
+/* Relámpago lejano, destello breve y poco frecuente */
+@keyframes sinka-bg-rayo {
+  0%, 92%, 100% { opacity: 0; }
+  94%, 97%      { opacity: 0.5; }
+}
+/* Copo de nieve cayendo despacio */
+@keyframes sinka-bg-nieve {
+  0%   { transform: translate(0, 0)   ; opacity: 0; }
+  12%  { opacity: 0.8; }
+  100% { transform: translate(6px, 160px); opacity: 0; }
+}
+
+.sinka-bg-petalo  { animation: sinka-bg-petalo 5.5s ease-in infinite; }
+.sinka-bg-ola     { animation: sinka-bg-ola 3.4s ease-in-out infinite; }
+.sinka-bg-lluvia  { animation: sinka-bg-lluvia 0.9s linear infinite; }
+.sinka-bg-rayo    { animation: sinka-bg-rayo 6s ease-in-out infinite; }
+.sinka-bg-nieve   { animation: sinka-bg-nieve 6.5s linear infinite; }

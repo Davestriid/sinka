@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { shopApi } from "@/lib/api";
 import type { BgId } from "@/components/PageBackground";
 
-const ESCENAS_ILUSTRADAS = new Set<BgId>(["item-bg-lofi-01", "item-bg-forest-01", "item-bg-space-01"]);
+const ESCENAS_ILUSTRADAS = new Set<BgId>([
+  "item-bg-lofi-01", "item-bg-forest-01", "item-bg-space-01",
+  "item-bg-sakura", "item-bg-ocean", "item-bg-rain", "item-bg-mountain", "item-bg-library",
+]);
 
 export interface FondoResuelto {
   /** CSS `background` de respaldo (degradado) — se usa como color base aunque haya escena ilustrada. */

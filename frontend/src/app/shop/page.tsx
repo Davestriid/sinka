@@ -23,7 +23,10 @@ const FRAME_IDS = new Set<FrameId>([
   "item-frame-gold", "item-frame-fire", "item-frame-sakura",
   "item-frame-vine", "item-frame-crystal", "item-frame-storm",
 ]);
-const BG_IDS = new Set<BgId>(["item-bg-lofi-01", "item-bg-forest-01", "item-bg-space-01"]);
+const BG_IDS = new Set<BgId>([
+  "item-bg-lofi-01", "item-bg-forest-01", "item-bg-space-01",
+  "item-bg-sakura", "item-bg-ocean", "item-bg-rain", "item-bg-mountain", "item-bg-library",
+]);
 
 const CATEGORY_LABELS: Record<string, { texto: string; Icono: ComponentType<LucideProps> }> = {
   background:     { texto: "Fondos",            Icono: ImageIcon },
