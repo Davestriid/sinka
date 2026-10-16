@@ -12,6 +12,7 @@
  * y session/solo/page.tsx).
  */
 import type { CSSProperties } from "react";
+import { useTheme } from "@/components/ThemeProvider";
 
 export type BgId =
   | "item-bg-lofi-01"
@@ -33,22 +34,51 @@ const capaStyle: CSSProperties = {
 
 const svgStyle: CSSProperties = { width: "100%", height: "100%", display: "block" };
 
+// Escenas pintadas con una paleta clara/pastel (cielo rosado, nieve, amanecer
+// suave): se ven preciosas en modo claro, pero sobre el modo oscuro quedan
+// demasiado brillantes y chocan con el resto de la interfaz (texto, bordes y
+// tarjetas pensados para fondos oscuros pierden contraste). El resto de
+// escenas ya son de paleta oscura y se leen bien en los dos temas sin tocar
+// nada. Ver globals.css si se agrega una escena nueva con el mismo problema.
+const ESCENAS_CLARAS = new Set<BgId>(["item-bg-sakura", "item-bg-mountain"]);
+
+const scrimOscuro: CSSProperties = {
+  position:      "absolute",
+  inset:         0,
+  zIndex:        0,
+  background:    "rgba(12, 8, 16, 0.45)",
+  pointerEvents: "none",
+};
+
 interface Props {
   bgId: BgId;
 }
 
 export function PageBackground({ bgId }: Props) {
-  switch (bgId) {
-    case "item-bg-lofi-01":   return <EscenaCafe />;
-    case "item-bg-forest-01": return <EscenaBosque />;
-    case "item-bg-space-01":  return <EscenaCosmos />;
-    case "item-bg-sakura":    return <EscenaSakura />;
-    case "item-bg-ocean":     return <EscenaOcean />;
-    case "item-bg-rain":      return <EscenaLluvia />;
-    case "item-bg-mountain":  return <EscenaMontana />;
-    case "item-bg-library":   return <EscenaBiblioteca />;
-    default: return null;
-  }
+  const { tema } = useTheme();
+
+  const escena = (() => {
+    switch (bgId) {
+      case "item-bg-lofi-01":   return <EscenaCafe />;
+      case "item-bg-forest-01": return <EscenaBosque />;
+      case "item-bg-space-01":  return <EscenaCosmos />;
+      case "item-bg-sakura":    return <EscenaSakura />;
+      case "item-bg-ocean":     return <EscenaOcean />;
+      case "item-bg-rain":      return <EscenaLluvia />;
+      case "item-bg-mountain":  return <EscenaMontana />;
+      case "item-bg-library":   return <EscenaBiblioteca />;
+      default: return null;
+    }
+  })();
+
+  if (!escena) return null;
+
+  return (
+    <>
+      {escena}
+      {tema === "dark" && ESCENAS_CLARAS.has(bgId) && <div style={scrimOscuro} />}
+    </>
+  );
 }
 
 // ── Lofi Café ────────────────────────────────────────────────────────────────

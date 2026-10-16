@@ -33,6 +33,7 @@ import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
 import { useFondoTienda } from "@/lib/useFondoTienda";
 import { PageBackground } from "@/components/PageBackground";
+import { MUSICA_TIENDA_SRC } from "@/lib/musicTracks";
 
 type Fase = "config" | "trabajo" | "descanso";
 
@@ -65,13 +66,8 @@ const PISTAS = [
   { id: "pop",    nombre: "Música pop",       src: "/sounds/fondo-pop.mp3" },
 ] as const;
 
-// Ítems de categoría "music" de la tienda -> archivo de audio real. Solo
-// estos dos existen hoy en el catálogo; si no hay mapeo para un item_id
-// comprado, simplemente no aparece como pista (no rompe nada).
-const MUSICA_TIENDA_SRC: Record<string, string> = {
-  "item-music-rain": "/sounds/fondo-lluvia.mp3",
-  "item-music-lofi": "/sounds/fondo-musica.mp3",
-};
+// Ítems de categoría "music" de la tienda -> archivo de audio real. Vive en
+// lib/musicTracks.ts porque la vista previa de la tienda también lo usa.
 
 // ── Persistencia local (por navegador, no por cuenta) ───────────────────────
 const K_VOL_MUSICA   = "sinka-volumen-musica";

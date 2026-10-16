@@ -18,6 +18,8 @@ import { color, radius, pageBackground } from "@/lib/theme";
 import { AvatarFrame, type FrameId } from "@/components/AvatarFrame";
 import { PageBackground, type BgId } from "@/components/PageBackground";
 import { useFondoTienda } from "@/lib/useFondoTienda";
+import { ShopItemPreview } from "@/components/ShopItemPreview";
+import { Eye } from "lucide-react";
 
 const FRAME_IDS = new Set<FrameId>([
   "item-frame-gold", "item-frame-fire", "item-frame-sakura",
@@ -67,6 +69,7 @@ function ShopPageInner() {
   const [comprandoPack, setComprandoPack] = useState<string | null>(null);
   const [toast,   setToast]   = useState<{ msg: string; ok: boolean } | null>(null);
   const [vista,   setVista]   = useState<"tienda" | "inventario">("tienda");
+  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -312,22 +315,30 @@ function ShopPageInner() {
               const esEquipable = EQUIPABLE.has(item.category);
               return (
               <div key={item.id} style={{ ...styles.card, ...(item.owned ? styles.cardOwned : {}) }}>
-                {esMarco ? (
-                  <div style={{ ...styles.preview, position: "relative", background: color.surfaceRaised, borderRadius: radius.md }}>
-                    <span style={{ position: "relative", display: "inline-flex", width: 34, height: 34 }}>
-                      <span style={{ width: 34, height: 34, borderRadius: "50%", background: color.accentSoft, display: "block" }} />
-                      <AvatarFrame frameId={item.id as FrameId} size={34} />
-                    </span>
-                  </div>
-                ) : esEscena ? (
-                  <div style={{ ...styles.bannerSwatch, position: "relative", overflow: "hidden" }}>
-                    <PageBackground bgId={item.id as BgId} />
-                  </div>
-                ) : esSwatch ? (
-                  <div style={{ ...styles.bannerSwatch, background: item.preview }} />
-                ) : (
-                  <div style={styles.preview}>{item.preview}</div>
-                )}
+                <button
+                  style={styles.previewBtn}
+                  onClick={() => setPreviewItem(item)}
+                  title="Vista previa"
+                  aria-label={`Vista previa de ${item.name}`}
+                >
+                  {esMarco ? (
+                    <div style={{ ...styles.preview, position: "relative", background: color.surfaceRaised, borderRadius: radius.md }}>
+                      <span style={{ position: "relative", display: "inline-flex", width: 34, height: 34 }}>
+                        <span style={{ width: 34, height: 34, borderRadius: "50%", background: color.accentSoft, display: "block" }} />
+                        <AvatarFrame frameId={item.id as FrameId} size={34} />
+                      </span>
+                    </div>
+                  ) : esEscena ? (
+                    <div style={{ ...styles.bannerSwatch, position: "relative", overflow: "hidden" }}>
+                      <PageBackground bgId={item.id as BgId} />
+                    </div>
+                  ) : esSwatch ? (
+                    <div style={{ ...styles.bannerSwatch, background: item.preview }} />
+                  ) : (
+                    <div style={styles.preview}>{item.preview}</div>
+                  )}
+                  <span style={styles.previewOjo}><Eye size={11} strokeWidth={2} /></span>
+                </button>
                 <div style={styles.cardName}>{item.name}</div>
                 <div style={styles.cardDesc}>{item.description}</div>
 
@@ -383,6 +394,21 @@ function ShopPageInner() {
         </div>
       )}
       </div>
+
+      {previewItem && (() => {
+        const liveItem = items.find(i => i.id === previewItem.id) ?? previewItem;
+        return (
+          <ShopItemPreview
+            item={liveItem}
+            avatarUrl={user?.avatar_url}
+            avatarIniciales={(user?.alias || user?.username || "?").slice(0, 2).toUpperCase()}
+            onClose={() => setPreviewItem(null)}
+            onBuy={() => handleBuy(liveItem)}
+            comprando={buying === liveItem.id}
+            puedeComprar={(stats?.focus_coins ?? 0) >= liveItem.price_fc}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -529,6 +555,29 @@ const styles: Record<string, React.CSSProperties> = {
   preview: {
     fontSize:   36,
     lineHeight: 1,
+  },
+  previewBtn: {
+    position: "relative",
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+  },
+  previewOjo: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   bannerSwatch: {
     width: "100%", height: 40, borderRadius: radius.sm,
