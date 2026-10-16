@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { wsUrl, gamificationApi, announcementsApi, shopApi, type UserStats, type ActiveAnnouncement } from "@/lib/api";
+import { wsUrl, gamificationApi, announcementsApi, type UserStats, type ActiveAnnouncement } from "@/lib/api";
 import { Megaphone as MegaphoneIcon, X as XIcon } from "lucide-react";
 import { useTranslation } from "@/components/I18nProvider";
 import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, shadow, fontSerif, ease, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
 // Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
@@ -59,19 +60,7 @@ export default function DashboardPage() {
   // Fondo de tienda equipado: `preview` del ítem ya es el valor CSS real
   // (color o degradado), igual que el banner del perfil. Si no hay nada
   // equipado o el ítem ya no existe, se queda con el fondo por defecto.
-  const [fondoEquipado, setFondoEquipado] = useState<string | null>(null);
-  useEffect(() => {
-    if (!token || !user?.equipped_background_item_id) { setFondoEquipado(null); return; }
-    let cancelado = false;
-    shopApi.getItems(token)
-      .then(items => {
-        if (cancelado) return;
-        const item = items.find(i => i.id === user.equipped_background_item_id);
-        setFondoEquipado(item?.preview ?? null);
-      })
-      .catch(() => { if (!cancelado) setFondoEquipado(null); });
-    return () => { cancelado = true; };
-  }, [token, user?.equipped_background_item_id]);
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   useEffect(() => {
     if (!token) return;

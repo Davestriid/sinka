@@ -29,13 +29,11 @@ import { Notificaciones } from "./Notificaciones";
 // Marcos de avatar comprables en la tienda (categoría avatar_frame). Solo
 // hay dos por ahora, así que un mapa fijo por item_id alcanza — evita un
 // fetch extra en un componente que se monta en cada pantalla de la app.
-const AVATAR_FRAME_STYLE: Record<string, CSSProperties> = {
-  "item-frame-gold": {
-    boxShadow: "0 0 0 2px #1a1a1a, 0 0 0 4px #d4af37, 0 0 10px 1px rgba(212,175,55,0.55)",
-  },
-  "item-frame-fire": {
-    boxShadow: "0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 12px 2px rgba(255,107,53,0.65)",
-  },
+// El anillo se anima (brillo que respira/parpadea) vía las clases
+// sinka-frame-* definidas en globals.css, no con un boxShadow estático.
+const AVATAR_FRAME_CLASS: Record<string, string> = {
+  "item-frame-gold": "sinka-frame-gold",
+  "item-frame-fire": "sinka-frame-fire",
 };
 
 interface Destino {
@@ -144,8 +142,8 @@ export function NavBar({ monedas }: NavBarProps) {
   // El alias es el nombre que la persona eligio mostrar. Si no puso ninguno,
   // vale el nombre de usuario del registro.
   const nombre = user?.alias || user?.username || t("nav.perfil");
-  const marco  = user?.equipped_avatar_frame_item_id
-    ? AVATAR_FRAME_STYLE[user.equipped_avatar_frame_item_id]
+  const claseMarco = user?.equipped_avatar_frame_item_id
+    ? AVATAR_FRAME_CLASS[user.equipped_avatar_frame_item_id]
     : undefined;
 
   const activo = (href: string) =>
@@ -239,9 +237,9 @@ export function NavBar({ monedas }: NavBarProps) {
           <button style={s.avatarBtn} onClick={() => setMenuAbierto(o => !o)}>
             {user?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatar_url} alt="" style={{ ...s.foto, ...marco }} />
+              <img src={user.avatar_url} alt="" style={s.foto} className={claseMarco} />
             ) : (
-              <span style={{ ...s.inicial, ...marco }}>{nombre.slice(0, 2).toUpperCase()}</span>
+              <span style={s.inicial} className={claseMarco}>{nombre.slice(0, 2).toUpperCase()}</span>
             )}
             <span style={s.etiqueta}>{nombre}</span>
             <ChevronDown
@@ -263,9 +261,9 @@ export function NavBar({ monedas }: NavBarProps) {
                 <div style={s.menuCabecera}>
                   {user?.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.avatar_url} alt="" style={{ ...s.fotoGrande, ...marco }} />
+                    <img src={user.avatar_url} alt="" style={s.fotoGrande} className={claseMarco} />
                   ) : (
-                    <span style={{ ...s.inicialGrande, ...marco }}>{nombre.slice(0, 2).toUpperCase()}</span>
+                    <span style={s.inicialGrande} className={claseMarco}>{nombre.slice(0, 2).toUpperCase()}</span>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={s.menuNombre}>{nombre}</div>

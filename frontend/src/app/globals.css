@@ -265,3 +265,32 @@
 .sinka-stagger > *:nth-child(5) { animation-delay: 0.18s; }
 .sinka-stagger > *:nth-child(6) { animation-delay: 0.22s; }
 .sinka-stagger > *:nth-child(n+7) { animation-delay: 0.26s; }
+
+/* ── Marcos de avatar de la tienda (categoría avatar_frame) ───────────────
+   El anillo base (color + grosor) queda fijo, pero el brillo exterior
+   respira/parpadea para que se note que es un item comprado y no solo un
+   borde estático. Ver AVATAR_FRAME_CLASS en components/NavBar.tsx. */
+@keyframes sinka-frame-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #d4af37, 0 0 8px 1px rgba(212, 175, 55, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #f4d976, 0 0 16px 4px rgba(244, 217, 118, 0.85);
+  }
+}
+
+@keyframes sinka-frame-fire {
+  0%   { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.55); }
+  30%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ffb347, 0 0 18px 5px rgba(255, 179, 71, 0.8); }
+  55%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.5); }
+  75%  { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff3d14, 0 0 20px 6px rgba(255, 61, 20, 0.85); }
+  100% { box-shadow: 0 0 0 2px #1a1a1a, 0 0 0 4px #ff6b35, 0 0 10px 2px rgba(255, 107, 53, 0.55); }
+}
+
+.sinka-frame-gold {
+  animation: sinka-frame-gold 2.2s ease-in-out infinite;
+}
+
+.sinka-frame-fire {
+  animation: sinka-frame-fire 1.6s ease-in-out infinite;
+}

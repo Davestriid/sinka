@@ -31,6 +31,7 @@ import { gamificationApi, shopApi, type SoloSessionCompleteResult } from "@/lib/
 import { useTranslation } from "@/components/I18nProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { color, radius, shadow, fontSerif, pageBackground } from "@/lib/theme";
+import { useFondoTienda } from "@/lib/useFondoTienda";
 
 type Fase = "config" | "trabajo" | "descanso";
 
@@ -133,9 +134,13 @@ function crearId(): string {
 function SoloSessionInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { accessToken: token, hidratado } = useAuthStore();
+  const { user, accessToken: token, hidratado } = useAuthStore();
   const { t } = useTranslation();
   const { confirm } = useConfirm();
+
+  // Mismo fondo de tienda equipado que en el Dashboard — tiene más sentido
+  // verlo acá todavía, ya que esta es la pantalla donde realmente se enfoca.
+  const fondoEquipado = useFondoTienda(token, user?.equipped_background_item_id);
 
   const [fase, setFase]       = useState<Fase>("config");
   const [restante, setRestante] = useState(WORK_PRESETS[0] * 60);
@@ -499,7 +504,7 @@ function SoloSessionInner() {
   const pct   = fase === "config" ? 0 : 1 - restante / total;
 
   return (
-    <main style={s.main}>
+    <main style={{ ...s.main, ...(fondoEquipado ? { background: fondoEquipado } : {}) }}>
       {/* Musica de fondo (loop, oculta) — se controla solo via fondoRef */}
       <audio ref={fondoRef} src={pista.src} loop preload="none" />
 
