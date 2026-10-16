@@ -337,10 +337,16 @@ function ShopPageInner() {
                   ) : (
                     <div style={styles.preview}>{item.preview}</div>
                   )}
-                  <span style={styles.previewOjo}><Eye size={11} strokeWidth={2} /></span>
                 </button>
                 <div style={styles.cardName}>{item.name}</div>
                 <div style={styles.cardDesc}>{item.description}</div>
+
+                <button
+                  style={styles.previewLink}
+                  onClick={() => setPreviewItem(item)}
+                >
+                  <Eye size={12} strokeWidth={2} /> Vista previa
+                </button>
 
                 {item.owned ? (
                   esEquipable ? (
@@ -561,23 +567,24 @@ const styles: Record<string, React.CSSProperties> = {
     background: "none",
     border: "none",
     padding: 0,
-    cursor: "pointer",
+    cursor: "zoom-in",
     width: "100%",
     display: "flex",
     justifyContent: "center",
   },
-  previewOjo: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: "50%",
-    background: "rgba(0,0,0,0.55)",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+  previewLink: {
+    display:      "inline-flex",
+    alignItems:   "center",
+    gap:          4,
+    background:   color.surfaceRaised,
+    border:       `1px solid ${color.border}`,
+    borderRadius: radius.pill,
+    color:        color.textMuted,
+    fontSize:     11,
+    fontWeight:   600,
+    padding:      "4px 10px",
+    cursor:       "pointer",
+    marginTop:    -2,
   },
   bannerSwatch: {
     width: "100%", height: 40, borderRadius: radius.sm,
