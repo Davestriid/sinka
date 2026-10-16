@@ -87,9 +87,28 @@ class SocialService:
         rel = await self.friends.set_status(rel, ACCEPTED)
 
         # La planta nace al aceptar, no antes: solo hay jardin entre amigos
-        await self.garden.get_or_create(rel.id)
+        especie = await self._especie_inicial(rel, user_id)
+        await self.garden.get_or_create(rel.id, especie)
         logger.info("Social: amistad %s aceptada, planta creada", rel.id)
         return await self._friend_dto(rel, user_id)
+
+    async def _especie_inicial(self, rel: Friendship, acceptor_id: str) -> str | None:
+        """
+        Elige con que especie nace la planta compartida.
+
+        Prioriza el skin de planta que ya tenga equipado quien acepta la
+        solicitud; si no tiene, usa el de la otra persona. Si ninguno de
+        los dos tiene uno equipado, se deja en None y el repositorio elige
+        una especie al azar del catalogo activo al crear la fila.
+        """
+        otro_id = rel.otro(acceptor_id)
+        acceptor = await self.users.get_by_id(acceptor_id)
+        otro = await self.users.get_by_id(otro_id)
+        if acceptor and acceptor.equipped_plant_skin_item_id:
+            return acceptor.equipped_plant_skin_item_id
+        if otro and otro.equipped_plant_skin_item_id:
+            return otro.equipped_plant_skin_item_id
+        return None
 
     async def reject_request(self, friendship_id: str, user_id: str) -> None:
         rel = await self._get_pendiente(friendship_id, user_id)
@@ -304,6 +323,7 @@ class SocialService:
                 "phase_name":        growth_service.phase_name(planta.phase),
                 "emoji":             growth_service.phase_emoji(planta.phase),
                 "sessions_together": planta.sessions_together,
+                "species_item_id":   planta.species_item_id,
             },
         }
 
@@ -313,6 +333,7 @@ class SocialService:
             "friendship_id":     rel.id,
             "friend":            await self._perfil(otro),
             "name":              planta.name,
+            "species_item_id":   planta.species_item_id,
             "phase":             planta.phase,
             "phase_name":        growth_service.phase_name(planta.phase),
             "phase_label":       growth_service.phase_label(planta.phase, lang),

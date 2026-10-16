@@ -20,6 +20,7 @@ class PlantBrief(BaseModel):
     phase_name:        str
     emoji:             str
     sessions_together: int
+    species_item_id:   str | None = None
 
 
 class FriendResponse(BaseModel):
@@ -47,6 +48,7 @@ class PlantResponse(BaseModel):
     friendship_id:     str
     friend:            UserBrief
     name:              str | None = None
+    species_item_id:   str | None = None
     phase:             int
     phase_name:        str
     phase_label:       str

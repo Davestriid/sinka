@@ -812,6 +812,7 @@ export interface PlantBrief {
   phase_name:        string;
   emoji:             string;
   sessions_together: number;
+  species_item_id:   string | null;
 }
 
 export interface Friend {
@@ -839,6 +840,7 @@ export interface Plant {
   friendship_id:     string;
   friend:            UserBrief;
   name:              string | null;
+  species_item_id:   string | null;
   phase:             number;
   phase_name:        string;
   phase_label:       string;

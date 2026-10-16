@@ -12,12 +12,12 @@ import { useParams, useRouter } from "next/navigation";
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackgroundJardin } from "@/lib/theme";
-import { emojiConSkin } from "@/lib/plantSkins";
+import { emojiConSkin, nombreDeSkin } from "@/lib/plantSkins";
 
 export default function PlantaPage() {
   const router = useRouter();
   const params = useParams<{ friendshipId: string }>();
-  const { user, accessToken: token, hidratado } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [plant,   setPlant]   = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,10 @@ export default function PlantaPage() {
       </header>
 
       <div style={s.card}>
-        <div style={s.emoji}>{emojiConSkin(plant.phase_name, plant.emoji, user?.equipped_plant_skin_item_id)}</div>
+        <div style={s.emoji}>{emojiConSkin(plant.phase_name, plant.emoji, plant.species_item_id)}</div>
+        {nombreDeSkin(plant.species_item_id) && (
+          <p style={s.species}>Están cultivando: {nombreDeSkin(plant.species_item_id)}</p>
+        )}
 
         {editando ? (
           <div style={s.editRow}>
@@ -140,6 +143,7 @@ const s: Record<string, React.CSSProperties> = {
     maxWidth: 520, margin: "0 auto", textAlign: "center",
   },
   emoji:  { fontSize: 72, lineHeight: 1 },
+  species: { color: color.textFaint, fontSize: 12, fontStyle: "italic", margin: "4px 0 0" },
   title:  { fontSize: 22, margin: "12px 0 4px", cursor: "pointer" },
   editHint: { color: color.textFaint, fontSize: 15 },
   editRow: { display: "flex", gap: 8, margin: "12px 0" },

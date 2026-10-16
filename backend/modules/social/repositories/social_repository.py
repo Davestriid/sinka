@@ -186,16 +186,34 @@ class GardenRepository:
         )
         return result.scalar_one_or_none()
 
-    async def create(self, friendship_id: str) -> GardenPlant:
-        planta = GardenPlant(friendship_id=friendship_id)
+    async def create(self, friendship_id: str, species_item_id: str | None = None) -> GardenPlant:
+        if species_item_id is None:
+            species_item_id = await self._especie_al_azar()
+        planta = GardenPlant(friendship_id=friendship_id, species_item_id=species_item_id)
         self.db.add(planta)
         await self.db.commit()
         await self.db.refresh(planta)
         return planta
 
-    async def get_or_create(self, friendship_id: str) -> GardenPlant:
+    async def get_or_create(
+        self, friendship_id: str, species_item_id: str | None = None
+    ) -> GardenPlant:
         planta = await self.get_by_friendship(friendship_id)
-        return planta if planta is not None else await self.create(friendship_id)
+        return planta if planta is not None else await self.create(friendship_id, species_item_id)
+
+    async def _especie_al_azar(self) -> str | None:
+        """Una especie cualquiera del catalogo activo de plant_skin, para
+        que una planta nueva nunca quede sin especie si nadie tenia un
+        skin equipado al momento de nacer."""
+        from modules.gamification.models import ShopItem  # import tardio: evita ciclo de modulos
+
+        result = await self.db.execute(
+            select(ShopItem.id)
+            .where(ShopItem.category == "plant_skin", ShopItem.is_active.is_(True))
+            .order_by(func.random())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
     async def list_for_user(self, user_id: str) -> list[tuple[Friendship, GardenPlant]]:
         """Todas las plantas del jardin de un usuario, con su amistad."""

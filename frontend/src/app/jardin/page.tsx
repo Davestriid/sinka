@@ -12,11 +12,11 @@ import { useRouter } from "next/navigation";
 import { gardenApi, type Plant } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { color, radius, pageBackgroundJardin } from "@/lib/theme";
-import { emojiConSkin } from "@/lib/plantSkins";
+import { emojiConSkin, nombreDeSkin } from "@/lib/plantSkins";
 
 export default function JardinPage() {
   const router = useRouter();
-  const { user, accessToken: token, hidratado } = useAuthStore();
+  const { accessToken: token, hidratado } = useAuthStore();
 
   const [plants,  setPlants]  = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,11 +76,14 @@ export default function JardinPage() {
               style={s.plantCard}
               onClick={() => router.push(`/jardin/${p.friendship_id}`)}
             >
-              <div style={s.plantEmoji}>{emojiConSkin(p.phase_name, p.emoji, user?.equipped_plant_skin_item_id)}</div>
+              <div style={s.plantEmoji}>{emojiConSkin(p.phase_name, p.emoji, p.species_item_id)}</div>
               <span style={s.plantName}>
                 {p.name || p.friend.alias || p.friend.username}
               </span>
               <span style={s.phase}>{p.phase_label}</span>
+              {nombreDeSkin(p.species_item_id) && (
+                <span style={s.species}>{nombreDeSkin(p.species_item_id)}</span>
+              )}
 
               <div style={s.barTrack}>
                 <div style={{ ...s.barFill, width: `${Math.round(p.progress_pct * 100)}%` }} />
@@ -121,6 +124,7 @@ const s: Record<string, React.CSSProperties> = {
   plantEmoji: { fontSize: 52, lineHeight: 1 },
   plantName:  { fontWeight: 700, fontSize: 15 },
   phase:      { color: color.moss, fontSize: 12, fontWeight: 600 },
+  species:    { color: color.textFaint, fontSize: 11, fontStyle: "italic" },
   barTrack: {
     width: "100%", height: 6, background: color.borderSoft,
     borderRadius: radius.sm, overflow: "hidden", margin: "6px 0",

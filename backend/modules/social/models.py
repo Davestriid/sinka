@@ -112,6 +112,17 @@ class GardenPlant(Base):
     # Nombre que los dos amigos le ponen a su planta
     name: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
+    # Especie/skin visual de la planta. A diferencia de un skin personal,
+    # esto se asigna UNA SOLA VEZ cuando nace la planta (al aceptar la
+    # amistad) y es igual para los dos usuarios del vinculo: ambos ven el
+    # mismo tipo de planta que estan cultivando juntos. Ver migracion 0028
+    # y social_service._especie_inicial().
+    species_item_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("shop_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     phase: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     nourishment: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
