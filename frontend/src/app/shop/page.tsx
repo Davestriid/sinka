@@ -555,8 +555,13 @@ const styles: Record<string, React.CSSProperties> = {
     transition:    "border-color 0.2s",
   },
   cardOwned: {
-    border:     `1px solid ${color.moss}`,
-    background: color.mossSoft,
+    border: `1px solid ${color.moss}`,
+    // mossSoft es translúcido (13% opacidad) — pensado para ir sobre un
+    // fondo ya sólido. Usado solo, con el fondo de la tienda ahora fijo
+    // detrás de todo, dejaba pasar la imagen y el texto quedaba lavado.
+    // Se compone sobre color.surface (opaco) para que la tarjeta "poseída"
+    // siempre tenga contraste, sin importar qué haya detrás.
+    background: `linear-gradient(${color.mossSoft}, ${color.mossSoft}), ${color.surface}`,
   },
   preview: {
     fontSize:   36,
