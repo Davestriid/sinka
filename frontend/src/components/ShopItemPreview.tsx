@@ -14,7 +14,7 @@
  * No depende de haber comprado el artículo — es justamente para decidir si
  * vale la pena comprarlo.
  */
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Play, Pause, Volume2, X, Coins } from "lucide-react";
 import { color, radius, shadow, fontSerif } from "@/lib/theme";
 import type { ShopItem } from "@/lib/api";
@@ -146,20 +146,33 @@ function PreviewBanner({ item }: { item: ShopItem }) {
   );
 }
 
+// Tamaño creciente por fase — refuerza visualmente que es una progresión
+// (semilla chiquita → árbol grande), no 5 íconos sueltos sin relación.
+const TAMANOS_FASE = [20, 24, 28, 32, 38];
+
 function PreviewSkin({ item }: { item: ShopItem }) {
   const nombre = nombreDeSkin(item.id);
   return (
     <div style={{ width: "100%" }}>
+      <p style={s.skinExplicacion}>
+        Tu planta va cambiando de forma sola, a medida que completas sesiones
+        de enfoque con tu pareja — empieza como semilla y termina hecha un
+        árbol. Así se ve en cada paso, de izquierda a derecha:
+      </p>
       <div style={s.skinFila}>
-        {FASES.map((f) => (
-          <div key={f.id} style={s.skinFase}>
-            <span style={{ fontSize: 26 }}>{emojiConSkin(f.id, f.emoji, item.id)}</span>
-            <span style={s.skinEtiqueta}>{f.etiqueta}</span>
-          </div>
+        {FASES.map((f, i) => (
+          <Fragment key={f.id}>
+            <div style={s.skinFase}>
+              <span style={s.skinNumero}>{i + 1}</span>
+              <span style={{ fontSize: TAMANOS_FASE[i] }}>{emojiConSkin(f.id, f.emoji, item.id)}</span>
+              <span style={s.skinEtiqueta}>{f.etiqueta}</span>
+            </div>
+            {i < FASES.length - 1 && <span style={s.skinFlecha}>→</span>}
+          </Fragment>
         ))}
       </div>
       <span style={s.previewNota}>
-        {nombre ? `Así crece tu planta con la skin "${nombre}"` : "Así se vería tu planta en cada fase"}
+        {nombre ? `Especie: "${nombre}"` : "Especie sin nombre reconocido"}
       </span>
     </div>
   );
@@ -244,12 +257,23 @@ const s: Record<string, React.CSSProperties> = {
     position: "relative", border: `1px solid ${color.border}`,
     contain: "layout style paint", isolation: "isolate",
   },
-  skinFila: {
-    display: "flex", justifyContent: "space-between", width: "100%",
-    background: color.bg, border: `1px solid ${color.border}`, borderRadius: radius.md,
-    padding: "14px 8px",
+  skinExplicacion: {
+    fontSize: 12, color: color.textMuted, textAlign: "center" as const,
+    lineHeight: 1.5, margin: "0 0 10px",
   },
-  skinFase: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 },
+  skinFila: {
+    display: "flex", alignItems: "flex-end", justifyContent: "center", width: "100%",
+    background: color.bg, border: `1px solid ${color.border}`, borderRadius: radius.md,
+    padding: "16px 6px 14px",
+  },
+  skinFase: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1, position: "relative" },
+  skinNumero: {
+    position: "absolute", top: -10, fontSize: 9, fontWeight: 700,
+    color: color.textFaint, background: color.surface,
+    border: `1px solid ${color.border}`, borderRadius: "50%",
+    width: 14, height: 14, display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  skinFlecha: { color: color.textFaint, fontSize: 13, alignSelf: "center", padding: "0 2px 14px" },
   skinEtiqueta: { fontSize: 9.5, color: color.textFaint },
   musicaBox: {
     display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
