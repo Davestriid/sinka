@@ -4,6 +4,15 @@ GardenService: motor de la planta cooperativa.
 Logica pura (sin IO).  El SessionService la llama cada segundo
 desde el game-loop de la sesion.
 
+Antes la planta perdia HP cuando el detector de actividad del navegador
+(mousemove/keydown/tab visible) marcaba a alguien como "inactivo" — bastaba
+cambiar de pestaña un rato para que la planta se marchitara y la sesion
+terminara con menos XP/FocusCoins, aunque el Pomodoro siguiera corriendo
+normal. Eso penalizaba a quien de verdad estaba trabajando (leyendo
+documentacion en otra pestaña, por ejemplo) solo por no mover el mouse.
+Ahora la planta crece sola con el solo hecho de completar la sesion juntos,
+sin vigilar actividad.
+
 Estadios (por HP):
   seed      0  – 20
   sprout   20  – 40
@@ -14,8 +23,7 @@ Estadios (por HP):
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 INITIAL_HP: float = 50.0          # Empieza en "growing"
-HP_GAIN_PER_SECOND: float = 0.25  # Ambos usuarios activos
-HP_DECAY_PER_SECOND: float = 0.5  # Alguno inactivo / desconectado
+HP_GAIN_PER_SECOND: float = 0.25  # Crece mientras la sesion sigue en curso
 
 STAGES: list[tuple[str, float, float]] = [
     ("seed",     0.0,  20.0),
@@ -45,32 +53,18 @@ class GardenService:
 
     # -- Publico ---------------------------------------------------------------
 
-    def tick(
-        self,
-        plant: dict,
-        user_a_active: bool,
-        user_b_active: bool,
-    ) -> dict:
+    def tick(self, plant: dict) -> dict:
         """
-        Avanza el estado de la planta un segundo.
+        Avanza el estado de la planta un segundo. Crece mientras la sesion
+        sigue corriendo — ya no depende de si cada usuario "esta activo".
 
         Args:
-            plant:          Dict con al menos {"hp": float, "stage": str, "both_focused": bool}
-            user_a_active:  True si user_a tiene actividad reciente
-            user_b_active:  True si user_b tiene actividad reciente
+            plant: Dict con al menos {"hp": float, "stage": str}
 
         Returns:
-            Nuevo dict con hp/stage/both_focused actualizados.
+            Nuevo dict con hp/stage actualizados.
         """
-        both_focused = user_a_active and user_b_active
-        hp: float = plant["hp"]
-
-        if both_focused:
-            hp = min(100.0, hp + HP_GAIN_PER_SECOND)
-        else:
-            hp = max(0.0, hp - HP_DECAY_PER_SECOND)
-
-        hp = round(hp, 2)
+        hp: float = min(100.0, round(plant["hp"] + HP_GAIN_PER_SECOND, 2))
         stage = self._resolve_stage(hp)
 
         return {
@@ -78,9 +72,7 @@ class GardenService:
             "hp": hp,
             "stage": stage,
             "emoji": STAGE_EMOJI[stage],
-            "both_focused": both_focused,
-            "user_a_active": user_a_active,
-            "user_b_active": user_b_active,
+            "both_focused": True,
         }
 
     def initial_plant(self) -> dict:
@@ -91,9 +83,7 @@ class GardenService:
             "hp": hp,
             "stage": stage,
             "emoji": STAGE_EMOJI[stage],
-            "both_focused": False,
-            "user_a_active": True,
-            "user_b_active": True,
+            "both_focused": True,
         }
 
     # -- Privado ---------------------------------------------------------------

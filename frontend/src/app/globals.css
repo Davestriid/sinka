@@ -253,6 +253,30 @@
   animation: sinka-pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* ── Celebración (pareja encontrada / sesión completada) ──────────────────
+   Ver components/CelebrationIcon.tsx — reemplaza al emoji suelto por un
+   resplandor con anillos que se expanden y el emoji entrando con rebote. */
+@keyframes sinka-celebrate-pop {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes sinka-celebrate-ring {
+  0%   { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes sinka-celebrate-glow {
+  0%, 100% { opacity: 0.12; }
+  50%      { opacity: 0.26; }
+}
+.sinka-celebrate-ring {
+  transform-origin: 60px 60px;
+  animation: sinka-celebrate-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.sinka-celebrate-glow {
+  animation: sinka-celebrate-glow 2.4s ease-in-out infinite;
+}
+
 /* Escalonado simple para listas/grids: agregar junto a sinka-fade-up y
    sumar nth-child en el propio componente cuando haga falta. */
 .sinka-stagger > * {

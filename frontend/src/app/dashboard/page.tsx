@@ -18,6 +18,7 @@ import { type ClaveTraduccion } from "@/lib/i18n";
 import { color, radius, shadow, fontSerif, ease, pageBackground } from "@/lib/theme";
 import { useFondoTienda } from "@/lib/useFondoTienda";
 import { PageBackground } from "@/components/PageBackground";
+import { CelebrationIcon } from "@/components/CelebrationIcon";
 
 // ── Catálogo de áreas de trabajo ─────────────────────────────────────────────
 // Iconos propios en vez de emoji — ver la misma nota en components/NavBar.tsx.
@@ -348,14 +349,9 @@ export default function DashboardPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
-              <motion.div
-                style={{ fontSize: 48 }}
-                initial={{ scale: 0.6, rotate: -8 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 12 }}
-              >
-                🎉
-              </motion.div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <CelebrationIcon emoji="🎉" tone="success" size={48} />
+              </div>
               <h2 style={{ ...styles.cardTitle, color: color.success, marginTop: 12 }}>{t("dashboard.pareja_encontrada")}</h2>
               <p style={{ color: color.textMuted }}>{t("dashboard.entrando_sesion")}</p>
             </motion.div>

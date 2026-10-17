@@ -142,12 +142,10 @@ async def session_websocket(
         while True:
             data = await websocket.receive_json()
 
-            # Sprint 3: manejar actualizacion de enfoque del cliente
-            if isinstance(data, dict) and data.get("type") == "FOCUS_STATUS_UPDATE":
-                payload   = data.get("payload", {})
-                is_active = bool(payload.get("is_active", True))
-                session_service.update_focus(session_id, current_user.id, is_active)
-                continue  # no reenviar a la pareja
+            # Salida deliberada (boton "Terminar") — ver mas abajo USER_LEFT.
+            if isinstance(data, dict) and data.get("type") == "USER_LEFT":
+                await session_service.leave_now(session_id, current_user.id)
+                continue
 
             # Voto para continuar otro bloque al terminar la sesion
             if isinstance(data, dict) and data.get("type") == "EXTENSION_VOTE":

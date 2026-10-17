@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Video, VideoOff, MonitorUp, MonitorX, Maximize2, WifiOff, TrendingUp, Flame, Timer, Coffee, Sprout } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { wsUrl } from "@/lib/api";
-import { focusDetector } from "@/lib/focus-detector";
 import { usePeerConnection, type WebRtcSignal } from "@/lib/peer-connection";
+import { CelebrationIcon } from "@/components/CelebrationIcon";
 import { gamificationApi, profileApi, type UserBrief, type UserStats } from "@/lib/api";
 import { color, radius, shadow, fontSerif, ease } from "@/lib/theme";
 
@@ -24,12 +24,9 @@ interface TimerState {
 }
 
 interface PlantState {
-  hp:            number;
-  stage:         "seed" | "sprout" | "growing" | "bloom" | "majestic";
-  emoji:         string;
-  both_focused:  boolean;
-  user_a_active: boolean;
-  user_b_active: boolean;
+  hp:    number;
+  stage: "seed" | "sprout" | "growing" | "bloom" | "majestic";
+  emoji: string;
 }
 
 interface TaskInfo {
@@ -154,9 +151,6 @@ export default function SessionPage() {
   // Sesión
   const [sessionEnded, setSessionEnded] = useState(false);
   const [endReason, setEndReason]       = useState<string>("");
-
-  // Foco
-  const [myActive, setMyActive] = useState(true);
 
   // Tareas
   const [myTask,      setMyTask]      = useState<TaskInfo | null>(null);
@@ -336,20 +330,10 @@ export default function SessionPage() {
     profileApi.getPublic(token, partnerId).then(setPartnerProfile).catch(() => {});
   }, [token, partnerId]);
 
-  // ── Focus heartbeat (cada 10 s) ────────────────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const active = focusDetector.isActive();
-      setMyActive(active);
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type:    "FOCUS_STATUS_UPDATE",
-          payload: { is_active: active },
-        }));
-      }
-    }, 10_000);
-    return () => clearInterval(interval);
-  }, []);
+  // El heartbeat de actividad (mousemove/tab visible) se quitó: cambiar de
+  // pestaña un rato ya no le resta nada a la planta ni a la sesión — ver
+  // garden_service.py. El Pomodoro solo termina por tiempo, porque alguien
+  // decide salir, o porque la otra persona cierra la pestaña de verdad.
 
   // ── Guardar estado COMPLETO de la sesión para recuperación tras recarga ──────
   useEffect(() => {
@@ -607,7 +591,13 @@ export default function SessionPage() {
     return (
       <div style={styles.centered}>
         <div style={styles.endCard}>
-          <div style={{ fontSize: 64 }}>{plant?.emoji ?? "🌱"}</div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <CelebrationIcon
+              emoji={plant?.emoji ?? "🌱"}
+              tone={completed ? "success" : "accent"}
+              size={56}
+            />
+          </div>
           <h2 style={{ margin: "12px 0 4px", color: color.text }}>
             {reasons[endReason] ?? "Sesión finalizada"}
           </h2>
@@ -865,19 +855,6 @@ export default function SessionPage() {
             </section>
           )}
 
-          {/* Estado de enfoque */}
-          <section style={styles.card}>
-            <div style={styles.focusTitle}>Enfoque</div>
-            <div style={styles.focusRow}>
-              <span style={focusDot(myActive)}>
-                {myActive ? "✓" : "✗"} {miNombre}
-              </span>
-              <span style={focusDot(partnerConnected && (plant?.both_focused || false))}>
-                {partnerConnected ? "" : "–"} {nombrePareja}
-              </span>
-            </div>
-          </section>
-
         </div>
 
         {/* ── Columna central: Vídeo ── */}
@@ -921,7 +898,7 @@ export default function SessionPage() {
               {/* Tu camara */}
               <div style={{
                 ...styles.baldosa,
-                ...(myActive && camEnabled && estadoCamara === "lista" ? styles.baldosaActiva : {}),
+                ...(camEnabled && estadoCamara === "lista" ? styles.baldosaActiva : {}),
               }}>
                 <video
                   ref={localVideoRef}
@@ -965,7 +942,7 @@ export default function SessionPage() {
               {partnerConnected && (
                 <div style={{
                   ...styles.baldosa,
-                  ...(plant?.both_focused ? styles.baldosaActiva : {}),
+                  ...styles.baldosaActiva,
                 }}>
                   <video
                     ref={remoteVideoRef}
@@ -1506,18 +1483,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 4,
     transition:   "width 1s linear",
   },
-  focusTitle: {
-    fontFamily:    fontSerif,
-    fontSize:      15,
-    fontWeight:    500,
-    color:         color.text,
-    marginBottom:  10,
-  },
-  focusRow: {
-    display:        "flex",
-    justifyContent: "space-between",
-    gap:            8,
-  },
   taskPanel: {
     display:  "flex",
     gap:      10,
@@ -1669,16 +1634,3 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
-function focusDot(active: boolean): React.CSSProperties {
-  return {
-    display:      "inline-flex",
-    alignItems:   "center",
-    gap:          4,
-    fontSize:     12,
-    fontWeight:   600,
-    padding:      "3px 10px",
-    borderRadius: 999,
-    background:   active ? color.moss : color.accentSoft,
-    color:      active ? color.success : color.accent,
-  };
-}

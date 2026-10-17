@@ -4,8 +4,7 @@ SessionService: gestiona el ciclo de vida de las sesiones de enfoque.
 Sprint 3:
   - Game-loop asyncio por sesion (1 tick/s)
   - PomodoroTimer (25 min enfoque / 5 min descanso)
-  - GardenService (HP, etapas, gain/decay segun actividad)
-  - update_focus() para recibir estado de actividad del cliente
+  - GardenService (HP, etapas — crece con el tiempo, ya no vigila actividad)
   - Broadcast TIMER_TICK cada segundo, PLANT_UPDATE cada 5 s
 """
 import asyncio
@@ -67,8 +66,6 @@ class SessionService:
 
     def __init__(self) -> None:
         self._sessions:      dict[str, _SessionConnection] = {}
-        # Focus scores: session_id -> {user_id: bool}  (True = activo)
-        self._focus:         dict[str, dict[str, bool]]   = {}
         # Game-loops: session_id -> asyncio.Task
         self._loops:         dict[str, asyncio.Task]       = {}
         # Estado Pomodoro: session_id -> PomodoroTimer
@@ -100,7 +97,6 @@ class SessionService:
             user_a_id=user_a_id,
             user_b_id=user_b_id,
         )
-        self._focus[session_id] = {user_a_id: True, user_b_id: True}
 
         state = {
             "session_id":     session_id,
@@ -148,10 +144,6 @@ class SessionService:
                 user_b_id=state["user_b_id"],
             )
             self._sessions[session_id] = conn
-            self._focus[session_id]    = {
-                state["user_a_id"]: True,
-                state["user_b_id"]: True,
-            }
 
         if user_id not in (conn.user_a_id, conn.user_b_id):
             return False
@@ -325,8 +317,26 @@ class SessionService:
         })
 
         self._sessions.pop(session_id, None)
-        self._focus.pop(session_id, None)
         await self._clear_redis_state(session_id)
+
+    async def leave_now(self, session_id: str, user_id: str) -> None:
+        """
+        Cierra la sesion de inmediato porque alguien decidio salir a
+        proposito (boton "Terminar"), sin pasar por el margen de reconexion
+        de RECONNECT_GRACE_SECONDS — ese margen es solo para recargas de
+        pagina accidentales; si la persona se fue porque asi lo quiso, no
+        hay nada que esperar y el compañero no deberia quedarse viendo
+        "conectando video..." con alguien que ya no va a volver.
+        """
+        conn = self._sessions.get(session_id)
+        if conn is None or session_id not in self._loops:
+            return  # ya estaba terminada o nunca llego a arrancar
+
+        tarea_pendiente = self._pending_abandono.pop(session_id, None)
+        if tarea_pendiente and not tarea_pendiente.done():
+            tarea_pendiente.cancel()
+
+        await self._end_session_por_abandono(session_id, conn, user_id)
 
     async def _end_session_por_abandono(
         self,
@@ -379,12 +389,6 @@ class SessionService:
         # termine) — se borra aca mismo, de una vez, para que una reconexion
         # inmediata ya no encuentre nada que revivir.
         await self._clear_redis_state(session_id)
-
-    def update_focus(self, session_id: str, user_id: str, is_active: bool) -> None:
-        """Actualiza el estado de actividad de un usuario (sin IO)."""
-        scores = self._focus.get(session_id)
-        if scores is not None and user_id in scores:
-            scores[user_id] = is_active
 
     async def relay_message(
         self,
@@ -514,11 +518,8 @@ class SessionService:
                 # --- Avanzar timer ---
                 timer_state = timer.tick()
 
-                # --- Avanzar jardin (usa actividad actual de cada usuario) ---
-                focus  = self._focus.get(session_id, {})
-                a_active = focus.get(conn.user_a_id, True)
-                b_active = focus.get(conn.user_b_id, True)
-                plant  = garden_service.tick(plant, a_active, b_active)
+                # --- Avanzar jardin (crece mientras la sesion sigue en curso) ---
+                plant  = garden_service.tick(plant)
                 self._gardens[session_id] = plant
 
                 # --- Broadcast TIMER_TICK cada segundo ---
