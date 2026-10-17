@@ -113,6 +113,10 @@ export const dict = {
   "solo.notif_cuerpo_trabajo": { es: "Hora de un descanso.", en: "Time for a break." },
   "solo.notif_titulo_descanso": { es: "Descanso terminado", en: "Break's over" },
   "solo.notif_cuerpo_descanso": { es: "¿Listo para otra ronda?", en: "Ready for another round?" },
+  "solo.notif_pregunta_titulo":   { es: "Avisos del navegador", en: "Browser notifications" },
+  "solo.notif_pregunta_mensaje":  { es: "¿Quieres que te avisemos cuando termine el pomodoro, por si cambias de pestaña mientras trabajas?", en: "Want us to notify you when the pomodoro ends, in case you switch tabs while working?" },
+  "solo.notif_pregunta_si":       { es: "Sí, avisarme", en: "Yes, notify me" },
+  "solo.notif_pregunta_no":       { es: "No, gracias", en: "No thanks" },
   "solo.descanso_largo_label": { es: "Descanso largo", en: "Long break" },
 
   // ── Áreas de trabajo (TOPICS) ────────────────────────────────────────

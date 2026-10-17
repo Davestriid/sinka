@@ -58,12 +58,11 @@ const SONIDOS = {
   notificacion: "/sounds/notificacion.mp3",
 } as const;
 
+// Lluvia es la única pista gratuita/predeterminada — todas las demás
+// (Sakura, Bosque, Música, Pop) ahora se compran en la tienda (categoría
+// "music", ver migración 0030) y llegan vía `pistasCompradas` más abajo.
 const PISTAS = [
-  { id: "sakura", nombre: "Sakura",           src: "/sounds/fondo-sakura.mp3" },
-  { id: "bosque", nombre: "Bosque tranquilo", src: "/sounds/fondo-bosque.mp3" },
-  { id: "lluvia", nombre: "Lluvia",           src: "/sounds/fondo-lluvia.mp3" },
-  { id: "musica", nombre: "Música",           src: "/sounds/fondo-musica.mp3" },
-  { id: "pop",    nombre: "Música pop",       src: "/sounds/fondo-pop.mp3" },
+  { id: "lluvia", nombre: "Lluvia", src: "/sounds/fondo-lluvia.mp3" },
 ] as const;
 
 // Ítems de categoría "music" de la tienda -> archivo de audio real. Vive en
@@ -75,6 +74,7 @@ const K_VOL_EFECTOS  = "sinka-volumen-efectos";
 const K_PISTA        = "sinka-musica-pista";
 const K_SEGUIR_DESC  = "sinka-seguir-musica-descanso";
 const K_NOTIF        = "sinka-notificaciones-activas";
+const K_NOTIF_PREGUNTADO = "sinka-notificaciones-preguntadas";
 const K_TAREAS       = "sinka-tareas-pomodoro";
 const K_RECIENTES    = "sinka-tareas-recientes";
 const K_POMODOROS_HOY = "sinka-pomodoros-hoy";
@@ -469,7 +469,29 @@ function SoloSessionInner() {
     localStorage.setItem(K_DUR_DESCANSO, String(min));
   };
 
-  const iniciar = () => {
+  // Pregunta una sola vez (la primera vez que alguien arranca un pomodoro
+  // en este navegador) si quiere avisos del sistema cuando termine la
+  // ronda — útil para quien cambia de pestaña mientras trabaja y no
+  // escucha el sonido. Si ya están activas, si el navegador no soporta
+  // notificaciones, o si el usuario ya las bloqueó antes, no insiste.
+  const talVezPreguntarNotificaciones = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (notifActivasRef.current) return;
+    if (Notification.permission === "denied") return;
+    if (localStorage.getItem(K_NOTIF_PREGUNTADO)) return;
+    localStorage.setItem(K_NOTIF_PREGUNTADO, "1");
+
+    const quiere = await confirm({
+      title: t("solo.notif_pregunta_titulo"),
+      message: t("solo.notif_pregunta_mensaje"),
+      confirmLabel: t("solo.notif_pregunta_si"),
+      cancelLabel: t("solo.notif_pregunta_no"),
+    });
+    if (quiere) await pedirNotificaciones();
+  };
+
+  const iniciar = async () => {
+    await talVezPreguntarNotificaciones();
     setFase("trabajo");
     setRestante(minTrabajo * 60);
     setPausado(false);
