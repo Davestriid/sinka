@@ -272,7 +272,10 @@ class IdentityService:
         )
         from modules.gamification.repositories.shop_repository import ShopRepository
         from modules.gamification.services import trust_service
-        from modules.gamification.services.gamification_service import compute_xp_progress
+        from modules.gamification.services.gamification_service import (
+            compute_xp_progress,
+            effective_streak,
+        )
 
         user = await self.user_repo.get_by_id(user_id)
         if user is None:
@@ -310,7 +313,10 @@ class IdentityService:
             xp_in_level=xp_in_level,
             xp_for_next_level=xp_next,
             xp_progress_pct=pct,
-            streak_current=stats.streak_current if stats else 0,
+            streak_current=(
+                effective_streak(stats.streak_current, stats.last_session_date, datetime.now(timezone.utc).date())
+                if stats else 0
+            ),
             streak_max=stats.streak_max if stats else 0,
             sessions_completed=stats.sessions_completed if stats else 0,
             pomodoros_completed=stats.pomodoros_completed if stats else 0,

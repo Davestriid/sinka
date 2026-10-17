@@ -104,6 +104,24 @@ def compute_streak(
         return 1, True, True
 
 
+def effective_streak(current_streak: int, last_date: date | None, today: date) -> int:
+    """
+    Racha "real" para mostrar, sin esperar a la próxima sesión.
+
+    streak_current en la base solo se recalcula cuando el usuario completa
+    una sesión (ver compute_streak), así que si dejó pasar un día sin
+    enfocarse, la cifra guardada queda congelada mostrando la racha vieja
+    hasta que vuelva a jugar. Esta función la "apaga" ya mismo apenas pasó
+    más de un día desde la última sesión: si hoy mismo todavía puede
+    completarla (0 o 1 día de por medio) se respeta tal cual, pero si ya
+    se le fue el día, se ve en 0 de inmediato.
+    """
+    if last_date is None:
+        return 0
+    delta = (today - last_date).days
+    return current_streak if delta <= 1 else 0
+
+
 def compute_xp_earned(pomodoros: int, streak: int, xp_per_pomodoro: int = XP_PER_POMODORO) -> int:
     """
     xp_per_pomodoro es configurable desde el panel de administracion
@@ -370,6 +388,7 @@ class GamificationService:
             await db.commit()
 
         xp_cl, xp_nl, pct = compute_xp_progress(stats.xp_total, stats.level)
+        racha_vigente = effective_streak(stats.streak_current, stats.last_session_date, date.today())
         return {
             "user_id":             stats.user_id,
             "username":            username,
@@ -378,7 +397,7 @@ class GamificationService:
             "xp_current_level":    xp_cl,
             "xp_next_level":       xp_nl,
             "xp_progress_pct":     pct,
-            "streak_current":      stats.streak_current,
+            "streak_current":      racha_vigente,
             "streak_max":          stats.streak_max,
             "sessions_completed":  stats.sessions_completed,
             "pomodoros_completed": stats.pomodoros_completed,

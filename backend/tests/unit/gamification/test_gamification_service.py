@@ -15,6 +15,7 @@ from modules.gamification.services.gamification_service import (
     compute_streak,
     compute_xp_earned,
     compute_xp_progress,
+    effective_streak,
     resolve_level,
     xp_for_level,
 )
@@ -138,6 +139,35 @@ class TestComputeStreak:
         new_streak, inc, broken = compute_streak(old_date, 30, self.TODAY)
         assert new_streak == 1
         assert broken is True
+
+
+# ── effective_streak ──────────────────────────────────────────────────────────
+# La racha guardada solo se recalcula cuando el usuario completa otra sesión;
+# effective_streak() es lo que decide qué mostrar mientras tanto, sin esperar
+# a esa próxima sesión.
+
+class TestEffectiveStreak:
+    TODAY = date.today()
+    YESTERDAY = TODAY - timedelta(days=1)
+    TWO_DAYS_AGO = TODAY - timedelta(days=2)
+
+    def test_never_played_is_zero(self):
+        assert effective_streak(0, None, self.TODAY) == 0
+
+    def test_played_today_keeps_streak(self):
+        assert effective_streak(7, self.TODAY, self.TODAY) == 7
+
+    def test_played_yesterday_still_counts_today(self):
+        # Todavía puede completarla hoy — no se apaga antes de tiempo.
+        assert effective_streak(7, self.YESTERDAY, self.TODAY) == 7
+
+    def test_missed_a_day_shows_zero_without_new_session(self):
+        # Dejó pasar el día: se ve rota ya mismo, sin esperar a que juegue de nuevo.
+        assert effective_streak(7, self.TWO_DAYS_AGO, self.TODAY) == 0
+
+    def test_long_abandoned_streak_shows_zero(self):
+        old_date = self.TODAY - timedelta(days=30)
+        assert effective_streak(30, old_date, self.TODAY) == 0
 
 
 # ── compute_xp_earned ─────────────────────────────────────────────────────────

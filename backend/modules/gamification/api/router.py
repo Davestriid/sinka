@@ -5,6 +5,7 @@ GET /api/gamification/stats        — mis estadísticas (XP, nivel, racha)
 GET /api/gamification/leaderboard  — top 10 por XP total
 """
 import logging
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,7 @@ from modules.gamification.schemas.gamification import (
 )
 from modules.gamification.services.gamification_service import (
     compute_xp_progress,
+    effective_streak,
     gamification_service,
 )
 from modules.identity.api.dependencies import get_current_user
@@ -86,7 +88,7 @@ async def get_leaderboard(
             username       = username,
             xp_total       = stat.xp_total,
             level          = stat.level,
-            streak_current = stat.streak_current,
+            streak_current = effective_streak(stat.streak_current, stat.last_session_date, date.today()),
         ))
     return result
 
