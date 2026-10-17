@@ -47,9 +47,14 @@ interface Props {
 export function ShopItemPreview({
   item, avatarUrl, avatarIniciales, onClose, onBuy, comprando, puedeComprar = true,
 }: Props) {
+  // Las 5 fases de una skin de planta se leen mejor con más aire horizontal
+  // — en el ancho normal del modal (420px) quedaban muy apretadas para
+  // apreciar la progresión de tamaño. Las demás categorías no lo necesitan.
+  const ancho = item.category === "plant_skin" ? 560 : 420;
+
   return (
     <div style={s.overlay} onClick={onClose}>
-      <div style={s.modal} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...s.modal, maxWidth: ancho }} onClick={(e) => e.stopPropagation()}>
         <button style={s.cerrar} onClick={onClose} aria-label="Cerrar">
           <X size={18} strokeWidth={2} />
         </button>
@@ -147,8 +152,10 @@ function PreviewBanner({ item }: { item: ShopItem }) {
 }
 
 // Tamaño creciente por fase — refuerza visualmente que es una progresión
-// (semilla chiquita → árbol grande), no 5 íconos sueltos sin relación.
-const TAMANOS_FASE = [20, 24, 28, 32, 38];
+// (semilla chiquita → árbol grande), no 5 íconos sueltos sin relación. Con
+// el modal más ancho para esta categoría (ver ancho en ShopItemPreview)
+// hay más aire para que la diferencia de tamaño se note de verdad.
+const TAMANOS_FASE = [24, 30, 36, 42, 50];
 
 function PreviewSkin({ item }: { item: ShopItem }) {
   const nombre = nombreDeSkin(item.id);
@@ -264,7 +271,7 @@ const s: Record<string, React.CSSProperties> = {
   skinFila: {
     display: "flex", alignItems: "flex-end", justifyContent: "center", width: "100%",
     background: color.bg, border: `1px solid ${color.border}`, borderRadius: radius.md,
-    padding: "16px 6px 14px",
+    padding: "20px 14px 16px", gap: 4,
   },
   skinFase: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1, position: "relative" },
   skinNumero: {
