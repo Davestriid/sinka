@@ -242,15 +242,23 @@ function PanelUsuarios({
   };
 
   // Eliminar es permanente (a diferencia de suspender, que se revierte) —
-  // por eso vive aparte de `act`: no hay "usuario actualizado" que devolver,
-  // hay que sacarlo de la lista, y la confirmación es más enfática.
+  // por eso vive aparte de `act`: no hay "usuario actualizado" que devolver.
+  // Tras borrar, se recarga la página actual desde el servidor (en vez de
+  // solo filtrar `lista` en memoria): si hay más páginas, el hueco que deja
+  // el usuario eliminado se rellena con el siguiente de la base de datos, y
+  // el contador "N usuarios en total" queda correcto. Si la página se queda
+  // sin filas (ej. se borró el único usuario de la última página), retrocede
+  // una página antes de recargar para no mostrar una página vacía.
   const eliminarUsuario = async (u: AdminUserRow) => {
     if (!token) return;
     if (!(await confirm(`¿Eliminar PERMANENTEMENTE la cuenta de ${u.alias || u.username}? Se borra todo su historial (sesiones, logros, compras, amistades). Esto no se puede deshacer.`))) return;
     try {
       await adminApi.deleteUser(token, u.id);
-      setLista((l) => l.filter((x) => x.id !== u.id));
-      setSeleccion((s) => { const copia = new Set(s); copia.delete(u.id); return copia; });
+      if (lista.length === 1 && pagina > 1) {
+        setPagina((p) => p - 1);   // dispara `cargar` via el efecto de `pagina`
+      } else {
+        await cargar();
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo eliminar la cuenta.");
     }
@@ -260,15 +268,22 @@ function PanelUsuarios({
     if (!token || seleccion.size === 0) return;
     if (!(await confirm(`¿Eliminar PERMANENTEMENTE ${seleccion.size} cuenta(s)? Se borra todo su historial. Esto no se puede deshacer.`))) return;
     const ids = Array.from(seleccion);
+    let fallaron = 0;
     for (const id of ids) {
       try {
         await adminApi.deleteUser(token, id);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudieron eliminar todas las cuentas seleccionadas.");
+      } catch {
+        fallaron++;
       }
     }
-    setLista((l) => l.filter((u) => !ids.includes(u.id)));
-    setSeleccion(new Set());
+    if (fallaron > 0) {
+      setError("No se pudieron eliminar todas las cuentas seleccionadas.");
+    }
+    if (ids.length - fallaron >= lista.length && pagina > 1) {
+      setPagina((p) => p - 1);
+    } else {
+      await cargar();
+    }
   };
 
   return (
@@ -346,6 +361,7 @@ function PanelUsuarios({
               </div>
               <span style={s.rolBadge}>{u.role}</span>
               {u.is_banned && <span style={s.banBadge}>suspendido</span>}
+              {!u.email_verified && <span style={s.tipoBadge}>correo sin verificar</span>}
 
               {esSuperadmin && u.id !== propioId && (
                 <select

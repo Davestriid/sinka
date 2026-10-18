@@ -13,6 +13,7 @@ from modules.identity.schemas.auth import (
     RegisterRequest,
     TokenResponse,
     UserResponse,
+    VerifyEmailRequest,
 )
 from modules.identity.services.identity_service import IdentityService
 
@@ -48,6 +49,25 @@ async def login(
     _rl: None = _auth_limit,
 ) -> TokenResponse:
     return await service.login(email=body.email, password=body.password)
+
+
+@router.post("/verify-email", response_model=UserResponse)
+async def verify_email(
+    body: VerifyEmailRequest,
+    service: IdentityService = Depends(get_identity_service),
+) -> UserResponse:
+    """Confirma el correo a partir del token del enlace enviado al registrarse."""
+    return await service.verificar_email(body.token)
+
+
+@router.post("/resend-verification", status_code=204)
+async def resend_verification(
+    current_user: UserResponse = Depends(get_current_user),
+    service: IdentityService = Depends(get_identity_service),
+    _rl: None = _auth_limit,
+) -> None:
+    """Reenvía el correo de verificación a la cuenta logueada, si aún no está confirmada."""
+    await service.reenviar_verificacion(current_user.id)
 
 
 @router.post("/refresh", response_model=TokenResponse)

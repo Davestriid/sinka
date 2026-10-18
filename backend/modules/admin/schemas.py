@@ -11,6 +11,7 @@ class AdminUserRow(BaseModel):
     role: str
     is_active: bool
     is_banned: bool
+    email_verified: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

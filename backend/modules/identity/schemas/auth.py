@@ -38,6 +38,10 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -51,6 +55,7 @@ class UserResponse(BaseModel):
     is_active: bool
     role: str = "usuario"
     is_banned: bool = False
+    email_verified: bool = False
 
     # Perfil
     alias:      str | None = None

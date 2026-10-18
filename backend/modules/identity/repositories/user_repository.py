@@ -33,6 +33,27 @@ class UserRepository:
         await self.db.delete(user)
         await self.db.commit()
 
+    async def get_by_verification_token(self, token: str) -> User | None:
+        result = await self.db.execute(
+            select(User).where(User.email_verification_token == token)
+        )
+        return result.scalar_one_or_none()
+
+    async def set_verification_token(self, user: User, token: str, expires) -> User:
+        user.email_verification_token = token
+        user.email_verification_expires = expires
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def marcar_verificado(self, user: User) -> User:
+        user.email_verified = True
+        user.email_verification_token = None
+        user.email_verification_expires = None
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
     async def email_exists(self, email: str) -> bool:
         result = await self.db.execute(select(User.id).where(User.email == email))
         return result.scalar_one_or_none() is not None

@@ -33,6 +33,18 @@ class Settings(BaseSettings):
     # A donde vuelve el usuario despues de pagar (o cancelar) en Stripe Checkout
     frontend_url: str = "http://localhost:3000"
 
+    # Correo saliente (verificacion de cuenta). Igual que Stripe: vacios por
+    # defecto, asi el backend arranca igual en desarrollo sin SMTP configurado
+    # — core/email.py simplemente registra un aviso y no envia nada, en vez
+    # de tumbar el registro de usuarios nuevos. Gmail, por ejemplo, usa
+    # smtp.gmail.com:587 con una "contraseña de aplicacion", no la contraseña
+    # normal de la cuenta.
+    smtp_host:     str = ""
+    smtp_port:     int = 587
+    smtp_user:     str = ""
+    smtp_password: str = ""
+    email_from:    str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]

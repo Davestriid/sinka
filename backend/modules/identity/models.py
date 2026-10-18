@@ -24,6 +24,16 @@ class User(Base):
     role:      Mapped[str]  = mapped_column(String(20), nullable=False, default="usuario")
     is_banned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # --- Verificacion de correo --------------------------------------------
+    # No se bloquea el login por esto (cuentas viejas quedarian fuera de
+    # golpe) — es informativo: el panel admin y el propio usuario pueden ver
+    # si el correo fue confirmado. El token es de un solo uso y expira; se
+    # limpia (vuelve a None) en cuanto se confirma. Ver core/email.py y
+    # IdentityService.verificar_email / reenviar_verificacion.
+    email_verified:              Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    email_verification_token:    Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    email_verification_expires:  Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # --- Perfil visible para otros usuarios -------------------------------
     # alias: nombre que se muestra en la sesion. Si esta vacio se usa username.
     alias:      Mapped[str | None] = mapped_column(String(50),  nullable=True)

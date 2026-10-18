@@ -171,6 +171,7 @@ export interface UserResponse {
   is_active: boolean;
   role:      "usuario" | "admin" | "superadmin";
   is_banned: boolean;
+  email_verified: boolean;
 
   alias:      string | null;
   avatar_url: string | null;
@@ -217,6 +218,18 @@ export const authApi = {
 
   me: (accessToken: string) =>
     request<UserResponse>("/auth/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
+
+  verifyEmail: (token: string) =>
+    request<UserResponse>("/auth/verify-email", {
+      method: "POST",
+      body:   JSON.stringify({ token }),
+    }),
+
+  resendVerification: (accessToken: string) =>
+    request<void>("/auth/resend-verification", {
+      method:  "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 };
@@ -378,6 +391,7 @@ export interface AdminUserRow {
   role: "usuario" | "admin" | "superadmin";
   is_active: boolean;
   is_banned: boolean;
+  email_verified: boolean;
   created_at: string;
 }
 

@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -6,6 +7,7 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 
 from core.config import settings
+from core.email import enviar_verificacion
 from modules.identity.models import User
 from modules.identity.repositories.user_repository import SessionRepository, UserRepository
 from modules.identity.schemas.auth import (
@@ -17,6 +19,11 @@ from modules.identity.schemas.auth import (
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+VERIFICATION_TOKEN_TTL_HOURS = 24
+# Minimo entre reenvios del correo de verificacion — evita que alguien
+# machaque el boton "reenviar" y spamee al destinatario.
+RESEND_COOLDOWN_SECONDS = 60
 
 
 class IdentityService:
@@ -84,7 +91,62 @@ class IdentityService:
             username=username,
             hashed_password=self.hash_password(password),
         )
+        await self._enviar_token_verificacion(user)
         return await self._issue_tokens(user)
+
+    async def _enviar_token_verificacion(self, user: User) -> None:
+        """
+        Genera un token nuevo de un solo uso y manda el correo de
+        confirmacion. No bloquea el registro/login si el envio falla (ver
+        core/email.py) — solo queda registrado en el log del servidor.
+        """
+        token = secrets.token_urlsafe(32)
+        expira = datetime.now(timezone.utc) + timedelta(hours=VERIFICATION_TOKEN_TTL_HOURS)
+        await self.user_repo.set_verification_token(user, token, expira)
+        await enviar_verificacion(user.email, user.display_name, token)
+
+    async def verificar_email(self, token: str) -> UserResponse:
+        user = await self.user_repo.get_by_verification_token(token)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ese enlace de verificación no es válido o ya fue usado.",
+            )
+        expira = user.email_verification_expires
+        if expira is not None and expira.tzinfo is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        if expira is None or expira < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ese enlace de verificación venció. Pide uno nuevo.",
+            )
+        user = await self.user_repo.marcar_verificado(user)
+        return UserResponse.model_validate(user)
+
+    async def reenviar_verificacion(self, user_id: str) -> None:
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+        if user.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este correo ya está verificado.",
+            )
+        # El "enviado hace X" se deriva del vencimiento guardado (vencimiento
+        # menos el TTL), en vez de agregar una columna nueva solo para esto.
+        if user.email_verification_expires is not None:
+            expira = user.email_verification_expires
+            if expira.tzinfo is None:
+                expira = expira.replace(tzinfo=timezone.utc)
+            enviado_hace = datetime.now(timezone.utc) - (
+                expira - timedelta(hours=VERIFICATION_TOKEN_TTL_HOURS)
+            )
+            if enviado_hace.total_seconds() < RESEND_COOLDOWN_SECONDS:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Espera un momento antes de pedir otro correo.",
+                )
+        await self._enviar_token_verificacion(user)
 
     async def login(self, email: str, password: str) -> TokenResponse:
         user = await self.user_repo.get_by_email(email)
