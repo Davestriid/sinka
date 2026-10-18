@@ -528,7 +528,9 @@ const s: Record<string, React.CSSProperties> = {
   back:   { background: "none", border: "none", color: color.textMuted, cursor: "pointer", fontSize: 14 },
   title:  { fontSize: 26, margin: 0 },
   verComoBtn: {
-    marginLeft: "auto", background: "none", border: `1px solid ${color.border}`,
+    marginLeft: "auto",
+    background: `linear-gradient(${color.surface}, ${color.surface})`,
+    border: `1px solid ${color.border}`,
     borderRadius: radius.pill, padding: "7px 14px", color: color.textMuted,
     cursor: "pointer", fontSize: 12.5, whiteSpace: "nowrap",
   },
@@ -641,7 +643,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   btnGhost: {
     padding: "12px 18px", borderRadius: radius.sm, border: `1px solid ${color.border}`,
-    background: "none", color: color.textFaint, cursor: "pointer", fontSize: 14,
+    background: `linear-gradient(${color.surface}, ${color.surface})`,
+    color: color.textMuted, cursor: "pointer", fontSize: 14,
   },
   error: {
     background: color.accentSoft, color: color.accent, padding: 12,

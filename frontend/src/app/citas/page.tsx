@@ -354,7 +354,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   btnSmallGhost: {
     padding: "6px 12px", borderRadius: radius.sm, border: `1px solid ${color.border}`,
-    background: "none", color: color.textFaint, cursor: "pointer", fontSize: 12,
+    background: `linear-gradient(${color.surface}, ${color.surface})`,
+    color: color.textMuted, cursor: "pointer", fontSize: 12,
   },
   error: {
     background: color.accentSoft, color: color.accent, padding: 12,

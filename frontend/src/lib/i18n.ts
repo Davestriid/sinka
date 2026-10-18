@@ -21,6 +21,7 @@ export const dict = {
   "nav.grupos":    { es: "Grupos",    en: "Groups" },
   "nav.citas":     { es: "Citas",     en: "Schedule" },
   "nav.logros":    { es: "Logros",    en: "Achievements" },
+  "nav.ranking":   { es: "Ranking",   en: "Leaderboard" },
   "nav.tienda":    { es: "Tienda",    en: "Shop" },
   "nav.salir":     { es: "Salir",     en: "Log out" },
   "nav.perfil":    { es: "Perfil",    en: "Profile" },

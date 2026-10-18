@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ComponentType } f
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target, Handshake, Sprout, Users, CalendarDays, ShoppingBag, Trophy,
-  Flame, Sun, Moon, ChevronDown, UserCircle, LogOut, ShieldCheck,
+  Flame, Sun, Moon, ChevronDown, UserCircle, LogOut, ShieldCheck, BarChart3,
   type LucideProps,
 } from "lucide-react";
 
@@ -51,8 +51,7 @@ const DESTINOS: Destino[] = [
   { href: "/grupos",      Icono: Users,          clave: "nav.grupos"    },
   { href: "/citas",       Icono: CalendarDays,   clave: "nav.citas"     },
   { href: "/logros",      Icono: Trophy,         clave: "nav.logros"    },
-  // La tabla de lideres queda fuera de la barra por ahora. La pagina sigue
-  // existiendo en /leaderboard por si se quiere volver a mostrar.
+  { href: "/leaderboard", Icono: BarChart3,      clave: "nav.ranking"   },
 ];
 
 /**

@@ -368,7 +368,7 @@ const s: Record<string, React.CSSProperties> = {
     border: `1px solid ${color.border}`, background: color.bg, color: color.text, fontSize: 14,
   },
   joinRow: { display: "flex", gap: 10 },
-  chips:  { display: "flex", flexWrap: "wrap", gap: 8 },
+  chips:  { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${color.border}` },
   chip: {
     padding: "7px 13px", borderRadius: radius.pill, fontSize: 12,
     border: `1px solid ${color.border}`, background: color.bg,
@@ -382,12 +382,13 @@ const s: Record<string, React.CSSProperties> = {
   tabs: { display: "flex", gap: 8, marginBottom: 16 },
   tab: {
     padding: "8px 16px", borderRadius: radius.md, fontSize: 13,
-    border: `1px solid ${color.border}`, background: "none",
-    color: color.textFaint, cursor: "pointer",
+    border: `1px solid ${color.border}`,
+    background: `linear-gradient(${color.surface}, ${color.surface})`,
+    color: color.textMuted, cursor: "pointer",
   },
   tabOn: { background: color.surfaceRaised, color: color.text, borderColor: color.borderSoft },
   grid: {
-    display: "grid", gap: 14,
+    display: "grid", gap: 14, marginTop: 18,
     gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
   },
   groupCard: {

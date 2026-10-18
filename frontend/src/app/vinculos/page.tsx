@@ -326,7 +326,9 @@ const s: Record<string, React.CSSProperties> = {
   },
   btnSmallGhost: {
     flex: 1, padding: "5px 10px", borderRadius: radius.sm,
-    border: `1px solid ${color.border}`, background: "none", color: color.textFaint,
+    border: `1px solid ${color.border}`,
+    background: `linear-gradient(${color.surface}, ${color.surface})`,
+    color: color.textMuted,
     cursor: "pointer", fontSize: 12,
   },
   avatarBtn: {

@@ -149,7 +149,13 @@ async function request<T>(
     throw new ApiError(mensajeDeError(body, res.status), res.status);
   }
 
-  return res.json() as Promise<T>;
+  // 204 No Content (p. ej. DELETE /admin/groups/{id}) no trae cuerpo —
+  // intentar parsearlo como JSON revienta con "Unexpected end of JSON
+  // input". Igual cubrimos cualquier otra respuesta exitosa sin cuerpo.
+  if (res.status === 204) return undefined as T;
+  const texto = await res.text();
+  if (!texto) return undefined as T;
+  return JSON.parse(texto) as T;
 }
 
 export interface TokenResponse {
