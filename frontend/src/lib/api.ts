@@ -524,6 +524,11 @@ export const adminApi = {
       headers: { Authorization: `Bearer ${accessToken}` },
       body:    JSON.stringify({ role }),
     }),
+  deleteUser: (accessToken: string, userId: string) =>
+    request<void>(`/admin/users/${userId}`, {
+      method:  "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
   getShopItems: (accessToken: string) =>
     request<AdminShopItemRow[]>("/admin/shop", {
       headers: { Authorization: `Bearer ${accessToken}` },

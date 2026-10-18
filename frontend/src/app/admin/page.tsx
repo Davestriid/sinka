@@ -228,6 +228,36 @@ function PanelUsuarios({
     }
   };
 
+  // Eliminar es permanente (a diferencia de suspender, que se revierte) —
+  // por eso vive aparte de `act`: no hay "usuario actualizado" que devolver,
+  // hay que sacarlo de la lista, y la confirmación es más enfática.
+  const eliminarUsuario = async (u: AdminUserRow) => {
+    if (!token) return;
+    if (!(await confirm(`¿Eliminar PERMANENTEMENTE la cuenta de ${u.alias || u.username}? Se borra todo su historial (sesiones, logros, compras, amistades). Esto no se puede deshacer.`))) return;
+    try {
+      await adminApi.deleteUser(token, u.id);
+      setLista((l) => l.filter((x) => x.id !== u.id));
+      setSeleccion((s) => { const copia = new Set(s); copia.delete(u.id); return copia; });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo eliminar la cuenta.");
+    }
+  };
+
+  const eliminarEnLote = async () => {
+    if (!token || seleccion.size === 0) return;
+    if (!(await confirm(`¿Eliminar PERMANENTEMENTE ${seleccion.size} cuenta(s)? Se borra todo su historial. Esto no se puede deshacer.`))) return;
+    const ids = Array.from(seleccion);
+    for (const id of ids) {
+      try {
+        await adminApi.deleteUser(token, id);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudieron eliminar todas las cuentas seleccionadas.");
+      }
+    }
+    setLista((l) => l.filter((u) => !ids.includes(u.id)));
+    setSeleccion(new Set());
+  };
+
   return (
     <div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
@@ -275,6 +305,9 @@ function PanelUsuarios({
               <span style={s.muted}>{seleccion.size} seleccionado(s)</span>
               <button style={s.btnDanger} onClick={() => accionEnLote(true)}>Suspender selección</button>
               <button style={s.btnGhost} onClick={() => accionEnLote(false)}>Reactivar selección</button>
+              {esSuperadmin && (
+                <button style={s.btnDanger} onClick={eliminarEnLote}>Eliminar selección</button>
+              )}
             </>
           )}
         </div>
@@ -330,6 +363,12 @@ function PanelUsuarios({
                   }}
                 >
                   {u.is_banned ? "Reactivar" : "Suspender"}
+                </button>
+              )}
+
+              {esSuperadmin && u.id !== propioId && (
+                <button style={s.btnDanger} onClick={() => eliminarUsuario(u)}>
+                  Eliminar
                 </button>
               )}
             </div>

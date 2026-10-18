@@ -8,6 +8,7 @@ Todo bajo /api/admin y protegido por rol (ver dependencies.py):
   POST  /admin/users/{id}/unban          — reactivar                   (admin+)
   POST  /admin/users/ban-lote            — suspender/reactivar varios a la vez (admin+)
   PATCH /admin/users/{id}/role           — otorgar/quitar admin        (superadmin)
+  DELETE /admin/users/{id}               — eliminar cuenta permanente  (superadmin)
   GET   /admin/shop                      — catalogo completo (incl. inactivos) (admin+)
   PATCH /admin/shop/{item_id}            — precio, nombre, activo/no   (superadmin)
   GET   /admin/groups                    — todos los grupos activos    (admin+)
@@ -120,6 +121,17 @@ async def cambiar_rol(
     service: AdminService = Depends(_service),
 ) -> AdminUserRow:
     return await service.cambiar_rol(user_id, body.role, quien_pide.id)
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def eliminar_usuario(
+    user_id: str,
+    admin: UserResponse = Depends(require_superadmin),
+    service: AdminService = Depends(_service),
+) -> None:
+    """Borra la cuenta de forma permanente — para limpiar cuentas de
+    prueba o spam. Distinto de banear/unbanear, que es reversible."""
+    await service.eliminar_usuario(user_id, admin.id)
 
 
 @router.get("/shop", response_model=list[AdminShopItemRow])

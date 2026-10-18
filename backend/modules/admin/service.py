@@ -160,6 +160,27 @@ class AdminService:
         )
         return [AdminUserRow.model_validate(u) for u in resultados]
 
+    async def eliminar_usuario(self, user_id: str, admin_id: str) -> None:
+        """
+        Borra la cuenta de forma permanente — a diferencia de banear(), que
+        solo suspende. Pensado para limpiar cuentas de prueba o spam, no
+        para moderacion normal (eso sigue siendo banear). El historial
+        completo del usuario se va en cascada (ver UserRepository.eliminar).
+        """
+        if user_id == admin_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No puedes eliminar tu propia cuenta.",
+            )
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+        username = user.username
+        await self.user_repo.eliminar(user)
+        await self._auditar(
+            admin_id, "eliminar_usuario", objetivo_tipo="user", objetivo_id=user_id, detalle=username
+        )
+
     async def cambiar_rol(self, user_id: str, nuevo_rol: str, quien_lo_pide_id: str) -> AdminUserRow:
         if nuevo_rol not in ROLES_VALIDOS:
             raise HTTPException(

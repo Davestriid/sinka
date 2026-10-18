@@ -23,6 +23,16 @@ class UserRepository:
         result = await self.db.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
+    async def eliminar(self, user: User) -> None:
+        """
+        Borra la cuenta y, en cascada (ver ondelete="CASCADE" en cada FK a
+        users.id), todo su historial: sesiones, logros, compras, matches,
+        amistades, inventario, grupos que posea, etc. Es permanente — solo
+        se expone desde el panel de administracion (ver admin/service.py).
+        """
+        await self.db.delete(user)
+        await self.db.commit()
+
     async def email_exists(self, email: str) -> bool:
         result = await self.db.execute(select(User.id).where(User.email == email))
         return result.scalar_one_or_none() is not None
