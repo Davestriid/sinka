@@ -173,26 +173,39 @@ function PanelUsuarios({
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Sin esto solo se veian los 20 usuarios mas recientes (pagina 1 fija) —
+  // cualquier cuenta mas antigua quedaba invisible sin forma de llegar a
+  // ella, aunque siguiera existiendo en la base de datos.
+  const [pagina, setPagina] = useState(1);
+  const [total, setTotal] = useState(0);
+  const POR_PAGINA = 20;
   const { confirm } = useConfirm();
 
   const cargar = useCallback(async () => {
     if (!token) return;
     setCargando(true);
     try {
-      const res = await adminApi.getUsers(token, q, 1, {
+      const res = await adminApi.getUsers(token, q, pagina, {
         role: rolFiltro || undefined,
         banned: bannedFiltro === "" ? undefined : bannedFiltro === "true",
       });
       setLista(res.items);
+      setTotal(res.total);
       setSeleccion(new Set());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
       setCargando(false);
     }
-  }, [token, q, rolFiltro, bannedFiltro]);
+  }, [token, q, pagina, rolFiltro, bannedFiltro]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // Buscar o cambiar de filtro debe volver a la primera página — si no,
+  // uno podría quedar "atrapado" en una página 3 que ya no tiene resultados.
+  useEffect(() => { setPagina(1); }, [q, rolFiltro, bannedFiltro]);
+
+  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
 
   const act = async (fn: () => Promise<AdminUserRow>) => {
     try {
@@ -374,6 +387,28 @@ function PanelUsuarios({
             </div>
           ))}
           {lista.length === 0 && <p style={s.muted}>Sin resultados.</p>}
+        </div>
+      )}
+
+      {total > POR_PAGINA && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+          <button
+            style={s.btnGhost}
+            disabled={pagina <= 1}
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+          >
+            ← Anterior
+          </button>
+          <span style={s.muted}>
+            Página {pagina} de {totalPaginas} · {total} usuarios en total
+          </span>
+          <button
+            style={s.btnGhost}
+            disabled={pagina >= totalPaginas}
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+          >
+            Siguiente →
+          </button>
         </div>
       )}
     </div>
