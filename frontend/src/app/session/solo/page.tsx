@@ -409,9 +409,14 @@ function SoloSessionInner() {
     if (fase === "trabajo") {
       completarRonda();
     } else if (fase === "descanso") {
+      sonar(SONIDOS.terminado);
       notificar("descanso");
-      // El descanso terminado no hace nada solo: se espera a que la persona
-      // elija "Otro Pomodoro" o "Terminar" desde la pantalla de descanso.
+      // El descanso terminado no avanza de fase solo: se espera a que la
+      // persona elija "Otro Pomodoro" o "Terminar" desde esta pantalla. Pero
+      // si que avisa con sonido + notificacion, igual que el fin del foco —
+      // antes solo notificaba (y la notificacion del navegador no suena si
+      // la pestaña esta visible), por lo que el descanso podia terminar sin
+      // que la persona se diera cuenta.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restante, fase]);
